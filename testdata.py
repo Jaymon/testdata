@@ -33,7 +33,7 @@ def get_str(str_size=0, chars=None):
     if str_size == 0:
         str_size = random.randint(3, 20)
 
-    s = u''
+    sg = None
 
     if chars is None:
         # chars can be any range in unicode
@@ -65,13 +65,13 @@ def get_str(str_size=0, chars=None):
                     [first, random.choice(byte_range(0x80, 0x8F)), random.choice(trailing_values), random.choice(trailing_values)]
                 )
 
-        for i in xrange(str_size):
-            s += random_utf8_seq().decode('utf-8')
+        sg = (random_utf8_seq().decode('utf-8') for c in xrange(str_size))
 
     else:
         # we have a defined set of chars
-        s = u''.join(random.sample(chars, str_size))
+        sg = (random.choice(chars) for c in xrange(str_size))
 
+    s = u''.join(sg)
     return s
 
 def get_ascii(str_size=0):
@@ -165,7 +165,7 @@ def get_name(name_count=2, as_str=True):
     names = random.sample(_names, name_count)
     return names if not as_str else u' '.join(names)
 
-def get_coordinate(v1, v2):
+def get_coordinate(v1, v2, round_to=7):
     '''
     this will get a random coordinate between the values v1 and v2
 
@@ -177,40 +177,42 @@ def get_coordinate(v1, v2):
 
     return -- float -- a value between v1 and v2
     '''
-    v1 = str(round(v1, 7)).split('.')
-    v2 = str(round(v2, 7)).split('.')
+    v1 = [int(x) for x in str(round(v1, round_to)).split('.')]
+    v2 = [int(x) for x in str(round(v2, round_to)).split('.')]
+    scale_max = int('9' * round_to)
     
-    v1[0] = int(v1[0])
-    v1[1] = int(v1[1])
-    
-    v2[0] = int(v2[0])
-    v2[1] = int(v2[1])
-    
-    min = []
-    max = []
-    
-    if v1[0] >= v2[0]:
+    min = v1
+    max = v2
+    if v1[0] > v2[0]:
       min = v2
       max = v1
-    elif v2[0] >= v1[0]:
-      min = v1
-      max = v2
+    
+    min_size = min[0]
+    min_scale_range = [min[1], scale_max]
     
     max_size = max[0]
     max_scale_range = [0, max[1]]
     
-    min_size = min[0]
-    min_scale_range = [min[1], (9999999 - min[1])]
-    
     scale = 0
     size = random.randint(min_size, max_size)
+
     
     if size == min_size:
       scale = random.randint(min_scale_range[0], min_scale_range[1])
     elif size == max_size:
-      scale = random.randint(max_scale_range[0], max_scale_range[1])
+        # if you get a random value from 0 to say 23456, you might get 9070, which is
+        # less than 23456, but when put into a float it would be: N.9070, which is bigger
+        # than the passed in v2 float, the following code avoids that problem
+        left_zero_count = random.randint(0, round_to)
+        if left_zero_count == round_to:
+            scale = '0' * round_to
+        elif left_zero_count > 0:
+            scale = int(str(scale_max)[left_zero_count:])
+            scale = str(random.randint(max_scale_range[0], scale)).zfill(round_to)
+        else:
+            scale = random.randint(int('1' + ('0' * (round_to - 1))), max_scale_range[1])
     else:
-      scale = random.randint(0, 9999999)
+      scale = random.randint(0, scale_max)
   
     return float('{}.{}'.format(size, scale))
 

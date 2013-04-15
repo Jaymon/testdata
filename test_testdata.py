@@ -8,6 +8,7 @@ python -m unittest test_testdata[.ClassTest[.test_method]]
 """
 import unittest
 import re
+import string
 
 import testdata
 import pout
@@ -41,16 +42,21 @@ class TestdataTest(unittest.TestCase):
         v1 = 123.3445435454535
         v2 = 124.23454535
         v = testdata.get_coordinate(v1, v2)
-        self.assertGreater(v, v1)
-        self.assertGreater(v2, v)
+        self.assertGreaterEqual(v, v1)
+        self.assertGreaterEqual(v2, v)
 
     def test_get_str(self):
         s = testdata.get_str()
         #pout.v(repr(s))
 
         s_byte = s.encode('utf-8')
-        with self.assertRaises(UnicodeDecodeError):
+        with self.assertRaises(UnicodeError):
             s_byte.encode('utf-8')
+            raise UnicodeError('well what do you know, get_str() returned all ascii')
+
+        s = testdata.get_str(24, chars=string.hexdigits.lower())
+        self.assertNotEqual(u"", s)
+        self.assertEqual(24, len(s))
 
     def test_get_ascii(self):
         s = testdata.get_ascii()
@@ -70,8 +76,8 @@ class TestdataTest(unittest.TestCase):
         self.assertGreater(i, 0)
 
         i = testdata.get_int(1, 5)
-        self.assertGreater(i, 1)
-        self.assertGreater(5, i)
+        self.assertGreaterEqual(i, 1)
+        self.assertGreaterEqual(5, i)
 
     def test_get_float(self):
         f = testdata.get_float()
