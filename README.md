@@ -9,7 +9,7 @@ To use testdata in your tests, just include the `testdata.py` module:
 
 To install, use Pip:
 
-   pip install git+https://github.com/Jaymon/testdata#egg=testdata
+    pip install git+https://github.com/Jaymon/testdata#egg=testdata
 
 
 ## Todo
