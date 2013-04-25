@@ -1,7 +1,7 @@
 '''
 a module to make it easy to get some test data
 
-NOTE: all methods that return strings will return unicode strings
+NOTE: all methods that return strings will return unicode utf-8 strings
 
 for a utf-8 stress test, see: http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
 '''
@@ -24,6 +24,9 @@ def get_url():
 def get_str(str_size=0, chars=None):
     '''
     generate a random unicode string
+
+    if chars is None, this will can generate up to a 4-byte utf-8 unicode string, which can
+    break legacy utf-8 things
     
     str_size -- integer -- how long you want the string to be
     chars -- sequence -- the characters you want the string to use, if this is None, it
@@ -36,7 +39,8 @@ def get_str(str_size=0, chars=None):
     sg = None
 
     if chars is None:
-        # chars can be any range in unicode
+        # chars can be any range in unicode (based off of table 3.7 of Unicode 6.2.0
+        # pg 42 - http://www.unicode.org/versions/Unicode6.2.0/ch03.pdf
         # via: http://stackoverflow.com/questions/1477294/generate-random-utf-8-string-in-python
         byte_range = lambda first, last: range(first, last+1)
         first_values = byte_range(0x00, 0x7F) + byte_range(0xC2, 0xF4)
@@ -44,23 +48,27 @@ def get_str(str_size=0, chars=None):
 
         def random_utf8_seq():
             first = random.choice(first_values)
-            if first <= 0x7F:
+            if first <= 0x7F: # U+0000...U+007F
                 return bytearray([first])
-            elif first <= 0xDF:
+            elif (first >= 0xC2) and (first <= 0xDF): # U+0080...U+07FF
                 return bytearray([first, random.choice(trailing_values)])
-            elif first == 0xE0:
+            elif first == 0xE0: # U+0800...U+0FFF
                 return bytearray([first, random.choice(byte_range(0xA0, 0xBF)), random.choice(trailing_values)])
-            elif first == 0xED:
-                return bytearray([first, random.choice(byte_range(0x80, 0x9F)), random.choice(trailing_values)])
-            elif first <= 0xEF:
+            elif (first >= 0xE1) and (first <= 0xEC): # U+1000...U+CFFF
                 return bytearray([first, random.choice(trailing_values), random.choice(trailing_values)])
-            elif first == 0xF0:
+            elif first == 0xED: # U+D000...U+D7FF
+                return bytearray([first, random.choice(byte_range(0x80, 0x9F)), random.choice(trailing_values)])
+            elif (first >= 0xEE) and (first <= 0xEF): # U+E000...U+FFFF
+                return bytearray([first, random.choice(trailing_values), random.choice(trailing_values)])
+            elif first == 0xF0: # U+10000...U+3FFFF
                 return bytearray(
                     [first, random.choice(byte_range(0x90, 0xBF)), random.choice(trailing_values), random.choice(trailing_values)]
                 )
-            elif first <= 0xF3:
-                return bytearray([first, random.choice(trailing_values), random.choice(trailing_values), random.choice(trailing_values)])
-            elif first == 0xF4:
+            elif (first >= 0xF1) and (first <= 0xF3): # U+40000...U+FFFFF
+                return bytearray(
+                    [first, random.choice(trailing_values), random.choice(trailing_values), random.choice(trailing_values)]
+                )
+            elif first == 0xF4: # U+100000...U+10FFFF
                 return bytearray(
                     [first, random.choice(byte_range(0x80, 0x8F)), random.choice(trailing_values), random.choice(trailing_values)]
                 )
@@ -74,6 +82,15 @@ def get_str(str_size=0, chars=None):
     s = u''.join(sg)
     return s
 
+def get_hex(str_size=0):
+    '''
+    generate a string of just ascii characters
+
+    str_size -- integer -- how long you want the string to be
+    return -- unicode
+    '''
+    return get_str(str_size=str_size, chars=string.hexdigits.lower())
+
 def get_ascii(str_size=0):
     '''
     generate a random string full of just ascii characters
@@ -82,7 +99,7 @@ def get_ascii(str_size=0):
     return -- unicode
     '''
     chars=string.ascii_letters + string.digits
-    return get_str(str_size, chars)
+    return get_str(str_size=str_size, chars=chars)
 
 def get_float(min_size=None, max_size=None):
     '''
@@ -227,8 +244,7 @@ _previous_ints = set()
 # similar to get_int()
 _previous_floats = set()
 
-# all the names to choose from in get_name()
-# TODO: add utf names outside ascii range
+# all the names to choose from in get_name() (english and russian)
 _names = re.split(r'\s+', u'''
 mary patricia linda barbara elizabeth jennifer maria susan margaret dorothy lisa nancy karen betty helen
 sandra donna carol ruth sharon michelle laura sarah kimberly deborah jessica shirley cynthia angela
@@ -456,9 +472,85 @@ Jed Bartlet Leo McGarry Josh Lyman Will Bailey Kate Harper Annabeth Schott Matt 
 Homer Simpson Marge Simpson Bart Simpson Lisa Simpson Maggie Simpson Ned Flanders Maude Flanders
 Rod Flanders Todd Flanders Itchy Scratchy Troy McClure Nelson Muntz Clancy Wiggum Ralph Wiggum Krusty
 Willie Blossom Bubbles Buttercup Abigail Bartlet
+
+\u0410\u0431\u0440\u0430\u043c Abram \u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440 Alexander
+\u0410\u043b\u0435\u043a\u0441\u0435\u0439 Alexei \u0410\u043b\u044c\u0431\u0435\u0440\u0442 Albert
+\u0410\u043d\u0430\u0442\u043e\u043b\u0438\u0439 Anatoly \u0410\u043d\u0434\u0440\u0435\u0439 Andrei
+\u0410\u043d\u0442\u043e\u043d Anton \u0410\u0440\u043a\u0430\u0434\u0438\u0439 Arkady \u0410\u0440\u0441\u0435\u043d\u0438\u0439
+Arseny \u0410\u0440\u0442\u0451\u043c Artyom \u0410\u0440\u0442\u0443\u0440 Artur \u0410\u0444\u0430\u043d\u0430\u0441\u0438\u0439
+Afanasy \u0411\u043e\u0433\u0434\u0430\u043d Bogdan \u0411\u043e\u0440\u0438\u0441 Boris \u0412\u0430\u0434\u0438\u043c
+Vadim \u0412\u0430\u043b\u0435\u043d\u0442\u0438\u043d Valentin \u0412\u0430\u043b\u0435\u0440\u0438\u0439 Valery
+\u0412\u0430\u0441\u0438\u043b\u0438\u0439 Vasily \u0412\u0435\u043d\u0438\u0430\u043c\u0438\u043d Veniamin
+\u0412\u0438\u043a\u0442\u043e\u0440 Viktor \u0412\u0438\u0442\u0430\u043b\u0438\u0439 Vitaly \u0412\u043b\u0430\u0434 Vlad
+\u0412\u043b\u0430\u0434\u0438\u043c\u0438\u0440 Vladimir \u0412\u043b\u0430\u0434\u0438\u0441\u043b\u0430\u0432 Vladislav
+\u0412\u0441\u0435\u0432\u043e\u043b\u043e\u0434 Vsevolod \u0412\u044f\u0447\u0435\u0441\u043b\u0430\u0432 Vyacheslav
+\u0413\u0430\u0432\u0440\u0438\u0438\u043b Gavriil \u0413\u0430\u0440\u0440\u0438 Garry
+\u0413\u0435\u043d\u043d\u0430\u0434\u0438\u0439 Gennady \u0413\u0435\u043e\u0440\u0433\u0438\u0439 Georgy
+\u0413\u0435\u0440\u0430\u0441\u0438\u043c Gerasim \u0413\u0435\u0440\u043c\u0430\u043d German \u0413\u043b\u0435\u0431
+Gleb \u0413\u0440\u0438\u0433\u043e\u0440\u0438\u0439 Grigory \u0414\u0430\u0432\u0438\u0434 David
+\u0414\u0430\u043d\u0438\u0438\u043b Daniil \u0414\u0435\u043d\u0438\u0441 Denis \u0414\u043c\u0438\u0442\u0440\u0438\u0439
+Dmitry \u0415\u0432\u0433\u0435\u043d\u0438\u0439 Evgeny \u0415\u0433\u043e\u0440 Yegor \u0415\u0444\u0438\u043c Yefim
+\u0417\u0430\u0445\u0430\u0440 Zakhar \u0418\u0432\u0430\u043d Ivan \u0418\u0433\u043d\u0430\u0442
+\u0418\u0433\u043d\u0430\u0442\u0438\u0439  eegNAHteey  Ignaty \u0418\u0433\u043e\u0440\u044c Igor
+\u0418\u043b\u043b\u0430\u0440\u0438\u043e\u043d Illarion \u0418\u043b\u044c\u044f Ilia
+\u0418\u043c\u043c\u0430\u043d\u0443\u0438\u043b Immanuil \u0418\u043e\u0441\u0438\u0444 Iosif
+\u041a\u0438\u0440\u0438\u043b\u043b Kirill \u041a\u043e\u043d\u0441\u0442\u0430\u043d\u0442\u0438\u043d Konstantin
+\u041b\u0435\u0432 Lev/Leo \u041b\u0435\u043e\u043d\u0438\u0434 Leonid \u041c\u0430\u043a\u0430\u0440 Makar
+\u041c\u0430\u043a\u0441\u0438\u043c Maxim \u041c\u0430\u0440\u0430\u0442 Marat \u041c\u0430\u0440\u043a Mark
+\u041c\u0430\u0442\u0432\u0435\u0439 Matvei \u041c\u0438\u0445\u0430\u0438\u043b Mikhail
+\u041d\u0435\u0441\u0442\u043e\u0440 Nestor \u041d\u0438\u043a\u0438\u0442\u0430 Nikita
+\u041d\u0438\u043a\u043e\u043b\u0430\u0439 Nikolay \u041e\u043b\u0435\u0433 Oleg \u041f\u0430\u0432\u0435\u043b
+Pavel \u041f\u0451\u0442\u0440 Pyotr/Peter \u0420\u043e\u0431\u0435\u0440\u0442 Robert
+\u0420\u043e\u0434\u0438\u043e\u043d Rodion \u0420\u043e\u043c\u0430\u043d Roman
+\u0420\u043e\u0441\u0442\u0438\u0441\u043b\u0430\u0432 Rostislav \u0420\u0443\u0441\u043b\u0430\u043d Ruslan
+\u0421\u0435\u043c\u0451\u043d Semyon \u0421\u0435\u0440\u0433\u0435\u0439 Sergei \u0421\u043f\u0430\u0440\u0442\u0430\u043a
+Spartak \u0421\u0442\u0430\u043d\u0438\u0441\u043b\u0430\u0432 Stanislav \u0421\u0442\u0435\u043f\u0430\u043d
+Stepan \u0422\u0430\u0440\u0430\u0441 Taras \u0422\u0438\u043c\u043e\u0444\u0435\u0439 Timofei
+\u0422\u0438\u043c\u0443\u0440 Timur \u0422\u0440\u043e\u0444\u0438\u043c Trofim \u042d\u0434\u0443\u0430\u0440\u0434
+Eduard \u042d\u0440\u0438\u043a Erik \u042e\u043b\u0438\u0430\u043d Yulian \u042e\u0440\u0438\u0439 Yury
+\u042f\u043a\u043e\u0432 Yakov \u042f\u0440\u043e\u0441\u043b\u0430\u0432 Yaroslav 
+\u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440\u0430 Alexandra \u0410\u043b\u0438\u043d\u0430
+Alina \u0410\u043b\u0438\u0441\u0430 Alisa \u0410\u043b\u043b\u0430 Alla \u0410\u043b\u0451\u043d\u0430
+Alyona \u0410\u043b\u044c\u0431\u0438\u043d\u0430 Albina \u0410\u043d\u0430\u0441\u0442\u0430\u0441\u0438\u044f
+Anastasiya \u0410\u043d\u043d\u0430 Anna \u0410\u043d\u0442\u043e\u043d\u0438\u043d\u0430 Antonina
+\u0410\u043d\u0436\u0435\u043b\u0438\u043a\u0430 Anzhelika \u0410\u043d\u0444\u0438\u0441\u0430 Anfisa
+\u0412\u0435\u0440\u0430 Vera \u0412\u0430\u043b\u0435\u0440\u0438\u044f Valeriya \u0412\u0430\u0440\u0432\u0430\u0440\u0430
+Varvara \u0412\u0430\u0441\u0438\u043b\u0438\u0441\u0430 Vasilisa \u0412\u043b\u0430\u0434\u043b\u0435\u043d\u0430
+Vladlena \u0412\u0435\u0440\u043e\u043d\u0438\u043a\u0430 Veronika \u0412\u0430\u043b\u0435\u043d\u0442\u0438\u043d\u0430
+Valentina \u0412\u0438\u043a\u0442\u043e\u0440\u0438\u044f Viktoriya \u0413\u0430\u043b\u0438\u043d\u0430
+Galina \u0414\u0430\u0440\u044c\u044f Darya \u0414\u0438\u043d\u0430 Dina \u0414\u0438\u0430\u043d\u0430
+Diana \u0414\u043e\u043c\u0438\u043d\u0438\u043a\u0430 Dominika \u0415\u043a\u0430\u0442\u0435\u0440\u0438\u043d\u0430
+Ekateirna \u0415\u043b\u0435\u043d\u0430 Elena \u0415\u043b\u0438\u0437\u0430\u0432\u0435\u0442\u0430 Elizaveta
+\u0415\u0432\u0433\u0435\u043d\u0438\u044f Evgeniya \u0415\u0432\u0430 Eva \u0416\u0430\u043d\u043d\u0430 Zhanna
+\u0417\u0438\u043d\u0430\u0438\u0434\u0430 Zinaida \u0417\u043e\u044f Zoya \u0417\u043b\u0430\u0442\u0430 Zlata
+\u0418\u043d\u0433\u0430 Inga \u0418\u043d\u043d\u0430 Inna \u0418\u0440\u0438\u043d\u0430 Irina
+\u0418\u043d\u0435\u0441\u0441\u0430 Inessa \u0418\u0437\u0430\u0431\u0435\u043b\u043b\u0430 Izabella
+\u0418\u0437\u043e\u043b\u044c\u0434\u0430 Izolda \u0418\u0441\u043a\u0440\u0430 Iskra \u041a\u043b\u0430\u0440\u0430
+Klara \u041a\u043b\u0430\u0432\u0434\u0438\u044f Klavdiya \u041a\u0441\u0435\u043d\u0438\u044f Kseniya
+\u041a\u0430\u043f\u0438\u0442\u043e\u043b\u0438\u043d\u0430 Kapitolina \u041a\u043b\u0435\u043c\u0435\u043d\u0442\u0438\u043d\u0430
+Klementina \u041a\u0440\u0438\u0441\u0442\u0438\u043d\u0430 Kristina \u041b\u0430\u0434\u0430 Lada
+\u041b\u0430\u0440\u0438\u0441\u0430 Larisa \u041b\u0438\u0434\u0438\u044f Lidiya \u041b\u044e\u0431\u043e\u0432\u044c
+Lubov \u041b\u0438\u043b\u0438\u044f Liliya \u041b\u044e\u0434\u043c\u0438\u043b\u0430 Ludmila
+\u041b\u044e\u0441\u044f Lucya \u041c\u0430\u0440\u0433\u0430\u0440\u0438\u0442\u0430 Margarita
+\u041c\u0430\u0439\u044f Maya \u041c\u0430\u043b\u044c\u0432\u0438\u043d\u0430 Malvina \u041c\u0430\u0440\u0442\u0430
+Marta \u041c\u0430\u0440\u0438\u043d\u0430 Marina \u041c\u0430\u0440\u0438\u044f Mariya \u041d\u0430\u0434\u0435\u0436\u0434\u0430
+Nadezhda \u041d\u0430\u0442\u0430\u043b\u044c\u044f Natalya \u041d\u0435\u043b\u043b\u0438 Nelly \u041d\u0438\u043d\u0430
+Nina \u041d\u0438\u043a\u0430 Nika \u041d\u043e\u043d\u043d\u0430 Nonna \u041e\u043a\u0441\u0430\u043d\u0430 Oksana
+\u041e\u043b\u044c\u0433\u0430 Olga \u041e\u043b\u0435\u0441\u044f Olesya \u041f\u043e\u043b\u0438\u043d\u0430
+Polina \u0420\u0430\u0438\u0441\u0430 Raisa \u0420\u0430\u0434\u0430 Rada \u0420\u043e\u0437\u0430\u043b\u0438\u043d\u0430
+Rozalina \u0420\u0435\u0433\u0438\u043d\u0430 Regina \u0420\u0435\u043d\u0430\u0442\u0430 Renata
+\u0421\u0432\u0435\u0442\u043b\u0430\u043d\u0430 Svetlana \u0421\u043e\u0444\u044c\u044f \u0421\u043e\u0444\u0438\u044f
+Sofia \u0422\u0430\u0438\u0441\u0438\u044f Taisia \u0422\u0430\u043c\u0430\u0440\u0430 Tamara
+\u0422\u0430\u0442\u044c\u044f\u043d\u0430 Tatyana \u0423\u043b\u044c\u044f\u043d\u0430 Ulyana
+\u0424\u0430\u0438\u043d\u0430 Faina \u0424\u0435\u0434\u043e\u0441\u044c\u044f Fedosia
+\u0424\u043b\u043e\u0440\u0435\u043d\u0442\u0438\u043d\u0430 Florentina \u042d\u043b\u044c\u0432\u0438\u0440\u0430
+Elvira \u042d\u043c\u0438\u043b\u0438\u044f Emilia \u042d\u043c\u043c\u0430 Emma \u042e\u043b\u0438\u044f
+Yuliya \u042f\u0440\u043e\u0441\u043b\u0430\u0432\u0430 Yaroslava \u042f\u043d\u0430 Yana
 ''')
 
 # via: http://www.lipsum.com/feed/html
+# russian is from: http://masterrussian.com/vocabulary/most_common_words.htm
+# japanese (4bytes) are from: http://www.i18nguy.com/unicode/supplementary-test.html
 _paragraphs = u'''
 Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Phasellus
 pharetra urna sit amet magna. Donec posuere porta velit. Vestibulum sed libero.
@@ -507,6 +599,59 @@ Nunc laoreet. Morbi pharetra. Integer cursus molestie turpis. Nam cursus sodales
 Maecenas non lacus. Pellentesque habitant morbi tristique senectus et netus et malesuada fames
 ac turpis egestas. Nam vel nibh eu nulla blandit facilisis. Sed varius turpis ac neque.
 Curabitur vel erat. Morbi sed purus id erat tincidunt ullamcorper.
+
+\u0437\u043d\u0430\u0442\u044c \u043c\u043e\u0439 \u0434\u043e \u0438\u043b\u0438 \u0435\u0441\u043b\u0438
+\u0432\u0440\u0435\u043c\u044f \u0440\u0443\u043a\u0430 \u043d\u0435\u0442 \u0441\u0430\u043c\u044b\u0439
+\u043d\u0438 \u0441\u0442\u0430\u0442\u044c \u0431\u043e\u043b\u044c\u0448\u043e\u0439 \u0434\u0430\u0436\u0435
+\u0434\u0440\u0443\u0433\u043e\u0439 \u043d\u0430\u0448 \u0441\u0432\u043e\u0439 \u043d\u0443 \u043f\u043e\u0434
+\u0433\u0434\u0435 \u0434\u0435\u043b\u043e \u0435\u0441\u0442\u044c \u0441\u0430\u043c \u0440\u0430\u0437
+\u0447\u0442\u043e\u0431\u044b \u0434\u0432\u0430 \u0442\u0430\u043c \u0447\u0435\u043c \u0433\u043b\u0430\u0437
+\u0436\u0438\u0437\u043d\u044c \u043f\u0435\u0440\u0432\u044b\u0439 \u0434\u0435\u043d\u044c \u0442\u0443\u0442
+\u0432\u043e \u043d\u0438\u0447\u0442\u043e \u043f\u043e\u0442\u043e\u043c \u043e\u0447\u0435\u043d\u044c
+\u0441\u043e \u0445\u043e\u0442\u0435\u0442\u044c \u043b\u0438 \u043f\u0440\u0438 \u0433\u043e\u043b\u043e\u0432\u0430
+\u043d\u0430\u0434\u043e \u0431\u0435\u0437 \u0432\u0438\u0434\u0435\u0442\u044c \u0438\u0434\u0442\u0438
+\u0442\u0435\u043f\u0435\u0440\u044c \u0442\u043e\u0436\u0435 \u0441\u0442\u043e\u044f\u0442\u044c
+\u0434\u0440\u0443\u0433 \u0434\u043e\u043c \u0441\u0435\u0439\u0447\u0430\u0441 \u043c\u043e\u0436\u043d\u043e
+\u043f\u043e\u0441\u043b\u0435 \u0441\u043b\u043e\u0432\u043e \u0437\u0434\u0435\u0441\u044c
+\u0434\u0443\u043c\u0430\u0442\u044c \u043c\u0435\u0441\u0442\u043e \u0441\u043f\u0440\u043e\u0441\u0438\u0442\u044c
+\u0447\u0435\u0440\u0435\u0437 \u043b\u0438\u0446\u043e \u0447\u0442\u043e \u0442\u043e\u0433\u0434\u0430
+\u0432\u0435\u0434\u044c \u0445\u043e\u0440\u043e\u0448\u0438\u0439 \u043a\u0430\u0436\u0434\u044b\u0439
+\u043d\u043e\u0432\u044b\u0439 \u0436\u0438\u0442\u044c \u0434\u043e\u043b\u0436\u043d\u044b\u0439
+\u0441\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u043f\u043e\u0447\u0435\u043c\u0443
+\u043f\u043e\u0442\u043e\u043c\u0443 \u0441\u0442\u043e\u0440\u043e\u043d\u0430 \u043f\u0440\u043e\u0441\u0442\u043e
+\u043d\u043e\u0433\u0430 \u0441\u0438\u0434\u0435\u0442\u044c \u043f\u043e\u043d\u044f\u0442\u044c
+\u0438\u043c\u0435\u0442\u044c \u043a\u043e\u043d\u0435\u0447\u043d\u044b\u0439 \u0434\u0435\u043b\u0430\u0442\u044c
+\u0432\u0434\u0440\u0443\u0433 \u043d\u0430\u0434 \u0432\u0437\u044f\u0442\u044c \u043d\u0438\u043a\u0442\u043e
+\u0441\u0434\u0435\u043b\u0430\u0442\u044c \u0434\u0432\u0435\u0440\u044c \u043f\u0435\u0440\u0435\u0434
+\u043d\u0443\u0436\u043d\u044b\u0439 \u043f\u043e\u043d\u0438\u043c\u0430\u0442\u044c
+\u043a\u0430\u0437\u0430\u0442\u044c\u0441\u044f \u0440\u0430\u0431\u043e\u0442\u0430 \u0442\u0440\u0438
+\u0432\u0430\u0448 \u0443\u0436 \u0437\u0435\u043c\u043b\u044f \u043a\u043e\u043d\u0435\u0446
+\u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0447\u0430\u0441 \u0433\u043e\u043b\u043e\u0441
+\u0433\u043e\u0440\u043e\u0434 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0439 \u043f\u043e\u043a\u0430
+\u0445\u043e\u0440\u043e\u0448\u043e \u0434\u0430\u0432\u0430\u0442\u044c \u0432\u043e\u0434\u0430
+\u0431\u043e\u043b\u0435\u0435 \u0445\u043e\u0442\u044f \u0432\u0441\u0435\u0433\u0434\u0430
+\u0432\u0442\u043e\u0440\u043e\u0439 \u043a\u0443\u0434\u0430 \u043f\u043e\u0439\u0442\u0438
+\u0441\u0442\u043e\u043b \u0440\u0435\u0431\u0451\u043d\u043e\u043a \u0443\u0432\u0438\u0434\u0435\u0442\u044c
+\u0441\u0438\u043b\u0430 \u043e\u0442\u0435\u0446 \u0436\u0435\u043d\u0449\u0438\u043d\u0430
+\u043c\u0430\u0448\u0438\u043d\u0430 \u0441\u043b\u0443\u0447\u0430\u0439 \u043d\u043e\u0447\u044c
+\u0441\u0440\u0430\u0437\u0443 \u043c\u0438\u0440 \u0441\u043e\u0432\u0441\u0435\u043c
+\u043e\u0441\u0442\u0430\u0442\u044c\u0441\u044f \u043e\u0431 \u0432\u0438\u0434 \u0432\u044b\u0439\u0442\u0438
+\u0434\u0430\u0442\u044c \u0440\u0430\u0431\u043e\u0442\u0430\u0442\u044c \u043b\u044e\u0431\u0438\u0442\u044c
+\u0441\u0442\u0430\u0440\u044b\u0439 \u043f\u043e\u0447\u0442\u0438 \u0440\u044f\u0434
+\u043e\u043a\u0430\u0437\u0430\u0442\u044c\u0441\u044f \u043d\u0430\u0447\u0430\u043b\u043e
+\u0442\u0432\u043e\u0439 \u0432\u043e\u043f\u0440\u043e\u0441 \u043c\u043d\u043e\u0433\u043e
+\u0432\u043e\u0439\u043d\u0430 \u0441\u043d\u043e\u0432\u0430 \u043e\u0442\u0432\u0435\u0442\u0438\u0442\u044c
+\u043c\u0435\u0436\u0434\u0443 \u043f\u043e\u0434\u0443\u043c\u0430\u0442\u044c \u043e\u043f\u044f\u0442\u044c
+\u0431\u0435\u043b\u044b\u0439 \u0434\u0435\u043d\u044c\u0433\u0438 \u0437\u043d\u0430\u0447\u0438\u0442\u044c
+\u043f\u0440\u043e \u043b\u0438\u0448\u044c \u043c\u0438\u043d\u0443\u0442\u0430 \u0436\u0435\u043d\u0430
+
+\U0002070e \U00020731 \U00020779 \U00020c53 \U00020c78 \U00020c96 \U00020ccf \U00020cd5 \U00020d15 \U00020d7c
+\U00020d7f \U00020e0e \U00020e0f \U00020e77 \U00020e9d \U00020ea2 \U00020ed7 \U00020ef9 \U00020efa \U00020f2d
+\U00020f2e \U00020f4c \U00020fb4 \U00020fbc \U00020fea \U0002105c \U0002106f \U00021075 \U00021076 \U0002107b
+\U000210c1 \U000210c9 \U000211d9 \U000220c7 \U000227b5 \U00022ad5 \U00022b43 \U00022bca \U00022c51 \U00022c55
+\U00022cc2 \U00022d08 \U00022d4c \U00022d67 \U00022eb3 \U00023cb7 \U000244d3 \U00024db8 \U00024dea \U0002512b
+\U00026258 \U000267cc \U000269f2 \U000269fa \U00027a3e \U0002815d \U00028207 \U000282e2 \U00028cca \U00028ccd
+\U00028cd2 \U00029d98
 '''
 
 _words = re.split(r'\s+', _paragraphs)
