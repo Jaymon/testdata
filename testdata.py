@@ -4,6 +4,8 @@ a module to make it easy to get some test data
 NOTE: all methods that return strings will return unicode utf-8 strings
 
 for a utf-8 stress test, see: http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
+you can get all the unicode chars and their names: ftp://ftp.unicode.org/
+    ftp://ftp.unicode.org/Public/6.3.0/ucd/UnicodeData-6.3.0d2.txt
 '''
 import re
 import random
@@ -47,31 +49,49 @@ def get_str(str_size=0, chars=None):
         trailing_values = byte_range(0x80, 0xBF)
 
         def random_utf8_seq():
-            first = random.choice(first_values)
-            if first <= 0x7F: # U+0000...U+007F
-                return bytearray([first])
-            elif (first >= 0xC2) and (first <= 0xDF): # U+0080...U+07FF
-                return bytearray([first, random.choice(trailing_values)])
-            elif first == 0xE0: # U+0800...U+0FFF
-                return bytearray([first, random.choice(byte_range(0xA0, 0xBF)), random.choice(trailing_values)])
-            elif (first >= 0xE1) and (first <= 0xEC): # U+1000...U+CFFF
-                return bytearray([first, random.choice(trailing_values), random.choice(trailing_values)])
-            elif first == 0xED: # U+D000...U+D7FF
-                return bytearray([first, random.choice(byte_range(0x80, 0x9F)), random.choice(trailing_values)])
-            elif (first >= 0xEE) and (first <= 0xEF): # U+E000...U+FFFF
-                return bytearray([first, random.choice(trailing_values), random.choice(trailing_values)])
-            elif first == 0xF0: # U+10000...U+3FFFF
-                return bytearray(
-                    [first, random.choice(byte_range(0x90, 0xBF)), random.choice(trailing_values), random.choice(trailing_values)]
-                )
-            elif (first >= 0xF1) and (first <= 0xF3): # U+40000...U+FFFFF
-                return bytearray(
-                    [first, random.choice(trailing_values), random.choice(trailing_values), random.choice(trailing_values)]
-                )
-            elif first == 0xF4: # U+100000...U+10FFFF
-                return bytearray(
-                    [first, random.choice(byte_range(0x80, 0x8F)), random.choice(trailing_values), random.choice(trailing_values)]
-                )
+            while True:
+                first = random.choice(first_values)
+                if first <= 0x7F: # U+0000...U+007F
+                    return bytearray([first])
+                elif (first >= 0xC2) and (first <= 0xDF): # U+0080...U+07FF
+                    return bytearray([first, random.choice(trailing_values)])
+                elif first == 0xE0: # U+0800...U+0FFF
+                    return bytearray([first, random.choice(byte_range(0xA0, 0xBF)), random.choice(trailing_values)])
+                elif (first >= 0xE1) and (first <= 0xEC): # U+1000...U+CFFF
+                    return bytearray([first, random.choice(trailing_values), random.choice(trailing_values)])
+                elif first == 0xED: # U+D000...U+D7FF
+                    return bytearray([first, random.choice(byte_range(0x80, 0x9F)), random.choice(trailing_values)])
+                elif (first >= 0xEE) and (first <= 0xEF): # U+E000...U+FFFF
+                    return bytearray([first, random.choice(trailing_values), random.choice(trailing_values)])
+                else:
+                    if sys.maxunicode > 65535:
+                        if first == 0xF0: # U+10000...U+3FFFF
+                            return bytearray(
+                                [
+                                    first,
+                                    random.choice(byte_range(0x90, 0xBF)),
+                                    random.choice(trailing_values),
+                                    random.choice(trailing_values)
+                                ]
+                            )
+                        elif (first >= 0xF1) and (first <= 0xF3): # U+40000...U+FFFFF
+                            return bytearray(
+                                [
+                                    first,
+                                    random.choice(trailing_values),
+                                    random.choice(trailing_values),
+                                    random.choice(trailing_values)
+                                ]
+                            )
+                        elif first == 0xF4: # U+100000...U+10FFFF
+                            return bytearray(
+                                [
+                                    first,
+                                    random.choice(byte_range(0x80, 0x8F)),
+                                    random.choice(trailing_values),
+                                    random.choice(trailing_values)
+                                ]
+                            )
 
         sg = (random_utf8_seq().decode('utf-8') for c in xrange(str_size))
 
@@ -644,7 +664,11 @@ Curabitur vel erat. Morbi sed purus id erat tincidunt ullamcorper.
 \u043c\u0435\u0436\u0434\u0443 \u043f\u043e\u0434\u0443\u043c\u0430\u0442\u044c \u043e\u043f\u044f\u0442\u044c
 \u0431\u0435\u043b\u044b\u0439 \u0434\u0435\u043d\u044c\u0433\u0438 \u0437\u043d\u0430\u0447\u0438\u0442\u044c
 \u043f\u0440\u043e \u043b\u0438\u0448\u044c \u043c\u0438\u043d\u0443\u0442\u0430 \u0436\u0435\u043d\u0430
+'''
 
+# only add 4-byte unicode if 4-byte unicode is supported
+if sys.maxunicode > 65535:
+    _paragraphs += u'''
 \U0002070e \U00020731 \U00020779 \U00020c53 \U00020c78 \U00020c96 \U00020ccf \U00020cd5 \U00020d15 \U00020d7c
 \U00020d7f \U00020e0e \U00020e0f \U00020e77 \U00020e9d \U00020ea2 \U00020ed7 \U00020ef9 \U00020efa \U00020f2d
 \U00020f2e \U00020f4c \U00020fb4 \U00020fbc \U00020fea \U0002105c \U0002106f \U00021075 \U00021076 \U0002107b
