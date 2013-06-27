@@ -15,6 +15,8 @@ import tempfile
 import os
 import codecs
 
+__version__ = '0.3'
+
 def create_dir(path, tmpdir=u""):
     '''
     create a directory path using a tempdir as the root
