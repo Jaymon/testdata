@@ -9,11 +9,64 @@ python -m unittest test_testdata[.ClassTest[.test_method]]
 import unittest
 import re
 import string
+import os
+import importlib
 
 import testdata
-import pout
 
 class TestdataTest(unittest.TestCase):
+
+    def test_create_dir(self):
+        ts = [
+            "\\foo\\bar",
+            "/foo1/bar1",
+            "/foo2/bar2/",
+            "foo3/bar3",
+            "foo4/bar4/",
+        ]
+
+        for t in ts:
+            d = testdata.create_dir(t)
+            self.assertTrue(os.path.isdir(d))
+
+        with self.assertRaises(ValueError):
+            testdata.create_dir("./foo/bar")
+
+    def test_create_file(self):
+        ts = [
+            "\\foo\\bar\\test.txt",
+            "/foo1/bar1/test.txt",
+            "/test.txt",
+            "foo3/test.txt",
+            "foo4/bar4/che4/test.txt",
+        ]
+        s = u"happy"
+
+        for t in ts:
+            f = testdata.create_file(t, s)
+            self.assertTrue(os.path.isfile(f))
+            with file(f) as fr:
+                sr = fr.read()
+                self.assertEqual(s, sr)
+
+        with self.assertRaises(ValueError):
+            testdata.create_dir("./foo/bar/test.txt")
+
+    def test_create_module(self):
+        ts = [
+            (
+                "foo.bar",
+                "Che",
+                u"class Che(object): pass"
+            )
+        ]
+
+        for t in ts:
+            testdata.create_module(t[0], contents=t[2])
+            module = importlib.import_module(t[0])
+            class_name = getattr(module, t[1])
+            instance = class_name()
+            # if all these worked, then the test passed :)
 
     def test_get_name(self):
         name = testdata.get_name()
@@ -86,3 +139,4 @@ class TestdataTest(unittest.TestCase):
         f = testdata.get_float(1.0, 2.0)
         self.assertGreater(f, 1.0)
         self.assertGreater(2.0, f)
+

@@ -11,6 +11,89 @@ import re
 import random
 import string
 import sys
+import tempfile
+import os
+import codecs
+
+def create_dir(path, tmpdir=u""):
+    '''
+    create a directory path using a tempdir as the root
+
+    so, if you pass in "/foo/bar" that will be combined with a tempdir, so you end 
+    up with the final path: /tmp/python/dir/foo/bar
+
+    path -- string -- the temp dir path
+    tmpdir -- string -- the temp directory to use as the base
+
+    return -- string -- the full directory path
+    '''
+    if path and path[0] == u'.':
+        raise ValueError("you cannot start a path with ./ or ../")
+
+    oldmask = os.umask(0)
+    if not tmpdir: tmpdir = tempfile.mkdtemp()
+
+    dirs = filter(None, _normpath(path).split(os.sep))
+    d = os.path.join(tmpdir, *dirs)
+    if not os.path.isdir(d):
+        os.makedirs(d)
+
+    os.umask(oldmask)
+    return d
+
+def create_file(path, contents=u"", tmpdir=u""):
+    '''
+    create a file and return the full path to that file
+
+    path -- string -- the path to the file
+    contents -- string -- the file contents
+    tmpdir -- string -- the temp directory to use as the base
+
+    return -- string -- the full file path
+    '''
+    if not tmpdir: tmpdir = tempfile.mkdtemp()
+
+    path = _normpath(path)
+    dir_path, filename = os.path.split(path)
+    base_path = create_dir(dir_path, tmpdir)
+    file_path = os.path.join(base_path, filename)
+
+    oldmask = os.umask(0)
+    f = codecs.open(file_path, encoding='utf-8', mode='w+')
+    f.truncate(0)
+    f.seek(0)
+    f.write(contents)
+    f.close()
+    oldmask = os.umask(oldmask)
+
+    return file_path
+
+def create_module(module_name, contents=u"", tmpdir=u"", make_importable=True):
+    '''
+    create a python module folder structure so that the module can be imported
+
+    module_name -- string -- something like foo.bar
+    contents -- string -- the contents of the module
+    tmpdir -- string -- the temp directory that will be added to the syspath if make_importable is True
+    make_importable -- boolean -- if True, then tmpdir will be added to the python path so it can be imported
+
+    return -- string -- the module file path
+    '''
+    mod_bits = filter(None, module_name.split(u'.'))
+    module_base_dir = create_dir(u"", tmpdir)
+    base_modname = mod_bits.pop()
+    base_dir = module_base_dir
+    for modname in mod_bits:
+        base_dir = create_dir(modname, base_dir)
+        create_file(u"__init__.py", tmpdir=base_dir)
+
+    module_file = create_file(u"{}.py".format(base_modname), contents=contents, tmpdir=base_dir)
+
+    # add the path to the top of the sys path so importing the new module will work
+    if make_importable:
+        sys.path.insert(0, module_base_dir) 
+
+    return module_file
 
 def get_url():
     '''
@@ -27,7 +110,7 @@ def get_str(str_size=0, chars=None):
     '''
     generate a random unicode string
 
-    if chars is None, this will can generate up to a 4-byte utf-8 unicode string, which can
+    if chars is None, this can generate up to a 4-byte utf-8 unicode string, which can
     break legacy utf-8 things
     
     str_size -- integer -- how long you want the string to be
@@ -791,4 +874,18 @@ if sys.maxunicode > 65535:
 '''
 
 _words = re.split(r'\s+', _paragraphs)
+
+def _normpath(path):
+    '''
+    normalize a path, accounting for things like windows dir seps
+
+    for some reason, os.path.split() wouldn't work with the windows slash (\)
+    '''
+    if not path: return path
+
+    path = os.path.normpath(path)
+    #dirs = filter(None, re.split(ur'[\\/]+', path))
+    path = re.sub(r"[\\/]+", os.sep, path)
+    return path
+    #return os.sep.join(dirs)
 
