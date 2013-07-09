@@ -9,8 +9,8 @@ name = 'testdata'
 version = ''
 with open('{}.py'.format(name), 'rU') as f:
     for node in (n for n in ast.parse(f.read()).body if isinstance(n, ast.Assign)):
-        nname = node.targets[0]
-        if isinstance(nname, ast.Name) and nname.id.startswith('__version__'):
+        node_name = node.targets[0]
+        if isinstance(node_name, ast.Name) and node_name.id.startswith('__version__'):
             version = node.value.s
             break
 
@@ -26,6 +26,15 @@ setup(
     url='http://github.com/Jaymon/{}'.format(name),
     py_modules=[name],
     license="MIT",
+    classifiers=[ # https://pypi.python.org/pypi?:action=list_classifiers
+        'Development Status :: 4 - Beta',
+        'Environment :: Plugins',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Topic :: Software Development :: Testing',
+        'Programming Language :: Python :: 2.7',
+    ],
     test_suite = "test_{}".format(name),
 )
 
