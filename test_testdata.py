@@ -68,6 +68,26 @@ class TestdataTest(unittest.TestCase):
             instance = class_name()
             # if all these worked, then the test passed :)
 
+    def test_get_ascii_name(self):
+        name = testdata.get_ascii_name()
+        self.assertGreater(len(name), 0)
+        name.decode('utf-8') # this should not fail because the string is ascii
+
+
+    def test_get_unicode_name(self):
+        name = testdata.get_unicode_name()
+        self.assertGreater(len(name), 0)
+        with self.assertRaises(UnicodeEncodeError):
+            name.decode('utf-8')
+
+    def test_get_email(self):
+        email = testdata.get_email()
+        self.assertGreater(len(email), 0)
+
+        name = testdata.get_ascii_name()
+        email = testdata.get_email(name)
+        self.assertTrue(email.startswith(name))
+
     def test_get_name(self):
         name = testdata.get_name()
         self.assertEqual(1, len(re.findall(r'\s+', name)))
