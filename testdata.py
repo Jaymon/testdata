@@ -300,7 +300,7 @@ def get_email(name=u''):
         u"mailinator.com"
     ]
 
-    return u'{}@{}'.format(name, random.choice(email_domains))
+    return u'{}@{}'.format(name.lower(), random.choice(email_domains))
 
 def get_name(name_count=2, as_str=True):
     '''
@@ -338,13 +338,18 @@ def get_ascii_name():
     return random.choice(_names)
 
 def get_unicode_name():
-    '''
-    return one none ascii safe name
+    '''return one none ascii safe name'''
+    name = u''
+    while True:
+        # total hack to get around not all the names in _unicode_names being unicode
+        try:
+            name = random.choice(_unicode_names)
+            name.decode('utf-8')
+        except UnicodeEncodeError:
+            break
 
-    NOTE -- not all the names in _unicode_names are unicode, there are some ascii names in there
-    but I'm too lazy right now to go remove them
-    '''
-    return random.choice(_unicode_names)
+    return name
+    # return random.choice(_unicode_names)
 
 def get_coordinate(v1, v2, round_to=7):
     '''

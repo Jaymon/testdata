@@ -86,7 +86,7 @@ class TestdataTest(unittest.TestCase):
 
         name = testdata.get_ascii_name()
         email = testdata.get_email(name)
-        self.assertTrue(email.startswith(name))
+        self.assertTrue(email.startswith(name.lower()))
 
     def test_get_name(self):
         name = testdata.get_name()
