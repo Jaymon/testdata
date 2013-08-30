@@ -11,6 +11,8 @@ import re
 import string
 import os
 import importlib
+import datetime
+import types
 
 import testdata
 
@@ -73,7 +75,6 @@ class TestdataTest(unittest.TestCase):
         self.assertGreater(len(name), 0)
         name.decode('utf-8') # this should not fail because the string is ascii
 
-
     def test_get_unicode_name(self):
         name = testdata.get_unicode_name()
         self.assertGreater(len(name), 0)
@@ -110,6 +111,24 @@ class TestdataTest(unittest.TestCase):
 
         v = testdata.get_words()
         self.assertNotEqual(u"", v)
+    
+    def test_get_ascii_words(self):
+        v = testdata.get_ascii_words()
+        self.assertGreater(len(v), 0)
+        v.decode('utf-8') # this should not fail because the string is ascii
+
+    def test_get_unicode_words(self):
+        v = testdata.get_unicode_words()
+        self.assertGreater(len(v), 0)
+        with self.assertRaises(UnicodeEncodeError):
+            v.decode('utf-8')
+
+    def test_get_birthday(self):
+        v = testdata.get_birthday()
+        self.assertTrue(isinstance(v, datetime.date))
+
+        v = testdata.get_birthday(as_str=True)
+        self.assertTrue(isinstance(v, types.StringType))
 
     def test_get_coordinate(self):
         v1 = 123.3445435454535

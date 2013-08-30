@@ -14,8 +14,9 @@ import sys
 import tempfile
 import os
 import codecs
+import datetime
 
-__version__ = '0.4'
+__version__ = '0.5'
 
 def create_dir(path, tmpdir=u""):
     '''
@@ -251,12 +252,19 @@ def get_int(min_size=1, max_size=sys.maxsize):
     
     return i
 
-def get_words(word_count=0, as_str=True):
+def get_ascii_words(word_count=0, as_str=True):
+    return get_words(word_count, as_str, words=_ascii_words)
+
+def get_unicode_words(word_count=0, as_str=True):
+    return get_words(word_count, as_str, words=_unicode_words)
+
+def get_words(word_count=0, as_str=True, words=None):
     '''
     get some amount of random words
 
     word_count -- integer -- how many words you want, 0 means a random amount (at most 20)
     as_str -- boolean -- True to return as string, false to return as list of words
+    words -- list -- a list of words to choose from, defaults to unicode + ascii words
 
     return -- unicode|list -- your requested words
     '''
@@ -265,8 +273,34 @@ def get_words(word_count=0, as_str=True):
     if word_count == 0:
         word_count = random.randint(1, 20)
 
-    words = random.sample(_words, word_count)
-    return words if not as_str else u' '.join(words)
+    if not words:
+        words = _words
+
+    ret_words = random.sample(words, word_count)
+    return ret_words if not as_str else u' '.join(ret_words)
+
+def get_birthday(as_str=False):
+    """
+    return a random YYYY-MM-DD
+
+    as_str -- boolean -- true to return the bday as a YYYY-MM-DD string
+    return -- datetime.date|string
+    """
+    year = random.randint(1950, 1999)
+    month = random.randint(1, 12)
+    day = 1
+    if month == 2:
+        day = random.randint(1, 28)
+    elif month in [9, 4, 6, 11]:
+        day = random.randint(1, 30)
+    else:
+        day = random.randint(1, 31)
+
+    bday = datetime.date(year, month, day)
+    if as_str:
+        bday = "{:%Y-%m-%d}".format(bday)
+
+    return bday
 
 def get_email(name=u''):
     '''return a random email address'''
@@ -826,10 +860,11 @@ Yuliya \u042f\u0440\u043e\u0441\u043b\u0430\u0432\u0430 Yaroslava \u042f\u043d\u
 
 Rene\u2019e A\u2019Laysyn, D\u2019Kota \u2019Ese Cam\u2019Ron Da\u2019neyelle No\u2019elle ZI\u2019eyekel Miche\u2019le
 """.strip())
+
 # via: http://www.lipsum.com/feed/html
 # russian is from: http://masterrussian.com/vocabulary/most_common_words.htm
 # japanese (4bytes) are from: http://www.i18nguy.com/unicode/supplementary-test.html
-_paragraphs = u'''
+_ascii_paragraphs = u'''
 Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Phasellus
 pharetra urna sit amet magna. Donec posuere porta velit. Vestibulum sed libero.
 Ut vestibulum sodales arcu. Proin vulputate, mi quis luctus ornare, elit ligula fringilla nisi,
@@ -877,7 +912,9 @@ Nunc laoreet. Morbi pharetra. Integer cursus molestie turpis. Nam cursus sodales
 Maecenas non lacus. Pellentesque habitant morbi tristique senectus et netus et malesuada fames
 ac turpis egestas. Nam vel nibh eu nulla blandit facilisis. Sed varius turpis ac neque.
 Curabitur vel erat. Morbi sed purus id erat tincidunt ullamcorper.
+'''
 
+_unicode_paragraphs = u'''
 \u0437\u043d\u0430\u0442\u044c \u043c\u043e\u0439 \u0434\u043e \u0438\u043b\u0438 \u0435\u0441\u043b\u0438
 \u0432\u0440\u0435\u043c\u044f \u0440\u0443\u043a\u0430 \u043d\u0435\u0442 \u0441\u0430\u043c\u044b\u0439
 \u043d\u0438 \u0441\u0442\u0430\u0442\u044c \u0431\u043e\u043b\u044c\u0448\u043e\u0439 \u0434\u0430\u0436\u0435
@@ -926,7 +963,7 @@ Curabitur vel erat. Morbi sed purus id erat tincidunt ullamcorper.
 
 # only add 4-byte unicode if 4-byte unicode is supported
 if sys.maxunicode > 65535:
-    _paragraphs += u'''
+    _unicode_paragraphs += u'''
 \U0002070e \U00020731 \U00020779 \U00020c53 \U00020c78 \U00020c96 \U00020ccf \U00020cd5 \U00020d15 \U00020d7c
 \U00020d7f \U00020e0e \U00020e0f \U00020e77 \U00020e9d \U00020ea2 \U00020ed7 \U00020ef9 \U00020efa \U00020f2d
 \U00020f2e \U00020f4c \U00020fb4 \U00020fbc \U00020fea \U0002105c \U0002106f \U00021075 \U00021076 \U0002107b
@@ -936,7 +973,9 @@ if sys.maxunicode > 65535:
 \U00028cd2 \U00029d98
 '''
 
-_words = re.split(r'\s+', _paragraphs.strip())
+_ascii_words = re.split(ur'\s+', _ascii_paragraphs.strip())
+_unicode_words = re.split(ur'\s+', _unicode_paragraphs.strip())
+_words = _ascii_words + _unicode_words
 
 def _normpath(path):
     '''
