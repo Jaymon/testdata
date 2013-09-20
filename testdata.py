@@ -15,8 +15,9 @@ import tempfile
 import os
 import codecs
 import datetime
+from random import randint # make it possible to do testdata.randint so 2 imports aren't needed
 
-__version__ = '0.5'
+__version__ = '0.5.1'
 
 def create_dir(path, tmpdir=u""):
     '''
@@ -239,17 +240,20 @@ def get_int(min_size=1, max_size=sys.maxsize):
     no different than random.randint except that it guarrantees no int will be
     the same, and also you don't have to set a range, it will default to all max
     int size
-    
+
     return -- integer 
     '''
     i = 0;
-    
-    while True:
+    found = False
+    max_count = max_size - min_size
+    for x in xrange(max_count):
         i = random.randint(min_size, max_size)
         if i not in _previous_ints:
+            found = True
             _previous_ints.add(i)
             break
-    
+
+    assert found, "no unique ints from {} to {} could be found".format(min_size, max_size)
     return i
 
 def get_ascii_words(word_count=0, as_str=True):
