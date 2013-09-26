@@ -174,6 +174,7 @@ class TestdataTest(unittest.TestCase):
     def test_get_posint(self):
         i = testdata.get_posint()
         self.assertGreater(i, 0)
+        self.assertLessEqual(i, 2**31-1)
 
     def test_get_int32(self):
         i = testdata.get_int32()
