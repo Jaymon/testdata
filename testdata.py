@@ -17,7 +17,7 @@ import codecs
 import datetime
 from random import randint # make it possible to do testdata.randint so 2 imports aren't needed
 
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 
 def create_dir(path, tmpdir=u""):
     '''
@@ -191,7 +191,7 @@ def get_str(str_size=0, chars=None):
 
 def get_hex(str_size=0):
     '''
-    generate a string of just ascii characters
+    generate a string of just hex characters
 
     str_size -- integer -- how long you want the string to be
     return -- unicode
@@ -233,7 +233,27 @@ def get_float(min_size=None, max_size=None):
     
     return i
 
+def get_posint(max_size=2**31-1):
+    """
+    just return a positive 32-bit integer, this is basically a wrapper around
+    random.randint where you don't have to specify a minimum (or a maximum if you
+    don't want)
+    """
+    min_size = 1
+    return random.randint(min_size, max_size)
+
 def get_int(min_size=1, max_size=sys.maxsize):
+    return get_unique_int(min_size, max_size)
+
+def get_int32(min_size=1):
+    """returns a unique 32-bit positive integer"""
+    return get_unique_int(min_size, 2**31-1)
+
+def get_int64(min_size=1):
+    """returns up to a unique 64-bit positive integer"""
+    return get_unique_int(min_size, 2**63-1)
+
+def get_unique_int(min_size=1, max_size=sys.maxsize):
     '''
     get a random integer
 

@@ -171,6 +171,14 @@ class TestdataTest(unittest.TestCase):
         self.assertGreaterEqual(i, 1)
         self.assertGreaterEqual(5, i)
 
+    def test_get_posint(self):
+        i = testdata.get_posint()
+        self.assertGreater(i, 0)
+
+    def test_get_int32(self):
+        i = testdata.get_int32()
+        self.assertGreater(i, 0)
+
     def test_get_float(self):
         f = testdata.get_float()
         self.assertGreater(f, 0.0)
