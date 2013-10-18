@@ -18,6 +18,86 @@ import testdata
 
 class TestdataTest(unittest.TestCase):
 
+    def test_create_file_structure(self):
+        ts = [
+            (
+                """
+                /foo/
+                    /bar/
+                        /che/baz.py
+                    /2
+                    /3
+                /4/5/6/here.py
+                """,
+                [
+                    "foo",
+                    "foo/bar",
+                    "foo/bar/che",
+                    "4/5/6"
+                ],
+                [
+                    "foo/bar/che/baz.py",
+                    "foo/2",
+                    "foo/3",
+                    "4/5/6/here.py"
+                ]
+            ),
+            (
+                """
+                /foo/
+                    /bar/che.py
+                        /baz/
+                    /boom/
+                """,
+                [
+                    "foo",
+                    "foo/bar",
+                    "foo/bar/baz",
+                    "foo/boom"
+                ],
+                [
+                    "foo/bar/che.py",
+                ]
+            ),
+        ]
+
+#        ts = [
+#            (
+#                """
+#                /foo/
+#                    /bar/che.py
+#                        /baz/
+#                    /boom/
+#                """,
+#                [
+#                    "foo",
+#                    "foo/bar",
+#                    "foo/bar/baz",
+#                    "foo/boom"
+#                ],
+#                [
+#                    "foo/bar/che.py",
+#                ]
+#            ),
+#        ]
+
+
+        for structure_str, expected_dirs, expected_files in ts:
+            basedir, created_dirs, created_files = testdata.create_file_structure(structure_str)
+
+            #pout.v(created_dirs, created_files)
+
+            for d in expected_dirs:
+                fd = os.path.join(basedir, d)
+                #pout.v(fd)
+                self.assertTrue(os.path.isdir(fd))
+
+            for d in expected_files:
+                fd = os.path.join(basedir, d)
+                #pout.v(fd)
+                self.assertTrue(os.path.isfile(fd))
+
+
     def test_create_dir(self):
         ts = [
             "\\foo\\bar",
@@ -69,6 +149,22 @@ class TestdataTest(unittest.TestCase):
             class_name = getattr(module, t[1])
             instance = class_name()
             # if all these worked, then the test passed :)
+
+    def test_create_modules(self):
+        ts = [
+            {
+                "foo2.bar": u"class Che(object): pass",
+                "foo2.bar.baz": u"class Che(object): pass",
+            }
+        ]
+
+        for t in ts:
+            testdata.create_modules(t)
+            for k in t.keys():
+                module = importlib.import_module(k)
+                class_name = getattr(module, "Che")
+                instance = class_name()
+                self.assertEqual(k, instance.__module__)
 
     def test_get_ascii_name(self):
         name = testdata.get_ascii_name()

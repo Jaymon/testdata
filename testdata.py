@@ -16,8 +16,80 @@ import os
 import codecs
 import datetime
 from random import randint # make it possible to do testdata.randint so 2 imports aren't needed
+from collections import deque
+import types
 
-__version__ = '0.5.2'
+__version__ = '0.5.3'
+
+def create_file_structure(path_str, tmpdir=u""):
+    """
+    create a whole file structure with a string, one file/directory per line
+
+    NOTE -- the directories always have to end with /
+
+    path_str -- string -- a multiline python string
+    tmpdir -- string -- the root
+    """
+    path_lines = []
+    if isinstance(path_str, types.StringTypes):
+        path_lines = filter(None, path_str.split(os.linesep))
+    else:
+        path_lines = path_str
+
+    dirs = set() # directories will always end with /
+    files = set()
+    depth_queue = deque()
+    depth_queue.appendleft(0)
+    path_prefix = deque()
+    path_prefix.appendleft([])
+
+    for path in path_lines:
+        # get the size of the whitespace:
+        m = re.match("^\s*", path)
+        current_depth = len(m.group(0))
+        if current_depth > depth_queue[0]:
+            depth_queue.appendleft(current_depth)
+        elif current_depth < depth_queue[0]:
+            depth = depth_queue[0]
+            while current_depth < depth:
+                depth = depth_queue.popleft()
+                path_prefix.popleft()
+
+            if len(path_prefix) == 0:
+                path_prefix.appendleft([])
+            if len(depth_queue) == 0:
+                depth_queue.appendleft(0)
+
+        p = path.strip()
+        is_dir = p.endswith("/") or p.endswith(os.sep)
+        p = _normpath(p)
+        if p:
+            full_path = filter(None, list(path_prefix[0]) + p.split(os.sep))
+            if is_dir:
+                path_prefix.appendleft(full_path)
+                dirs.add(os.sep.join(full_path))
+            else:
+                file_path = os.sep.join(full_path)
+                dir_path = os.path.dirname(file_path)
+                files.add(file_path)
+                dirs.add(dir_path)
+
+                full_dir_path = filter(None, dir_path.split(os.sep))
+                if path_prefix[0] != full_dir_path:
+                    path_prefix.appendleft(full_dir_path)
+
+    if not tmpdir: tmpdir = tempfile.mkdtemp()
+
+    ret_dirs = []
+    for d in dirs:
+        ret_dirs.append(create_dir(d, tmpdir=tmpdir))
+
+    ret_files = []
+    for f in files:
+        ret_files.append(create_file(f, tmpdir=tmpdir))
+
+    return tmpdir, ret_dirs, ret_files
+
 
 def create_dir(path, tmpdir=u""):
     '''
@@ -72,6 +144,25 @@ def create_file(path, contents=u"", tmpdir=u""):
 
     return file_path
 
+
+def create_modules(module_dict, tmpdir=u"", make_importable=True):
+    """
+    create a whole bunch of modules all at once
+
+    module_dict -- dict -- keys are the module_name, values are the module contents
+    tmpdir -- string -- same as create_module() tmpdir
+    make_importable -- boolean -- same as create_module() tmpdir
+    """
+    ret_modules = []
+    module_base_dir = create_dir(u"", tmpdir)
+
+    for module_name, contents in module_dict.iteritems():
+        ret_modules.append(create_module(module_name, contents, module_base_dir, make_importable))
+        make_importable = False
+
+    return ret_modules
+
+
 def create_module(module_name, contents=u"", tmpdir=u"", make_importable=True):
     '''
     create a python module folder structure so that the module can be imported
@@ -83,6 +174,21 @@ def create_module(module_name, contents=u"", tmpdir=u"", make_importable=True):
 
     return -- string -- the module file path
     '''
+    module_file = ''
+    mod_bits = filter(None, module_name.split(u'.'))
+    module_base_dir = create_dir(u"", tmpdir)
+    base_dir = module_base_dir
+    for modname in mod_bits:
+        base_dir = create_dir(modname, base_dir)
+        module_file = create_file(u"__init__.py", contents=contents, tmpdir=base_dir)
+
+    # add the path to the top of the sys path so importing the new module will work
+    if make_importable:
+        sys.path.insert(0, module_base_dir) 
+
+    return module_file
+
+
     mod_bits = filter(None, module_name.split(u'.'))
     module_base_dir = create_dir(u"", tmpdir)
     base_modname = mod_bits.pop()

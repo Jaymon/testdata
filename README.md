@@ -18,29 +18,76 @@ Or, with Pip using Github:
 
 ## Functions
 
+### `create_file_structure(file_structure, tmpdir=u'')`
+
+This just makes it easy to create a lot of folders/files all at once.
+
+```python
+base_dir = "/tmp"
+tmpdir, created_dirs, created_files = testdata.create_file_structure(
+  """
+  /foo/
+    /bar/
+      /che.txt
+      /bam.txt
+    /baz
+      /flam.txt
+  """,
+  tmpdir=base_dir
+)
+```
+
 ### `create_dir(path, tmpdir=u"")`
 
 create a directory hierarchy
 
-    base_dir = "/tmp"
-    d = testdata.create_dir("/foo/bar", base_dir)
-    print d # /tmp/foo/bar
+```python
+base_dir = "/tmp"
+d = testdata.create_dir("/foo/bar", base_dir)
+print d # /tmp/foo/bar
+```
 
 ### `create_file(path, contents=u"", tmpdir=u"")`
 
 create a file with contents
 
-    base_dir = "/tmp"
-    f = testdata.create_dir("/foo/bar.txt", "The file contents", base_dir)
-    print f # /tmp/foo/bar.txt
+```python
+base_dir = "/tmp"
+f = testdata.create_dir("/foo/bar.txt", "The file contents", base_dir)
+print f # /tmp/foo/bar.txt
+```
 
 ### `create_module(module_name, contents=u"", tmpdir=u"", make_importable=True)`
 
 create a module with python contents that can be imported
 
-    base_dir = "/tmp"
-    f = testdata.create_dir("foo.bar", "class Che(object): pass", base_dir)
-    print f # /tmp/foo/bar.py
+```python
+base_dir = "/tmp"
+f = testdata.create_module("foo.bar", "class Che(object): pass", base_dir)
+print f # /tmp/foo/bar.py
+```
+
+### `create_modules(module_dict, tmpdir=u"", make_importable=True)`
+
+create a whole bunch of models at once
+
+```python
+f = testdata.create_modules(
+  {
+    "foo.bar": "class Che(object): pass",
+    "foo.bar.baz": "class Boom(object): pass",
+    "foo.che": "class Bam(object): pass",
+  }
+)
+```
+
+create a module with python contents that can be imported
+
+```python
+base_dir = "/tmp"
+f = testdata.create_module("foo.bar", "class Che(object): pass", base_dir)
+print f # /tmp/foo/bar.py
+```
 
 ### `get_ascii(str_size=0)`
 
@@ -89,4 +136,4 @@ return a random url.
 return a random amount of words, which can be unicode.
 
     >>> testdata.get_words()
-    u'\u043f\u043e\u043d\u044f\u0442\u044c \u043c\u043e\u0436\u043d\u043e felis, \u0447\u0442\u043e\u0431\u044b habitasse ultrices Nam \u043d\u043e\u0447\u044c \u043c\u0438\u043d\u0443\u0442\u0430 In \u0441\u0438\u0434\u0435\u0442\u044c varius, \u0436\u0435\u043d\u0430'
+    u'\u043f\u043e\u043d\u044f\u0442\u044c \u043c\u043e\u0436\u043d\u043e felis, habitasse ultrices Nam \u0436\u0435\u043d\u0430'
