@@ -176,6 +176,43 @@ class TestdataTest(unittest.TestCase):
             v = os.path.join(tmpdir, v)
             self.assertTrue(os.path.isfile(v))
 
+    def test_create_modules_2(self):
+        prefix = "testdata_cm2"
+        r = testdata.create_modules({
+            prefix: os.linesep.join([
+                "class Default(object):",
+                "    def GET(*args, **kwargs): pass",
+                ""
+            ]),
+            "{}.default".format(prefix): os.linesep.join([
+                "class Default(object):",
+                "    def GET(*args, **kwargs): pass",
+                ""
+            ]),
+            "{}.foo".format(prefix): os.linesep.join([
+                "class Default(object):",
+                "    def GET(*args, **kwargs): pass",
+                "",
+                "class Bar(object):",
+                "    def GET(*args, **kwargs): pass",
+                "    def POST(*args, **kwargs): pass",
+                ""
+            ]),
+            "{}.foo.baz".format(prefix): os.linesep.join([
+                "class Default(object):",
+                "    def GET(*args, **kwargs): pass",
+                "",
+                "class Che(object):",
+                "    def GET(*args, **kwargs): pass",
+                ""
+            ]),
+        })
+
+        module = importlib.import_module(prefix)
+        class_name = getattr(module, "Default")
+        instance = class_name()
+
+
     def test_get_ascii_name(self):
         name = testdata.get_ascii_name()
         self.assertGreater(len(name), 0)
