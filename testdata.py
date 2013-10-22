@@ -19,7 +19,7 @@ from random import randint # make it possible to do testdata.randint so 2 import
 from collections import deque
 import types
 
-__version__ = '0.5.3'
+__version__ = '0.5.4'
 
 def create_file_structure(path_str, tmpdir=u""):
     """
@@ -176,11 +176,22 @@ def create_module(module_name, contents=u"", tmpdir=u"", make_importable=True):
     '''
     module_file = ''
     mod_bits = filter(None, module_name.split(u'.'))
-    module_base_dir = create_dir(u"", tmpdir)
+    module_base_dir = create_dir(u"", tmpdir=tmpdir)
+    base_modname = mod_bits.pop()
+
     base_dir = module_base_dir
     for modname in mod_bits:
+        # check to see if there is a file that already exists
+        mod_file = os.path.join(base_dir, u"{}.py".format(modname))
+
+        # turn module.py into a package (module/__init__.py)
         base_dir = create_dir(modname, base_dir)
-        module_file = create_file(u"__init__.py", contents=contents, tmpdir=base_dir)
+        if os.path.isfile(mod_file):
+            os.rename(mod_file, os.path.join(base_dir, u"__init__.py"))
+        else:
+            create_file(u"__init__.py", tmpdir=base_dir)
+
+    module_file = create_file(u"{}.py".format(base_modname), contents=contents, tmpdir=base_dir)
 
     # add the path to the top of the sys path so importing the new module will work
     if make_importable:

@@ -13,6 +13,7 @@ import os
 import importlib
 import datetime
 import types
+from collections import OrderedDict
 
 import testdata
 
@@ -152,19 +153,28 @@ class TestdataTest(unittest.TestCase):
 
     def test_create_modules(self):
         ts = [
-            {
-                "foo2.bar": u"class Che(object): pass",
-                "foo2.bar.baz": u"class Che(object): pass",
-            }
+            OrderedDict([
+                ("foo2.bar", u"class Che(object): pass"),
+                ("foo2.bar.baz", u"class Che(object): pass"),
+            ])
         ]
 
+        tmpdir = testdata.create_dir(u"")
         for t in ts:
-            testdata.create_modules(t)
+            testdata.create_modules(t, tmpdir=tmpdir)
             for k in t.keys():
                 module = importlib.import_module(k)
                 class_name = getattr(module, "Che")
                 instance = class_name()
                 self.assertEqual(k, instance.__module__)
+
+        for v in ['foo2/bar']:
+            v = os.path.join(tmpdir, v)
+            self.assertTrue(os.path.isdir(v))
+
+        for v in ['foo2/__init__.py', 'foo2/bar/__init__.py', 'foo2/bar/baz.py']:
+            v = os.path.join(tmpdir, v)
+            self.assertTrue(os.path.isfile(v))
 
     def test_get_ascii_name(self):
         name = testdata.get_ascii_name()

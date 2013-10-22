@@ -69,7 +69,7 @@ print f # /tmp/foo/bar.py
 
 ### `create_modules(module_dict, tmpdir=u"", make_importable=True)`
 
-create a whole bunch of models at once
+create a whole bunch of modules at once
 
 ```python
 f = testdata.create_modules(
@@ -79,14 +79,6 @@ f = testdata.create_modules(
     "foo.che": "class Bam(object): pass",
   }
 )
-```
-
-create a module with python contents that can be imported
-
-```python
-base_dir = "/tmp"
-f = testdata.create_module("foo.bar", "class Che(object): pass", base_dir)
-print f # /tmp/foo/bar.py
 ```
 
 ### `get_ascii(str_size=0)`
