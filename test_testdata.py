@@ -44,6 +44,34 @@ class TestdataTest(unittest.TestCase):
                 ]
             ),
             (
+                os.linesep.join([
+                    "foo/",
+                    "  __init__.py",
+                    "  bar/",
+                    "    __init__.py",
+                    "    che.py",
+                    "  baz/",
+                    "    __init__.py",
+                    "    boom/",
+                    "      __init__.py",
+                    "      pez.py",
+                ]),
+                [
+                    "foo",
+                    "foo/bar",
+                    "foo/baz",
+                    "foo/baz/boom",
+                ],
+                [
+                    "foo/__init__.py",
+                    "foo/bar/__init__.py",
+                    "foo/bar/che.py",
+                    "foo/baz/__init__.py",
+                    "foo/baz/boom/__init__.py",
+                    "foo/baz/boom/pez.py",
+                ]
+            ),
+            (
                 """
                 /foo/
                     /bar/che.py
@@ -62,31 +90,8 @@ class TestdataTest(unittest.TestCase):
             ),
         ]
 
-#        ts = [
-#            (
-#                """
-#                /foo/
-#                    /bar/che.py
-#                        /baz/
-#                    /boom/
-#                """,
-#                [
-#                    "foo",
-#                    "foo/bar",
-#                    "foo/bar/baz",
-#                    "foo/boom"
-#                ],
-#                [
-#                    "foo/bar/che.py",
-#                ]
-#            ),
-#        ]
-
-
         for structure_str, expected_dirs, expected_files in ts:
             basedir, created_dirs, created_files = testdata.create_file_structure(structure_str)
-
-            #pout.v(created_dirs, created_files)
 
             for d in expected_dirs:
                 fd = os.path.join(basedir, d)
@@ -97,7 +102,6 @@ class TestdataTest(unittest.TestCase):
                 fd = os.path.join(basedir, d)
                 #pout.v(fd)
                 self.assertTrue(os.path.isfile(fd))
-
 
     def test_create_dir(self):
         ts = [

@@ -19,7 +19,7 @@ from random import randint # make it possible to do testdata.randint so 2 import
 from collections import deque
 import types
 
-__version__ = '0.5.5'
+__version__ = '0.5.6'
 
 def create_file_structure(path_str, tmpdir=u""):
     """
@@ -42,31 +42,38 @@ def create_file_structure(path_str, tmpdir=u""):
     depth_queue.appendleft(0)
     path_prefix = deque()
     path_prefix.appendleft([])
+    current_path = []
 
     for path in path_lines:
         # get the size of the whitespace:
         m = re.match("^\s*", path)
         current_depth = len(m.group(0))
+
         if current_depth > depth_queue[0]:
             depth_queue.appendleft(current_depth)
+            path_prefix.appendleft(current_path)
+
         elif current_depth < depth_queue[0]:
-            depth = depth_queue[0]
-            while current_depth < depth:
-                depth = depth_queue.popleft()
+            while current_depth < depth_queue[0]:
+                depth_queue.popleft()
                 path_prefix.popleft()
 
             if len(path_prefix) == 0:
                 path_prefix.appendleft([])
+
             if len(depth_queue) == 0:
                 depth_queue.appendleft(0)
+
 
         p = path.strip()
         is_dir = p.endswith("/") or p.endswith(os.sep)
         p = _normpath(p)
+
+        #pout.b(p)
+        #pout.v(current_depth, path_prefix, depth_queue)
         if p:
             full_path = filter(None, list(path_prefix[0]) + p.split(os.sep))
             if is_dir:
-                path_prefix.appendleft(full_path)
                 dirs.add(os.sep.join(full_path))
             else:
                 file_path = os.sep.join(full_path)
@@ -74,9 +81,9 @@ def create_file_structure(path_str, tmpdir=u""):
                 files.add(file_path)
                 dirs.add(dir_path)
 
-                full_dir_path = filter(None, dir_path.split(os.sep))
-                if path_prefix[0] != full_dir_path:
-                    path_prefix.appendleft(full_dir_path)
+                full_path = filter(None, dir_path.split(os.sep))
+
+            current_path = full_path
 
     if not tmpdir: tmpdir = tempfile.mkdtemp()
 
