@@ -110,6 +110,8 @@ class TestdataTest(unittest.TestCase):
             "/foo2/bar2/",
             "foo3/bar3",
             "foo4/bar4/",
+            "",
+            None
         ]
 
         for t in ts:

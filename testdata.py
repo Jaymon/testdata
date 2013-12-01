@@ -19,7 +19,7 @@ from random import randint # make it possible to do testdata.randint so 2 import
 from collections import deque
 import types
 
-__version__ = '0.5.7'
+__version__ = '0.5.8'
 
 def create_file_structure(path_str, tmpdir=u""):
     """
@@ -98,7 +98,7 @@ def create_file_structure(path_str, tmpdir=u""):
     return tmpdir, ret_dirs, ret_files
 
 
-def create_dir(path, tmpdir=u""):
+def create_dir(path=u"", tmpdir=u""):
     '''
     create a directory path using a tempdir as the root
 
@@ -1138,7 +1138,7 @@ def _normpath(path):
 
     for some reason, os.path.split() wouldn't work with the windows slash (\)
     '''
-    if not path: return path
+    if not path: return u''
 
     path = os.path.normpath(path)
     #dirs = filter(None, re.split(ur'[\\/]+', path))
