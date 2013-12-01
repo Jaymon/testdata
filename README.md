@@ -57,6 +57,10 @@ f = testdata.create_dir("/foo/bar.txt", "The file contents", base_dir)
 print f # /tmp/foo/bar.txt
 ```
 
+### `create_files(file_dict, tmpdir=u"")`
+
+Create a whole bunch of files, the file_dict key is the filename, the value is the contents of the file.
+
 ### `create_module(module_name, contents=u"", tmpdir=u"", make_importable=True)`
 
 create a module with python contents that can be imported

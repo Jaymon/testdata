@@ -19,7 +19,7 @@ from random import randint # make it possible to do testdata.randint so 2 import
 from collections import deque
 import types
 
-__version__ = '0.5.6'
+__version__ = '0.5.7'
 
 def create_file_structure(path_str, tmpdir=u""):
     """
@@ -150,6 +150,22 @@ def create_file(path, contents=u"", tmpdir=u""):
     oldmask = os.umask(oldmask)
 
     return file_path
+
+
+def create_files(file_dict, tmpdir=u""):
+    """
+    create a whole bunch of files all at once
+
+    file_dict -- dict -- keys are the file_name, values are the file contents
+    tmpdir -- string -- same as create_module() tmpdir
+    """
+    ret_files = []
+    base_dir = create_dir(u"", tmpdir)
+
+    for file_name, contents in file_dict.iteritems():
+        ret_files.append(create_file(file_name, contents, base_dir))
+
+    return ret_files
 
 
 def create_modules(module_dict, tmpdir=u"", make_importable=True):
