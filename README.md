@@ -23,7 +23,9 @@ Or, with Pip using Github:
 
 ### patch
 
-    patch(mod, **patches)
+```python
+patch(mod, **patches)
+```
 
 Patches a module or class with the given patches.
 
@@ -64,7 +66,10 @@ print bar.FooPatch.bam() # 2
 
 ### create_file_structure
 
-    create_file_structure(file_structure, tmpdir=u'')
+
+```python
+create_file_structure(file_structure, tmpdir=u'')
+```
 
 This just makes it easy to create a lot of folders/files all at once.
 
@@ -87,7 +92,9 @@ tmpdir, created_dirs, created_files = testdata.create_file_structure(
 
 ### create_dir
 
-    create_dir(path, tmpdir=u"")
+```python
+create_dir(path, tmpdir=u"")
+```
 
 create a directory hierarchy
 
@@ -101,13 +108,15 @@ print d # /tmp/foo/bar
 
 ### create_file
 
-    create_file(path, contents=u"", tmpdir=u"")
+```python
+create_file(path, contents=u"", tmpdir=u"")
+```
 
 create a file with contents
 
 ```python
 base_dir = "/tmp"
-f = testdata.create_dir("/foo/bar.txt", "The file contents", base_dir)
+f = testdata.create_file("/foo/bar.txt", "The file contents", base_dir)
 print f # /tmp/foo/bar.txt
 ```
 
@@ -115,7 +124,9 @@ print f # /tmp/foo/bar.txt
 
 ### create_files
 
-    create_files(file_dict, tmpdir=u"")
+```python
+create_files(file_dict, tmpdir=u"")
+```
 
 Create a whole bunch of files, the `file_dict` key is the filename, the value is the contents of the file.
 The `file_dict` is very similar to the `create_modules` param `module_dict`
@@ -124,7 +135,9 @@ The `file_dict` is very similar to the `create_modules` param `module_dict`
 
 ### create_module
 
-    create_module(module_name, contents=u"", tmpdir=u"", make_importable=True)
+```python
+create_module(module_name, contents=u"", tmpdir=u"", make_importable=True)
+```
 
 create a module with python contents that can be imported
 
@@ -138,7 +151,9 @@ print f # /tmp/foo/bar.py
 
 ### create_modules
 
-    create_modules(module_dict, tmpdir=u"", make_importable=True)
+```python
+create_modules(module_dict, tmpdir=u"", make_importable=True)
+```
 
 create a whole bunch of modules at once
 
@@ -156,7 +171,9 @@ f = testdata.create_modules(
 
 ### get_ascii
 
-    get_ascii(str_size=0)
+```python
+get_ascii(str_size=0)
+```
 
 return a string of ascii characters
 
@@ -167,7 +184,9 @@ return a string of ascii characters
 
 ### get_float
 
-    get_float(min_size=None, max_size=None)
+```python
+get_float(min_size=None, max_size=None)
+```
 
 return a floating point number between `min_size` and `max_size`.
 
@@ -178,7 +197,9 @@ return a floating point number between `min_size` and `max_size`.
 
 ### get_int
 
-    get_int(min_size=1, max_size=sys.maxsize)
+```python
+get_int(min_size=1, max_size=sys.maxsize)
+```
 
 return an integer between `min_size` and `max_size`.
 
@@ -189,7 +210,9 @@ return an integer between `min_size` and `max_size`.
 
 ### get_name
 
-    get_name(name_count=2, as_str=True)
+```python
+get_name(name_count=2, as_str=True)
+```
 
 returns a random name that can be outside the ascii range (eg, name can be unicode)
 
@@ -200,18 +223,22 @@ returns a random name that can be outside the ascii range (eg, name can be unico
 
 ### get_str
 
-    get_str(str_size=0, chars=None)
+```python
+get_str(str_size=0, chars=None)
+```
 
 return random characters, which can be unicode.
 
     >>> testdata.get_str()
-    u'q\x0bwZ\u79755\ud077\u027aYm\ud0d8JK\x07\U0010df418tx\x16'
+    u"q\x0bwZ\u79755\ud077\u027aYm\ud0d8JK\x07\U0010df418tx\x16"
 
 -------------------------------------------------------------------------------
 
 ### get_url
 
-    get_url()
+```python
+get_url()
+```
 
 return a random url.
 
@@ -222,18 +249,22 @@ return a random url.
 
 ### get_words
 
-    get_words(word_count=0, as_str=True)
+```python
+get_words(word_count=0, as_str=True)
+```
 
 return a random amount of words, which can be unicode.
 
     >>> testdata.get_words()
-    u'\u043f\u043e\u043d\u044f\u0442\u044c \u043c\u043e\u0436\u043d\u043e felis, habitasse ultrices Nam \u0436\u0435\u043d\u0430'
+    u"\u043f\u043e\u043d\u044f\u0442\u044c \u043c\u043e\u0436\u043d\u043e felis, habitasse ultrices Nam \u0436\u0435\u043d\u0430"
 
 -------------------------------------------------------------------------------
 
 ### get_past_datetime
 
-    get_past_datetime()
+```python
+get_past_datetime()
+```
 
 return a datetime guarranteed to be in the past
 
@@ -244,7 +275,9 @@ return a datetime guarranteed to be in the past
 
 ### get_future_datetime
 
-    ### `get_future_datetime()
+```python
+get_future_datetime()
+```
 
 return a datetime guarranteed to be in the future
 
