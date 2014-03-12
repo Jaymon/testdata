@@ -311,7 +311,6 @@ class TestdataTest(unittest.TestCase):
         self.assertNotEqual(u"", s)
         self.assertRegexpMatches(s, 'https?\://\S*')
 
-
     def test_get_int(self):
         i = testdata.get_int()
         self.assertGreater(i, 0)
@@ -336,4 +335,49 @@ class TestdataTest(unittest.TestCase):
         f = testdata.get_float(1.0, 2.0)
         self.assertGreater(f, 1.0)
         self.assertGreater(2.0, f)
+
+    def test_patch(self):
+        def mock_boom(): return 2
+        contents = os.linesep.join([
+            "def boom():",
+            "    return 1",
+            "",
+            "class FooPatch(object):",
+            "    @classmethod",
+            "    def bam(cls): return boom()",
+            ""
+        ])
+        testdata.create_module("patch.foo", contents=contents)
+
+        from patch.foo import FooPatch
+
+        self.assertEqual(1, FooPatch.bam())
+
+        FooPatch = testdata.patch(FooPatch, boom=mock_boom)
+        self.assertEqual(2, FooPatch.bam())
+
+
+        from patch import foo
+        self.assertEqual(1, foo.FooPatch.bam())
+        foo = testdata.patch(foo, boom=mock_boom)
+        self.assertEqual(2, foo.FooPatch.bam())
+
+        foo = testdata.patch('patch.foo', boom=mock_boom)
+        self.assertEqual(2, foo.FooPatch.bam())
+
+    def test_get_past_datetime(self):
+        now = datetime.datetime.utcnow()
+        for x in xrange(5):
+            dt = testdata.get_past_datetime()
+            self.assertGreater(now, dt)
+
+    def test_get_future_datetime(self):
+        now = datetime.datetime.utcnow()
+        for x in xrange(5):
+            dt = testdata.get_future_datetime()
+            self.assertGreater(dt, now)
+
+
+
+
 

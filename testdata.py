@@ -18,8 +18,10 @@ import datetime
 from random import randint # make it possible to do testdata.randint so 2 imports aren't needed
 from collections import deque
 import types
+import imp
 
-__version__ = '0.5.8'
+
+__version__ = '0.5.9'
 
 def create_file_structure(path_str, tmpdir=u""):
     """
@@ -591,6 +593,100 @@ def get_coordinate(v1, v2, round_to=7):
   
     return float('{}.{}'.format(size, scale))
 
+
+def patch(mod, patches=None, **kwargs_patches):
+    '''
+    import module_name and apply the patches to it
+
+    mod -- string|module|object -- the name of the thing you are patching
+    patches -- dict -- the keys are functions, classes, or modules that should be
+    patched in the module, the value is the patched value you want to replace the
+    key with
+
+    return -- module|object -- if you pass in an object, return the object, otherwise
+        return the module
+    '''
+    if not patches: patches = {}
+    patches.update(kwargs_patches) # combine both dicts
+    if not patches: raise ValueError("patches dict is empty")
+
+    attr_name = ''
+    mod_name = ''
+    if isinstance(mod, type):
+        mod_name = mod.__module__
+        attr_name = mod.__name__
+
+    elif isinstance(mod, types.StringTypes):
+        mod_name = mod
+
+    else:
+        mod_name = mod.__name__
+
+    if not mod_name:
+        raise ValueError("mod_name is empty")
+
+    deferred_patches = []
+    patched_modules = {}
+
+    for name, patch in patches.iteritems():
+        if '.' in name:
+            # when a module is imported like this, import foo.bar then it is placed
+            # as an attribute to the parent module: getattr(getattr(mod, 'foo'), 'bar')
+            # this should be useful in eventually supporting this, you can work down the sub
+            # attributes and newly import them and patch
+            raise RuntimeError("nested modules, eg, {} are not currently supported".format(name))
+
+        else:
+            deferred_patches.append((name, patch))
+
+    # http://stackoverflow.com/questions/4907054/
+    def find_mod_path(p):
+        if '.' in p:
+            p, m = p.rsplit('.', 1)
+            imod_path = find_mod_path(p)
+            mod_path = os.path.join(imod_path, m)
+            #mod = imp.load_module('{}_{}'.format(m, get_ascii(8)), *imp.find_module(m, imod.__path__))
+
+        else:
+            _, mod_path, _ = imp.find_module(p)
+
+        return mod_path
+
+    mpath = find_mod_path(mod_name)
+    mfile = mpath
+     # figure out if we have a package or a module and set the appropriate file
+    if os.path.isdir(mpath):
+        mfile = os.path.join(mpath, '__init__.py')
+
+    else:
+        mfile = '{}.py'.format(mpath)
+
+    m = imp.load_source('{}_{}'.format(mod_name, get_ascii(8)), mfile)
+
+    # go through and apply all the patches
+    for patch_name, patch in deferred_patches:
+        setattr(m, patch_name, patch)
+
+    if attr_name:
+        m = getattr(m, attr_name)
+
+    return m
+
+
+def get_past_datetime():
+    now = datetime.datetime.utcnow()
+    td = now - datetime.datetime(year=2000, month=1, day=1)
+    return now - datetime.timedelta(days=random.randint(1, td.days), seconds=random.randint(1, td.seconds))
+
+
+def get_future_datetime():
+    now = datetime.datetime.utcnow()
+    return now + datetime.timedelta(
+        weeks=random.randint(1, 52 * 50),
+        hours=random.randint(0, 24),
+        days=random.randint(0, 365),
+        seconds=random.randint(0, 86400)
+    )
 
 # used in the get_int() method to make sure it never returns the same int twice
 # this is a possible memory leak if you are using this script in a very long running

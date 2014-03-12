@@ -1,8 +1,8 @@
 # Testdata
 
-Generate Random Test Data
+Generate Random Test Data.
 
-These are a bunch of functions I've been using for years over numerous projects. I'm finally bundling them up into a proper module instead of the copy/pasting I've been doing up until now.
+These are just a bunch of functions designed to make it easier to test your code.
 
 To use testdata in your tests, just include the `testdata.py` module:
 
@@ -16,9 +16,55 @@ Or, with Pip using Github:
 
     pip install git+https://github.com/Jaymon/testdata#egg=testdata
 
+
 ## Functions
 
-### `create_file_structure(file_structure, tmpdir=u'')`
+-------------------------------------------------------------------------------
+
+### patch
+
+    patch(mod, **patches)
+
+Patches a module or class with the given patches.
+
+Suppose you had a module like this:
+
+```python
+# module foo.bar
+
+def boom():
+    return 1
+
+class FooPatch(object):
+    @classmethod
+    def bam(cls): return boom()
+```
+
+Now you can easily patch it for testing:
+
+```python
+def mock_boom():
+    return 2
+
+foo_bar = testdata.patch('foo.bar', boom=mock_boom)
+print foo_bar.FooPatch.bam() # 2
+
+# but you can also just pass in objects or modules
+
+from foo.bar import FooPatch
+FooPatch = testdata.patch(FooPatch, boom=mock_boom)
+print FooPatch.bam() # 2
+
+from foo import bar
+bar = testdata.patch(bar, boom=mock_boom)
+print bar.FooPatch.bam() # 2
+```
+
+-------------------------------------------------------------------------------
+
+### create_file_structure
+
+    create_file_structure(file_structure, tmpdir=u'')
 
 This just makes it easy to create a lot of folders/files all at once.
 
@@ -37,7 +83,11 @@ tmpdir, created_dirs, created_files = testdata.create_file_structure(
 )
 ```
 
-### `create_dir(path, tmpdir=u"")`
+-------------------------------------------------------------------------------
+
+### create_dir
+
+    create_dir(path, tmpdir=u"")
 
 create a directory hierarchy
 
@@ -47,7 +97,11 @@ d = testdata.create_dir("/foo/bar", base_dir)
 print d # /tmp/foo/bar
 ```
 
-### `create_file(path, contents=u"", tmpdir=u"")`
+-------------------------------------------------------------------------------
+
+### create_file
+
+    create_file(path, contents=u"", tmpdir=u"")
 
 create a file with contents
 
@@ -57,11 +111,20 @@ f = testdata.create_dir("/foo/bar.txt", "The file contents", base_dir)
 print f # /tmp/foo/bar.txt
 ```
 
-### `create_files(file_dict, tmpdir=u"")`
+-------------------------------------------------------------------------------
 
-Create a whole bunch of files, the file_dict key is the filename, the value is the contents of the file.
+### create_files
 
-### `create_module(module_name, contents=u"", tmpdir=u"", make_importable=True)`
+    create_files(file_dict, tmpdir=u"")
+
+Create a whole bunch of files, the `file_dict` key is the filename, the value is the contents of the file.
+The `file_dict` is very similar to the `create_modules` param `module_dict`
+
+-------------------------------------------------------------------------------
+
+### create_module
+
+    create_module(module_name, contents=u"", tmpdir=u"", make_importable=True)
 
 create a module with python contents that can be imported
 
@@ -71,7 +134,11 @@ f = testdata.create_module("foo.bar", "class Che(object): pass", base_dir)
 print f # /tmp/foo/bar.py
 ```
 
-### `create_modules(module_dict, tmpdir=u"", make_importable=True)`
+-------------------------------------------------------------------------------
+
+### create_modules
+
+    create_modules(module_dict, tmpdir=u"", make_importable=True)
 
 create a whole bunch of modules at once
 
@@ -85,51 +152,102 @@ f = testdata.create_modules(
 )
 ```
 
-### `get_ascii(str_size=0)`
+-------------------------------------------------------------------------------
+
+### get_ascii
+
+    get_ascii(str_size=0)
 
 return a string of ascii characters
 
     >>> testdata.get_ascii()
     u'IFUKzVAauqgyRY6OV'
 
-### `get_float(min_size=None, max_size=None)`
+-------------------------------------------------------------------------------
+
+### get_float
+
+    get_float(min_size=None, max_size=None)
 
 return a floating point number between `min_size` and `max_size`.
 
     >>> testdata.get_float()
     2.932229899095845e+307
 
-### `get_int(min_size=1, max_size=sys.maxsize)`
+-------------------------------------------------------------------------------
+
+### get_int
+
+    get_int(min_size=1, max_size=sys.maxsize)
 
 return an integer between `min_size` and `max_size`.
 
     >>> testdata.get_int()
     3820706953806377295
 
-### `get_name(name_count=2, as_str=True)`
+-------------------------------------------------------------------------------
+
+### get_name
+
+    get_name(name_count=2, as_str=True)
 
 returns a random name that can be outside the ascii range (eg, name can be unicode)
 
     >>> testdata.get_name()
     u'jamel clarke-cabrera'
 
-### `get_str(str_size=0, chars=None)`
+-------------------------------------------------------------------------------
+
+### get_str
+
+    get_str(str_size=0, chars=None)
 
 return random characters, which can be unicode.
 
     >>> testdata.get_str()
     u'q\x0bwZ\u79755\ud077\u027aYm\ud0d8JK\x07\U0010df418tx\x16'
 
-### `get_url()`
+-------------------------------------------------------------------------------
+
+### get_url
+
+    get_url()
 
 return a random url.
 
     >>> testdata.get_url()
     u'https://sK6rxrCa626TkQddTyf.com'
 
-### `get_words(word_count=0, as_str=True)`
+-------------------------------------------------------------------------------
+
+### get_words
+
+    get_words(word_count=0, as_str=True)
 
 return a random amount of words, which can be unicode.
 
     >>> testdata.get_words()
     u'\u043f\u043e\u043d\u044f\u0442\u044c \u043c\u043e\u0436\u043d\u043e felis, habitasse ultrices Nam \u0436\u0435\u043d\u0430'
+
+-------------------------------------------------------------------------------
+
+### get_past_datetime
+
+    get_past_datetime()
+
+return a datetime guarranteed to be in the past
+
+    >>> testdata.get_past_datetime()
+    datetime.datetime(2000, 4, 2, 13, 40, 11, 133351)
+
+-------------------------------------------------------------------------------
+
+### get_future_datetime
+
+    ### `get_future_datetime()
+
+return a datetime guarranteed to be in the future
+
+    >>> testdata.get_future_datetime()
+    datetime.datetime(2017, 8, 3, 15, 54, 58, 670249)
+

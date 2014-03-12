@@ -20,7 +20,7 @@ if not version:
 setup(
     name=name,
     version=version,
-    description='Easy random test data generation',
+    description='Easily generate random unicode test data among other things',
     author='Jay Marcyes',
     author_email='jay@marcyes.com',
     url='http://github.com/Jaymon/{}'.format(name),
@@ -35,6 +35,6 @@ setup(
         'Topic :: Software Development :: Testing',
         'Programming Language :: Python :: 2.7',
     ],
-    test_suite = "test_{}".format(name),
+    test_suite = "{}_test".format(name),
 )
 
