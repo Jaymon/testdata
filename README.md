@@ -263,10 +263,10 @@ return a random amount of words, which can be unicode.
 ### get_past_datetime
 
 ```python
-get_past_datetime()
+get_past_datetime([now])
 ```
 
-return a datetime guarranteed to be in the past
+return a datetime guaranteed to be in the past from `now`
 
     >>> testdata.get_past_datetime()
     datetime.datetime(2000, 4, 2, 13, 40, 11, 133351)
@@ -276,11 +276,25 @@ return a datetime guarranteed to be in the past
 ### get_future_datetime
 
 ```python
-get_future_datetime()
+get_future_datetime([now])
 ```
 
-return a datetime guarranteed to be in the future
+return a datetime guaranteed to be in the future from `now`
 
     >>> testdata.get_future_datetime()
+    datetime.datetime(2017, 8, 3, 15, 54, 58, 670249)
+
+-------------------------------------------------------------------------------
+
+### get_between_datetime
+
+```python
+get_between_datetime(start[, stop])
+```
+
+return a datetime guaranteed to be in the future from `start` and in the past from `stop`
+
+    >>> start = datetime.datetime.utcnow() - datetime.timedelta(days=100)
+    >>> testdata.get_between_datetime(start)
     datetime.datetime(2017, 8, 3, 15, 54, 58, 670249)
 

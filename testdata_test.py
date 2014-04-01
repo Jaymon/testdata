@@ -371,13 +371,38 @@ class TestdataTest(unittest.TestCase):
             dt = testdata.get_past_datetime()
             self.assertGreater(now, dt)
 
+        for x in xrange(5):
+            dt = testdata.get_past_datetime(now)
+            self.assertGreater(now, dt)
+            now = dt
+
     def test_get_future_datetime(self):
         now = datetime.datetime.utcnow()
         for x in xrange(5):
             dt = testdata.get_future_datetime()
             self.assertGreater(dt, now)
 
+        for x in xrange(5):
+            dt = testdata.get_future_datetime(now)
+            self.assertGreater(dt, now)
+            now = dt
 
+    def test_get_between_datetime(self):
+        start = testdata.get_past_datetime()
+        for x in xrange(5):
+            dt = testdata.get_between_datetime(start)
+            now = datetime.datetime.utcnow()
+            self.assertGreater(now, dt)
 
+        stop = datetime.datetime.utcnow()
+        for x in xrange(5):
+            dt = testdata.get_between_datetime(start, stop)
+            self.assertGreater(dt, start)
+            self.assertGreater(stop, dt)
+            start = dt
+
+        now = datetime.datetime.utcnow()
+        with self.assertRaises(ValueError):
+            dt = testdata.get_between_datetime(now, now)
 
 

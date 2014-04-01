@@ -21,7 +21,7 @@ import types
 import imp
 
 
-__version__ = '0.5.9'
+__version__ = '0.6.0'
 
 def create_file_structure(path_str, tmpdir=u""):
     """
@@ -673,20 +673,36 @@ def patch(mod, patches=None, **kwargs_patches):
     return m
 
 
-def get_past_datetime():
-    now = datetime.datetime.utcnow()
+def get_past_datetime(now=None):
+    if not now: now = datetime.datetime.utcnow()
     td = now - datetime.datetime(year=2000, month=1, day=1)
     return now - datetime.timedelta(days=random.randint(1, td.days), seconds=random.randint(1, td.seconds))
 
 
-def get_future_datetime():
-    now = datetime.datetime.utcnow()
+def get_future_datetime(now=None):
+    if not now: now = datetime.datetime.utcnow()
     return now + datetime.timedelta(
         weeks=random.randint(1, 52 * 50),
         hours=random.randint(0, 24),
         days=random.randint(0, 365),
         seconds=random.randint(0, 86400)
     )
+
+
+def get_between_datetime(start, stop=None):
+    """get a datetime between start and stop"""
+    if not stop:
+        stop = datetime.datetime.utcnow()
+
+    if start >= stop:
+        raise ValueError("start datetime >= stop datetime")
+
+    td = stop - start
+    return start + datetime.timedelta(
+        days=random.randint(0, td.days),
+        seconds=random.randint(0, (td.seconds - 1))
+    )
+
 
 # used in the get_int() method to make sure it never returns the same int twice
 # this is a possible memory leak if you are using this script in a very long running
