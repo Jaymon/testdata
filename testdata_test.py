@@ -14,6 +14,7 @@ import importlib
 import datetime
 import types
 from collections import OrderedDict
+import time
 
 import testdata
 
@@ -233,10 +234,14 @@ class TestdataTest(unittest.TestCase):
     def test_get_email(self):
         email = testdata.get_email()
         self.assertGreater(len(email), 0)
+        self.assertTrue("'" not in email)
+        self.assertTrue("-" not in email)
 
-        name = testdata.get_ascii_name()
-        email = testdata.get_email(name)
-        self.assertTrue(email.startswith(name.lower()))
+        email = testdata.get_email("foo")
+        self.assertTrue(email.startswith("foo"))
+
+        email = testdata.get_email("foo'bar")
+        self.assertTrue(email.startswith("foobar"))
 
     def test_get_name(self):
         name = testdata.get_name()
@@ -394,6 +399,7 @@ class TestdataTest(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assertGreater(now, dt)
 
+        time.sleep(0.1)
         stop = datetime.datetime.utcnow()
         for x in xrange(5):
             dt = testdata.get_between_datetime(start, stop)

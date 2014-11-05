@@ -21,7 +21,7 @@ import types
 import imp
 
 
-__version__ = '0.6.0'
+__version__ = '0.6.1'
 
 def create_file_structure(path_str, tmpdir=u""):
     """
@@ -462,6 +462,7 @@ def get_birthday(as_str=False):
 def get_email(name=u''):
     '''return a random email address'''
     if not name: name = get_ascii_name()
+    name = re.sub("['-]", "", name)
 
     email_domains = [
         u"yahoo.com",
@@ -676,7 +677,10 @@ def patch(mod, patches=None, **kwargs_patches):
 def get_past_datetime(now=None):
     if not now: now = datetime.datetime.utcnow()
     td = now - datetime.datetime(year=2000, month=1, day=1)
-    return now - datetime.timedelta(days=random.randint(1, td.days), seconds=random.randint(1, td.seconds))
+    return now - datetime.timedelta(
+        days=random.randint(1, max(td.days, 1)),
+        seconds=random.randint(1, max(td.seconds, 1))
+    )
 
 
 def get_future_datetime(now=None):
@@ -700,7 +704,8 @@ def get_between_datetime(start, stop=None):
     td = stop - start
     return start + datetime.timedelta(
         days=random.randint(0, td.days),
-        seconds=random.randint(0, (td.seconds - 1))
+        seconds=random.randint(0, (td.seconds - 1)),
+        microseconds=random.randint(0, (td.microseconds - 1)),
     )
 
 
