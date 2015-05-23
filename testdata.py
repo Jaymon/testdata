@@ -19,9 +19,11 @@ from random import randint # make it possible to do testdata.randint so 2 import
 from collections import deque
 import types
 import imp
+import inspect
 
 
-__version__ = '0.6.1'
+__version__ = '0.6.2'
+
 
 def create_file_structure(path_str, tmpdir=u""):
     """
@@ -595,41 +597,18 @@ def get_coordinate(v1, v2, round_to=7):
     return float('{}.{}'.format(size, scale))
 
 
-def patch(mod, patches=None, **kwargs_patches):
-    '''
-    import module_name and apply the patches to it
+def patch_module(mod_name, attr_name='', patches=None, **kwargs_patches):
+    if not mod_name:
+        raise ValueError("mod_name is empty")
 
-    mod -- string|module|object -- the name of the thing you are patching
-    patches -- dict -- the keys are functions, classes, or modules that should be
-    patched in the module, the value is the patched value you want to replace the
-    key with
-
-    return -- module|object -- if you pass in an object, return the object, otherwise
-        return the module
-    '''
     if not patches: patches = {}
     patches.update(kwargs_patches) # combine both dicts
     if not patches: raise ValueError("patches dict is empty")
 
-    attr_name = ''
-    mod_name = ''
-    if isinstance(mod, type):
-        mod_name = mod.__module__
-        attr_name = mod.__name__
-
-    elif isinstance(mod, types.StringTypes):
-        mod_name = mod
-
-    else:
-        mod_name = mod.__name__
-
-    if not mod_name:
-        raise ValueError("mod_name is empty")
-
     deferred_patches = []
     patched_modules = {}
 
-    for name, patch in patches.iteritems():
+    for name, patch in patches.items():
         if '.' in name:
             # when a module is imported like this, import foo.bar then it is placed
             # as an attribute to the parent module: getattr(getattr(mod, 'foo'), 'bar')
@@ -670,6 +649,61 @@ def patch(mod, patches=None, **kwargs_patches):
 
     if attr_name:
         m = getattr(m, attr_name)
+
+    return m
+
+
+def patch_instance(mod, patches=None, **kwargs_patches):
+    if not mod:
+        raise ValueError("mod is empty")
+
+    if not patches: patches = {}
+    patches.update(kwargs_patches) # combine both dicts
+    if not patches: raise ValueError("patches dict is empty")
+
+    for name, patch in patches.items():
+        val = getattr(mod, name, None)
+        if inspect.isroutine(val):
+            setattr(mod, name, types.MethodType(patch, mod))
+
+        else:
+            setattr(mod, name, patch)
+
+    return mod
+
+
+def patch(mod, patches=None, **kwargs_patches):
+    '''
+    import module_name and apply the patches to it
+
+    mod -- string|module|object -- the name of the thing you are patching
+    patches -- dict -- the keys are functions, classes, or modules that should be
+    patched in the module, the value is the patched value you want to replace the
+    key with
+
+    return -- module|object -- if you pass in an object, return the object, otherwise
+        return the module
+    '''
+    m = None
+    attr_name = ''
+    mod_name = ''
+    if isinstance(mod, type):
+        mod_name = mod.__module__
+        attr_name = mod.__name__
+
+    elif isinstance(mod, types.StringTypes):
+        mod_name = mod
+
+    else:
+        if inspect.ismodule(mod):
+            mod_name = mod.__name__
+
+    if mod_name:
+        m = patch_module(mod_name, attr_name, patches=patches, **kwargs_patches)
+
+    else:
+        # we are patching an instance
+        m = patch_instance(mod, patches=patches, **kwargs_patches) 
 
     return m
 

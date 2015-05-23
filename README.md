@@ -21,7 +21,13 @@ Or, with Pip using Github:
 
 -------------------------------------------------------------------------------
 
+This is an overview of some of the methods found in the Testdata module, there are other methods like `get_email` and `get_birthday` that aren't listed here, for the complete list just look at the [code](https://github.com/Jaymon/testdata/blob/master/testdata.py).
+
+
 ### patch
+
+
+#### Patching modules and classes
 
 ```python
 patch(mod, **patches)
@@ -60,6 +66,34 @@ print FooPatch.bam() # 2
 from foo import bar
 bar = testdata.patch(bar, boom=mock_boom)
 print bar.FooPatch.bam() # 2
+```
+
+
+#### Patching class instances
+
+You can also patch a specific instance
+
+Suppose you had a module like this:
+
+```python
+# module foo.bar
+
+class Foo(object):
+    def boom(self): return 1
+```
+
+Now you can easily patch it for testing:
+
+```python
+def mock_boom():
+    return 2
+
+foo = Foo()
+foo_patched = testdata.patch(foo, boom=mock_boom)
+print foo_patched.boom() # 2
+
+# be aware though, the original instance was modified, foo_patched == foo
+print foo.boom() # 2
 ```
 
 -------------------------------------------------------------------------------

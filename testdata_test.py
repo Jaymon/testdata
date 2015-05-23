@@ -411,4 +411,33 @@ class TestdataTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             dt = testdata.get_between_datetime(now, now)
 
+    def test_patch_instance(self):
+        class Foo(object):
+            che = 6
+            def bar(self):
+                return 5
+
+        def mock_bar(self):
+            return 2
+
+        f = Foo()
+        self.assertEqual(5, f.bar())
+        self.assertEqual(6, f.che)
+
+        fm = testdata.patch_instance(
+            f,
+            bar=mock_bar,
+            che=7
+        )
+        self.assertEqual(2, fm.bar())
+        self.assertEqual(7, fm.che)
+        self.assertEqual(2, f.bar())
+        self.assertEqual(7, f.che)
+
+        f = Foo()
+        self.assertEqual(5, f.bar())
+        self.assertEqual(6, f.che)
+        fm = testdata.patch(f, bar=mock_bar, che=7)
+        self.assertEqual(2, fm.bar())
+        self.assertEqual(7, fm.che)
 
