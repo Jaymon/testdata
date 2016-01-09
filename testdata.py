@@ -22,7 +22,7 @@ import imp
 import inspect
 
 
-__version__ = '0.6.2'
+__version__ = '0.6.3'
 
 
 def create_file_structure(path_str, tmpdir=u""):
@@ -1079,7 +1079,7 @@ Nathan-Lee Oliver-James Owen-James Peter-Junior Ricky-Junior Riley-James Riley-J
 Ryan-James Ryan-Lee Saif-Ullah Sean-Paul Sonny-Lee Taylor-Jake Taylor-James Taylor-Jay Taylor-Lee Tee-Jay Thomas-James
 Thomas-Jay Thomas-Lee T-Jay Tommy-Lee Tyler-Jack Tyler-Jake Tyler-James Tyler-Jay Tyler-Joe Tyler-Lee
 
-Toa'ale, Hau'oli O'Brien, D'Angelo God'iss, Domi'nique De'wayne La'tanya D'Juan Rah'Nee A'merika Shau'Nay Mich'ele
+Toa'ale Hau'oli O'Brie, D'Angelo God'iss Domi'nique De'wayne La'tanya D'Juan Rah'Nee A'merika Shau'Nay Mich'ele
 N'cole A'Brianna Ma'Kayla Sha'tyana Zy'shonne November'Lashae Ja'Kingston and Ke'Shawn D'nasia
 X'Zavier An'Gelina Cha'Nce O'Livia Dan'Yelle Jer'Miah Ky'Lee Rach'El Cie'Rrea Sh'nia J'siah
 Cam'Ron Chanze'es Day'quandray D'Jon D'Monie Don'ta'ja Fiaavd'e I'Lanny Ja'sheem Day'twain Chris La'tko
