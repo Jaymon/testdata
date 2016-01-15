@@ -21,7 +21,7 @@ Or, with Pip using Github:
 
 -------------------------------------------------------------------------------
 
-This is an overview of some of the methods found in the Testdata module, there are other methods like `get_email` and `get_birthday` that aren't listed here, for the complete list just look at the [code](https://github.com/Jaymon/testdata/blob/master/testdata.py).
+This is an overview of some of the methods found in the Testdata module, there are other methods like `get_email` and `get_birthday` that aren't listed here, for the complete list just look at the [source](https://github.com/Jaymon/testdata/blob/master/testdata.py).
 
 
 ### patch
