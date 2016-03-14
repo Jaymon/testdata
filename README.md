@@ -255,6 +255,19 @@ returns a random name that can be outside the ascii range (eg, name can be unico
 
 -------------------------------------------------------------------------------
 
+### get_email
+
+```python
+get_email(name=u'')
+```
+
+returns a random email address in the ascii range.
+
+    >>> testdata.get_email()
+    u'shelley@gmail.com'
+
+-------------------------------------------------------------------------------
+
 ### get_str
 
 ```python
