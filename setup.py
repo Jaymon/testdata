@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # http://docs.python.org/distutils/setupscript.html
 # http://docs.python.org/2/distutils/examples.html
-from setuptools import setup
+from setuptools import setup, find_packages
 import re
 import os
 
