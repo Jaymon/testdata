@@ -21,6 +21,7 @@ import testdata
 class TestdataTest(unittest.TestCase):
 
     def test_create_file_structure(self):
+        raise unittest.SkipTest("no longer supported")
         ts = [
             (
                 """
@@ -142,6 +143,26 @@ class TestdataTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             testdata.create_dir("./foo/bar/test.txt")
 
+    def test_create_files(self):
+        ts = {
+            "foo/1.txt": testdata.get_words(),
+            "foo/2.txt": testdata.get_words(),
+            "/bar/3.txt": testdata.get_words(),
+            "/bar/che/4.txt": testdata.get_words(),
+        }
+
+        path = testdata.create_files(ts)
+        self.assertEqual(list(path.files()), list(path))
+
+        count = 0
+        for f in path:
+            for rp, v in ts.items():
+                if rp in f:
+                    count += 1
+                    self.assertEqual(v, f.contents())
+
+        self.assertLess(0, count)
+
     def test_create_module(self):
         ts = [
             (
@@ -219,6 +240,45 @@ class TestdataTest(unittest.TestCase):
         class_name = getattr(module, "Default")
         instance = class_name()
 
+    def test_create_modules_3(self):
+        prefix = "testdata_cm3"
+        r = testdata.create_modules({
+            "{}.foo.bar".format(prefix): [
+                "class Bar(object): pass",
+            ],
+            "{}.foo.bar.che.baz".format(prefix): [
+                "class Baz(object): pass",
+                ""
+            ],
+        })
+
+        self.assertEqual(5, len(list(r.modules())))
+
+        m = r.module("{}.foo.bar.che.baz".format(prefix))
+        c = m.Baz() # if this doesn't raise error, it worked
+
+        mp = r.modpath("{}.foo".format(prefix))
+        self.assertTrue(mp.is_package())
+
+    def test_create_package(self):
+        prefix = "foo"
+        contents = os.linesep.join([
+            "class Bar(object): pass",
+        ])
+        mp = testdata.create_package(prefix, contents=contents)
+        self.assertTrue(mp.is_package())
+        return
+
+
+
+        basedir = testdata.create_dir()
+        prefix = "foo"
+        testdata.create_dir(prefix, tmpdir=basedir)
+        contents = os.linesep.join([
+            "class Bar(object): pass",
+        ])
+        mp = testdata.create_module(prefix, contents=contents, tmpdir=basedir)
+        self.assertTrue(mp.is_package())
 
     def test_get_ascii_name(self):
         name = testdata.get_ascii_name()

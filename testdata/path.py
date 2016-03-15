@@ -1,0 +1,351 @@
+import os
+import re
+import tempfile
+from distutils import dir_util
+import codecs
+import shutil
+import sys
+import pkgutil
+import importlib
+
+
+class Dirpath(unicode):
+    '''
+    create a directory path using a tempdir as the root
+
+    so, if you pass in "/foo/bar" that will be combined with a tempdir, so you end 
+    up with the final path: /tmp/python/dir/foo/bar
+
+    path -- string -- the temp dir path
+    tmpdir -- string -- the temp directory to use as the base
+
+    on instantiation this class will contain the full directory path
+    '''
+    relpath = u""
+
+    basedir = u""
+
+    @property
+    def path(self):
+        """plain jane string for non traditional path children (like Module) to 
+        be able to use most of the common functions with minimal override"""
+        return unicode(self)
+
+    @property
+    def relbits(self):
+        """returns the relative path bits, so foo/bar would return ["foo", "bar"]"""
+        return self.relpath.split(os.sep)
+
+    def __new__(cls, relpath=u"", basedir=u""):
+        basedir, relpath, path = cls.normalize(relpath, basedir)
+        #pout.v(basedir, relpath, path)
+
+        instance = super(Dirpath, cls).__new__(cls, path)
+        instance.basedir = basedir
+        if relpath: instance.relpath = relpath
+        return instance
+
+    @classmethod
+    def create_instance(cls, relpath=u"", basedir=u""):
+        instance = cls(relpath, basedir)
+        return instance.create()
+
+    def create(self):
+        oldmask = os.umask(0)
+        dir_util.mkpath(self.path)
+        os.umask(oldmask)
+        return self
+
+    def create_file(self, relpath, contents=""):
+        """create the file with path relative to this directory with contents"""
+        return Filepath.create_instance(relpath, contents, self)
+
+    def delete(self):
+        shutil.rmtree(self.path)
+
+    @classmethod
+    def normalize(cls, relpath, basedir=u""):
+        '''normalize a path, accounting for things like windows dir seps'''
+        if relpath and relpath[0] == u'.':
+            raise ValueError("you cannot start a path with ./ or ../")
+
+        if isinstance(relpath, str):
+            relpath = relpath.decode("UTF-8")
+
+        if not basedir: basedir = tempfile.mkdtemp()
+
+        if relpath:
+            relpath = os.path.normpath(relpath)
+            # for some reason, os.path.split() wouldn't work with the windows slash (\)
+            relpath = re.sub(r"[\\/]+", os.sep, relpath)
+            relpath = relpath.lstrip(os.sep)
+            path = os.path.join(basedir, relpath)
+
+        else:
+            path = basedir
+
+        return basedir, relpath, path
+
+    def __iter__(self):
+        for f in self.files():
+            yield f
+
+    def files(self):
+        for basedir, directories, files in os.walk(self.path, topdown=True):
+            for basename in files:
+                path = os.path.join(basedir, basename)
+                #yield Filepath(os.path.relpath(self.basedir, path), self.basedir)
+                yield Filepath(path.replace(self.basedir, ""), self.basedir)
+
+    def exists(self):
+        return os.path.isdir(self.path)
+
+    def child(self, *bits):
+        return type(self)(os.path.join(self.relpath, *bits), self.basedir)
+
+    def parents(self):
+        bits = self.relbits
+        bits.pop(-1)
+        ps = []
+
+        while len(bits) > 0:
+            ps.append(Dirpath(os.sep.join(bits), self.basedir))
+            bits.pop(-1)
+
+        return ps
+
+    def module(self, module_path):
+        return self.modpath(module_path).module
+
+    def modpath(self, module_path):
+        return Modulepath(module_path, self.path)
+
+    def modules(self):
+        for module_info in pkgutil.iter_modules([self.path]):
+            bits = self.relbits + [module_info[1]]
+            yield Modulepath(u".".join(bits), self.basedir)
+
+            if module_info[2]: # module is a package because index 2 is True
+                submodules = Dirpath(os.sep.join(bits), self.basedir)
+                for submodule in submodules.modules():
+                    #subbits = [module_info[1]] + submodule.relbits
+                    #yield Modulepath(u".".join(subbits), self.basedir)
+                    yield submodule
+
+
+class Filepath(Dirpath):
+    '''
+    create a file and return the full path to that file
+
+    path -- string -- the path to the file
+    contents -- string -- the file contents
+    tmpdir -- string -- the temp directory to use as the base
+
+    on instantiation this class will contain the full file path
+    '''
+    @property
+    def directory(self):
+        return Dirpath(
+            os.path.dirname(self.relpath),
+            self.basedir
+        )
+
+    @property
+    def name(self):
+        return os.path.basename(self.path)
+
+    def __new__(cls, relpath, basedir=u""):
+        instance = super(Filepath, cls).__new__(cls, relpath, basedir)
+        instance.encoding='UTF-8'
+        return instance
+
+    @classmethod
+    def create_instance(cls, relpath, contents=u"", basedir=u""):
+        instance = cls(relpath, basedir)
+        return instance.create(contents)
+
+    def exists(self):
+        return os.path.isfile(self.path)
+
+    def open(self, mode="r"):
+        return codecs.open(self.path, encoding=self.encoding, mode=mode)
+
+    def write(self, contents):
+        with self.open("w+") as f:
+            f.truncate(0)
+            ret = f.write(self.normalize_contents(contents))
+        return ret
+
+    def create(self, contents=u""):
+        d = self.directory # just by doing this the directory will be created
+        d.create()
+        if contents:
+            self.write(contents)
+
+        else:
+            if not self.exists():
+                with self.open('a') as f:
+                    os.utime(self.path, None)
+
+        return self
+
+    def lines(self):
+        """this is different than python built-in lines() method in that it strips
+        the line endings from the end of the string"""
+        with self.open("r") as f:
+            for line in f:
+                yield line.rstrip()
+
+    def lc(self):
+        """return line count"""
+        return len(list(self.lines()))
+
+    def exists(self):
+        return os.path.isfile(self.path)
+
+    def clear(self):
+        self.write("")
+
+    def delete(self):
+        os.unlink(self.path)
+
+    def contents(self):
+        with self.open("r") as f:
+            return f.read()
+
+    def __iter__(self):
+        for line in self.lines():
+            yield line
+
+    def normalize_contents(self, contents):
+        if not isinstance(contents, basestring):
+            contents = "\n".join(contents)
+        return contents
+
+    def child(self, *bits):
+        raise NotImplementedError()
+
+    def files(self):
+        raise NotImplementedError()
+
+
+class Modulepath(Filepath):
+    '''
+    create a python module folder structure so that the module can be imported
+
+    module_name -- string -- something like foo.bar
+    contents -- string -- the contents of the module
+    tmpdir -- string -- the temp directory that will be added to the syspath if make_importable is True
+    make_importable -- boolean -- if True, then tmpdir will be added to the python path so it can be imported
+    '''
+    @property
+    def module(self):
+        injected = False
+        if self.basedir not in sys.path:
+            injected = True
+            sys.path.insert(0, self.basedir) 
+
+        module = importlib.import_module(self)
+
+        if injected:
+            sys.path.pop(0) 
+
+        return module
+
+    @property
+    def name(self):
+        return self.relbits.pop(-1)
+
+    @property
+    def relbits(self):
+        return self.split(u'.')
+
+    @property
+    def relpath(self):
+        relpath = ""
+        bits = self.relbits
+        basename = bits.pop(-1)
+
+        filebits = bits + ["{}.py".format(basename)]
+        module_f = Filepath(os.sep.join(filebits), self.basedir)
+        if not module_f.exists():
+            filebits = bits + [basename, "__init__.py"]
+            package_f = Filepath(os.sep.join(filebits), self.basedir)
+            relpath = unicode(package_f.relpath if package_f.exists() else module_f.relpath)
+
+        return relpath
+
+    @property
+    def path(self):
+        return os.path.join(self.basedir, self.relpath)
+
+    def __new__(cls, module_name, basedir=u""):
+        instance = super(Filepath, cls).__new__(cls, module_name, basedir)
+        return instance
+
+    @classmethod
+    def create_instance(cls, module_name, contents=u"", basedir=u"", make_importable=True, is_package=False):
+        instance = cls(module_name, basedir)
+        return instance.create(contents, make_importable, is_package)
+
+    @classmethod
+    def normalize(cls, module_name, basedir=u""):
+        '''normalize a path, accounting for things like windows dir seps'''
+        mod_bits = filter(None, module_name.split(u'.'))
+        relpath = os.sep.join(mod_bits)
+
+        basedir, relpath, path = super(Modulepath, cls).normalize(relpath, basedir)
+        return basedir, None, u".".join(mod_bits)
+
+    def create(self, contents=u"", make_importable=True, is_package=False):
+        module_file = ''
+        mod_bits = self.relbits
+        base_modname = mod_bits.pop()
+
+        module_base_dir = Dirpath(u"", self.basedir)
+        module_base_dir.create()
+
+        base_dir = self.basedir
+        for modname in mod_bits:
+            # check to see if there is a file that already exists
+            mod_file = Filepath(u"{}.py".format(modname), base_dir)
+
+            # turn module.py into a package (module/__init__.py)
+            base_dir = Dirpath(modname, base_dir)
+            base_dir.create()
+            if os.path.isfile(mod_file):
+                os.rename(mod_file, os.path.join(base_dir, u"__init__.py"))
+
+            else:
+                # only add a blank package sentinel file if one already doesn't exist
+                if not os.path.isfile(os.path.join(base_dir, u"__init__.py")):
+                    module_file = Filepath(u"__init__.py", base_dir)
+                    module_file.create()
+
+        # the basename gets treated differently becayse it can be a file
+        mod_dir = os.path.join(base_dir, base_modname)
+        if os.path.isdir(mod_dir):
+            module_file = Filepath(u"__init__.py", mod_dir)
+
+        else:
+            if is_package:
+                base_dir = Dirpath(base_modname, base_dir)
+                base_dir.create()
+                module_file = Filepath(u"__init__.py", mod_dir)
+
+            else:
+                module_file = Filepath(u"{}.py".format(base_modname), base_dir)
+
+        module_file.create(contents)
+
+        # add the path to the top of the sys path so importing the new module will work
+        if make_importable:
+            sys.path.insert(0, self.basedir) 
+
+        return self
+
+    def is_package(self):
+        """returns True if this moduel is a package (directory with __init__.py file
+        in it)"""
+        return self.relpath.endswith(u"__init__.py")
+

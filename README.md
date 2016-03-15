@@ -33,7 +33,7 @@ This is an overview of some of the methods found in the Testdata module, there a
 patch(mod, **patches)
 ```
 
-Patches a module or class with the given patches.
+Patches a module, instance, or class with the given patches.
 
 Suppose you had a module like this:
 
@@ -94,32 +94,6 @@ print foo_patched.boom() # 2
 
 # be aware though, the original instance was modified, foo_patched == foo
 print foo.boom() # 2
-```
-
--------------------------------------------------------------------------------
-
-### create_file_structure
-
-
-```python
-create_file_structure(file_structure, tmpdir=u'')
-```
-
-This just makes it easy to create a lot of folders/files all at once.
-
-```python
-base_dir = "/tmp"
-tmpdir, created_dirs, created_files = testdata.create_file_structure(
-  """
-  /foo/
-    /bar/
-      /che.txt
-      /bam.txt
-    /baz
-      /flam.txt
-  """,
-  tmpdir=base_dir
-)
 ```
 
 -------------------------------------------------------------------------------
