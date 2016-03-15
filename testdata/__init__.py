@@ -684,6 +684,7 @@ def patch_class(mod, patches=None, **kwargs_patches):
                     d[k] = copy.deepcopy(v)
         return d
 
+    # http://stackoverflow.com/questions/9541025/how-to-copy-a-python-class
     mod_patched = type(
         '{}Patched'.format(mod.__name__),
         mod.__bases__,
