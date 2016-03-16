@@ -36,6 +36,20 @@ from .path import Dirpath, Filepath, Modulepath
 __version__ = '0.6.5'
 
 
+# def _normpath(path):
+#     '''
+#     normalize a path, accounting for things like windows dir seps
+# 
+#     for some reason, os.path.split() wouldn't work with the windows slash (\)
+#     '''
+#     if not path: return u''
+# 
+#     path = os.path.normpath(path)
+#     #dirs = filter(None, re.split(ur'[\\/]+', path))
+#     path = re.sub(r"[\\/]+", os.sep, path)
+#     return path
+#     #return os.sep.join(dirs)
+# 
 # def create_file_structure(path_str, tmpdir=u""):
 #     """
 #     create a whole file structure with a string, one file/directory per line
@@ -292,14 +306,15 @@ def get_str(str_size=0, chars=None):
                                 ]
                             )
 
-        sg = (random_utf8_seq().decode('utf-8') for c in xrange(str_size))
+        sg = (random_utf8_seq().decode('utf-8') for c in range(str_size))
 
     else:
         # we have a defined set of chars
-        sg = (random.choice(chars) for c in xrange(str_size))
+        sg = (random.choice(chars) for c in range(str_size))
 
     s = u''.join(sg)
     return s
+
 
 def get_hex(str_size=0):
     '''
@@ -310,15 +325,17 @@ def get_hex(str_size=0):
     '''
     return get_str(str_size=str_size, chars=string.hexdigits.lower())
 
+
 def get_ascii(str_size=0):
     '''
     generate a random string full of just ascii characters
-    
+
     str_size -- integer -- how long you want the string to be
     return -- unicode
     '''
     chars=string.ascii_letters + string.digits
     return get_str(str_size=str_size, chars=chars)
+
 
 def get_float(min_size=None, max_size=None):
     '''
@@ -326,9 +343,11 @@ def get_float(min_size=None, max_size=None):
 
     no different than random.uniform() except it automatically can set range, and
     guarrantees that no 2 floats are the same
-    
+
     return -- float
     '''
+    global _previous_floats
+
     float_info = sys.float_info
     if min_size is None:
         min_size = float_info.min
@@ -336,14 +355,17 @@ def get_float(min_size=None, max_size=None):
         max_size = float_info.max
 
     i = 0;
-    
     while True:
         i = random.uniform(min_size, max_size)
         if i not in _previous_floats:
             _previous_floats.add(i)
+            # we cap the list at 100000 unique ints
+            if len(_previous_floats) > 100000:
+                _previous_floats.pop()
             break
-    
+
     return i
+
 
 def get_posint(max_size=2**31-1):
     """
@@ -354,16 +376,20 @@ def get_posint(max_size=2**31-1):
     min_size = 1
     return random.randint(min_size, max_size)
 
+
 def get_int(min_size=1, max_size=sys.maxsize):
     return get_unique_int(min_size, max_size)
+
 
 def get_int32(min_size=1):
     """returns a unique 32-bit positive integer"""
     return get_unique_int(min_size, 2**31-1)
 
+
 def get_int64(min_size=1):
     """returns up to a unique 64-bit positive integer"""
     return get_unique_int(min_size, 2**63-1)
+
 
 def get_unique_int(min_size=1, max_size=sys.maxsize):
     '''
@@ -375,6 +401,8 @@ def get_unique_int(min_size=1, max_size=sys.maxsize):
 
     return -- integer 
     '''
+    global _previous_ints
+
     i = 0;
     found = False
     max_count = max_size - min_size
@@ -383,16 +411,22 @@ def get_unique_int(min_size=1, max_size=sys.maxsize):
         if i not in _previous_ints:
             found = True
             _previous_ints.add(i)
+            # we cap the list at 100000 unique ints
+            if len(_previous_ints) > 100000:
+                _previous_ints.pop()
             break
 
     assert found, "no unique ints from {} to {} could be found".format(min_size, max_size)
     return i
 
+
 def get_ascii_words(word_count=0, as_str=True):
     return get_words(word_count, as_str, words=_ascii_words)
 
+
 def get_unicode_words(word_count=0, as_str=True):
     return get_words(word_count, as_str, words=_unicode_words)
+
 
 def get_words(word_count=0, as_str=True, words=None):
     '''
@@ -414,6 +448,7 @@ def get_words(word_count=0, as_str=True, words=None):
 
     ret_words = random.sample(words, word_count)
     return ret_words if not as_str else u' '.join(ret_words)
+
 
 def get_birthday(as_str=False):
     """
@@ -437,6 +472,7 @@ def get_birthday(as_str=False):
         bday = "{:%Y-%m-%d}".format(bday)
 
     return bday
+
 
 def get_email(name=u''):
     '''return a random email address'''
@@ -473,6 +509,7 @@ def get_email(name=u''):
 
     return u'{}@{}'.format(name.lower(), random.choice(email_domains))
 
+
 def get_name(name_count=2, as_str=True):
     '''
     get a random name
@@ -504,9 +541,11 @@ def get_name(name_count=2, as_str=True):
 
     return names if not as_str else u' '.join(names)
 
+
 def get_ascii_name():
     '''return one ascii safe name'''
     return random.choice(_names)
+
 
 def get_unicode_name():
     '''return one none ascii safe name'''
@@ -521,6 +560,7 @@ def get_unicode_name():
 
     return name
     # return random.choice(_unicode_names)
+
 
 def get_coordinate(v1, v2, round_to=7):
     '''
@@ -763,24 +803,10 @@ def get_between_datetime(start, stop=None):
 # this is a possible memory leak if you are using this script in a very long running
 # process using get_int(), since this list will get bigger and bigger and never
 # be flushed, but seriously, you should just use random.randint() in any long running
-# scripts
+# scripts. In order to minimize the memory leak we cap the list at 100k unique values
 _previous_ints = set()
 
 # similar to get_int()
 _previous_floats = set()
 
-
-def _normpath(path):
-    '''
-    normalize a path, accounting for things like windows dir seps
-
-    for some reason, os.path.split() wouldn't work with the windows slash (\)
-    '''
-    if not path: return u''
-
-    path = os.path.normpath(path)
-    #dirs = filter(None, re.split(ur'[\\/]+', path))
-    path = re.sub(r"[\\/]+", os.sep, path)
-    return path
-    #return os.sep.join(dirs)
 

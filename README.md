@@ -19,9 +19,7 @@ Or, with Pip using Github:
 
 ## Functions
 
--------------------------------------------------------------------------------
-
-This is an overview of some of the methods found in the Testdata module, there are other methods like `get_email` and `get_birthday` that aren't listed here, for the complete list just look at the [source](https://github.com/Jaymon/testdata/blob/master/testdata.py).
+This is an overview of some of the methods found in the Testdata module, there are other methods (like `get_birthday`) that aren't listed here, for the complete list just look at the [source](https://github.com/Jaymon/testdata/blob/master/testdata.py).
 
 
 ### patch
@@ -138,6 +136,14 @@ create_files(file_dict, tmpdir=u"")
 
 Create a whole bunch of files, the `file_dict` key is the filename, the value is the contents of the file.
 The `file_dict` is very similar to the `create_modules` param `module_dict`
+
+```python
+file_dict = {
+    "foo/bar.txt": "the foo file contents",
+    "baz.txt": "the baz file contents",
+}
+f = testdata.create_files(file_dict)
+```
 
 -------------------------------------------------------------------------------
 
