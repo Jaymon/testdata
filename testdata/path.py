@@ -101,7 +101,14 @@ class Dirpath(unicode):
         return os.path.isdir(self.path)
 
     def child(self, *bits):
-        return type(self)(os.path.join(self.relpath, *bits), self.basedir)
+        relpath = os.path.join(self.relpath, *bits)
+        fullpath = os.path.join(self.basedir, relpath)
+        if os.path.isfile(fullpath):
+            ret = Filepath(relpath, self.basedir)
+        else:
+            ret = type(self)(relpath, self.basedir)
+
+        return ret
 
     def parents(self):
         bits = self.relbits
@@ -131,6 +138,9 @@ class Dirpath(unicode):
                     #subbits = [module_info[1]] + submodule.relbits
                     #yield Modulepath(u".".join(subbits), self.basedir)
                     yield submodule
+
+    def __div__(self, other):
+        return self.child(other)
 
 
 class Filepath(Dirpath):

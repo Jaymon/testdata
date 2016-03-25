@@ -33,7 +33,7 @@ from .data import _names, \
 from .path import Dirpath, Filepath, Modulepath
 
 
-__version__ = '0.6.5'
+__version__ = '0.6.6'
 
 
 # def _normpath(path):

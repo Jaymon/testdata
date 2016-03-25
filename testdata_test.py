@@ -17,6 +17,25 @@ from collections import OrderedDict
 import time
 
 import testdata
+from testdata.path import Filepath, Dirpath
+
+
+class PathTest(unittest.TestCase):
+    def test_child(self):
+        d = testdata.create_dir()
+        d2 = d.child("foo", "bar")
+        self.assertTrue(isinstance(d2, Dirpath))
+
+        f = d.create_file("foo/bar.txt")
+        f2 = d.child("foo/bar.txt")
+        self.assertTrue(isinstance(f2, Filepath))
+
+    def test_div(self):
+        d = testdata.create_dir()
+        d2 = d.child("foo/bar")
+        d3 = d / "foo/bar"
+        self.assertEqual(d2, d3)
+
 
 class TestdataTest(unittest.TestCase):
 
