@@ -275,10 +275,12 @@ class Modulepath(Filepath):
         relpath = ""
         bits = self.relbits
         basename = bits.pop(-1)
-
         filebits = bits + ["{}.py".format(basename)]
         module_f = Filepath(os.sep.join(filebits), self.basedir)
-        if not module_f.exists():
+        if module_f.exists():
+            relpath = unicode(module_f.relpath)
+
+        else:
             filebits = bits + [basename, "__init__.py"]
             package_f = Filepath(os.sep.join(filebits), self.basedir)
             relpath = unicode(package_f.relpath if package_f.exists() else module_f.relpath)

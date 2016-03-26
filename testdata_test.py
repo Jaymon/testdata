@@ -30,14 +30,27 @@ class PathTest(unittest.TestCase):
         f2 = d.child("foo/bar.txt")
         self.assertTrue(isinstance(f2, Filepath))
 
-    def test_div(self):
+    def test_division(self):
         d = testdata.create_dir()
         d2 = d.child("foo/bar")
         d3 = d / "foo/bar"
         self.assertEqual(d2, d3)
 
+    def test_module(self):
+        m = testdata.create_module("bar.foo_test", [
+            "from unittest import TestCase",
+            "class FooTest(TestCase):",
+            "    def test_foo(self):",
+            "        pass",
+            #"        print 'in foo test'",
+            "",
+        ])
+        self.assertEqual(m.module.__file__, m.path)
+        self.assertEqual("bar/foo_test.py", m.relpath)
+
 
 class TestdataTest(unittest.TestCase):
+
 
     def test_create_file_structure(self):
         raise unittest.SkipTest("no longer supported")
