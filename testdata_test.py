@@ -21,6 +21,38 @@ from testdata.path import Filepath, Dirpath
 
 
 class PathTest(unittest.TestCase):
+    def test_directory(self):
+        d = testdata.create_dir()
+        self.assertEqual(d, d.directory)
+
+        f = testdata.create_file("dir.txt", "", d)
+        self.assertEqual(d, f.directory)
+
+        m = testdata.create_module("d.i", "", d)
+        self.assertEqual(os.path.join(d, "d"), m.directory)
+
+        p = testdata.create_package("r.e", "", d)
+        self.assertEqual(os.path.join(d, "r", "e"), p.directory)
+
+    def test_permissions(self):
+        f = testdata.create_file("permissions.txt")
+        self.assertRegexpMatches(f.permissions, "0[0-7]{3}")
+
+        f.chmod("0755")
+        self.assertEqual("0755", f.permissions)
+
+        f.chmod(0o644)
+        self.assertEqual("0644", f.permissions)
+
+        f.chmod("655")
+        self.assertEqual("0655", f.permissions)
+
+        with self.assertRaises(ValueError):
+            f.chmod(655)
+
+        f.chmod(500)
+        self.assertEqual("0764", f.permissions)
+
     def test_child(self):
         d = testdata.create_dir()
         d2 = d.child("foo", "bar")

@@ -7,6 +7,7 @@ import shutil
 import sys
 import pkgutil
 import importlib
+import stat
 
 
 class Dirpath(unicode):
@@ -26,6 +27,17 @@ class Dirpath(unicode):
     basedir = u""
 
     @property
+    def permissions(self):
+        # https://stomp.colorado.edu/blog/blog/2010/10/22/on-python-stat-octal-and-file-system-permissions/
+        mode = stat.S_IMODE(os.stat(self.path).st_mode)
+        mode = oct(mode)
+        return mode
+
+    @permissions.setter
+    def permissions(self, v):
+        self.chmod(v)
+
+    @property
     def path(self):
         """plain jane string for non traditional path children (like Module) to 
         be able to use most of the common functions with minimal override"""
@@ -35,6 +47,10 @@ class Dirpath(unicode):
     def relbits(self):
         """returns the relative path bits, so foo/bar would return ["foo", "bar"]"""
         return self.relpath.split(os.sep)
+
+    @property
+    def directory(self):
+        return self
 
     def __new__(cls, relpath=u"", basedir=u""):
         basedir, relpath, path = cls.normalize(relpath, basedir)
@@ -89,6 +105,15 @@ class Dirpath(unicode):
     def __iter__(self):
         for f in self.files():
             yield f
+
+    def chmod(self, permissions):
+        try:
+            permissions = int(permissions, 8)
+        except TypeError:
+            if permissions > 511:
+                raise ValueError("You most likely wanted to pass in \"{0:04d}\"".format(permissions))
+
+        os.chmod(self.path, permissions)
 
     def files(self):
         for basedir, directories, files in os.walk(self.path, topdown=True):
@@ -248,6 +273,13 @@ class Modulepath(Filepath):
     tmpdir -- string -- the temp directory that will be added to the syspath if make_importable is True
     make_importable -- boolean -- if True, then tmpdir will be added to the python path so it can be imported
     '''
+    @property
+    def directory(self):
+        f = Filepath(self.relpath, self.basedir)
+        return f.directory
+
+        return self.basedir
+
     @property
     def module(self):
         injected = False
