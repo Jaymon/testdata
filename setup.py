@@ -7,7 +7,7 @@ import os
 
 
 name = 'testdata'
-with open(os.path.join(name, "__init__.py"), 'rU') as f:
+with open(os.path.join(name, "__init__.py")) as f:
     version = re.search("^__version__\s*=\s*[\'\"]([^\'\"]+)", f.read(), flags=re.I | re.M).group(1)
 
 setup(
@@ -28,6 +28,7 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Software Development :: Testing',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
     ],
     test_suite = "{}_test".format(name),
 )

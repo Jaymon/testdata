@@ -325,3 +325,14 @@ return a datetime guaranteed to be in the future from `start` and in the past fr
     >>> testdata.get_between_datetime(start)
     datetime.datetime(2017, 8, 3, 15, 54, 58, 670249)
 
+
+## Testing
+
+Testing in 2.7 on most systems:
+
+    $ python -m unittest testdata_test
+
+Testing in 3.5 on MacOS:
+
+    $ python3.5 -m unittest testdata_test
+

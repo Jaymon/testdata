@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 a module to make it easy to get some test data
 
@@ -7,6 +8,7 @@ for a utf-8 stress test, see: http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-
 you can get all the unicode chars and their names: ftp://ftp.unicode.org/
     ftp://ftp.unicode.org/Public/6.3.0/ucd/UnicodeData-6.3.0d2.txt
 '''
+from __future__ import unicode_literals
 import re
 import random
 import string
@@ -21,7 +23,9 @@ import types
 import imp
 import inspect
 import copy
+import uuid
 
+from .compat import *
 from .data import _names, \
     _unicode_names, \
     _ascii_paragraphs, \
@@ -32,11 +36,72 @@ from .data import _names, \
 
 from .path import Dirpath, Filepath, Modulepath
 
+__version__ = '0.6.9'
 
-__version__ = '0.6.8'
+
+def yes(specifier=0):
+    """
+    Decide if we should perform this action, this is just a simple way to do something
+    I do in tests every now and again
+
+    example -- simple yes or no question
+
+        if testdata.yes():
+            # do this
+        else:
+            # don't do it
+
+    example -- multiple choice
+
+        choice = testdata.yes(3)
+        if choice == 1:
+            # do the first thing
+        elif choice == 2:
+            # do the second thing
+        else:
+            # do the third thing
+
+    example -- do something 75% of the time
+
+        if testdata.yes(0.75):
+            # do it the majority of the time
+        else:
+            # but every once in a while don't do it
+
+    https://github.com/Jaymon/testdata/issues/8
+    """
+    if specifier:
+        if isinstance(specifier, int):
+            choice = random.randint(1, specifier)
+
+        else:
+            if specifier > 1.0:
+                specifier *= 100.0
+
+            specifier = int(specifier)
+            x = random.randint(0, 100)
+            choice = 1 if x <= specifier else 0
+
+    else:
+        choice = random.choice([0, 1])
+
+    return choice
 
 
-def create_dir(path=u"", tmpdir=u""):
+def get_uuid():
+    """Generate a random UUID"""
+    return str(uuid.uuid4())
+    # 3088D703-6AD0-4D62-B0D3-0FF824A707F5
+#     return '{}-{}-{}-{}-{}'.format(
+#         get_ascii(8).upper(),
+#         get_ascii(4).upper(),
+#         get_ascii(4).upper(),
+#         get_ascii(4).upper(),
+#         get_ascii(12).upper()
+#     )
+
+
+def create_dir(path="", tmpdir=""):
     '''
     create a directory path using a tempdir as the root
 
@@ -51,7 +116,7 @@ def create_dir(path=u"", tmpdir=u""):
     return Dirpath.create_instance(path, tmpdir)
 
 
-def create_file(path, contents=u"", tmpdir=u""):
+def create_file(path, contents="", tmpdir=""):
     '''
     create a file and return the full path to that file
 
@@ -64,7 +129,7 @@ def create_file(path, contents=u"", tmpdir=u""):
     return Filepath.create_instance(path, contents, tmpdir)
 
 
-def create_files(file_dict, tmpdir=u""):
+def create_files(file_dict, tmpdir=""):
     """
     create a whole bunch of files all at once
 
@@ -78,7 +143,7 @@ def create_files(file_dict, tmpdir=u""):
     return base_dir
 
 
-def create_module(module_name, contents=u"", tmpdir=u"", make_importable=True):
+def create_module(module_name, contents="", tmpdir="", make_importable=True):
     '''
     create a python module folder structure so that the module can be imported
 
@@ -92,7 +157,7 @@ def create_module(module_name, contents=u"", tmpdir=u"", make_importable=True):
     return Modulepath.create_instance(module_name, contents, tmpdir, make_importable)
 
 
-def create_modules(module_dict, tmpdir=u"", make_importable=True):
+def create_modules(module_dict, tmpdir="", make_importable=True):
     """
     create a whole bunch of modules all at once
 
@@ -103,14 +168,14 @@ def create_modules(module_dict, tmpdir=u"", make_importable=True):
     """
     module_base_dir = Dirpath(basedir=tmpdir)
 
-    for module_name, contents in module_dict.iteritems():
+    for module_name, contents in module_dict.items():
         Modulepath.create_instance(module_name, contents, module_base_dir, make_importable)
         make_importable = False
 
     return module_base_dir
 
 
-def create_package(module_name, contents=u"", tmpdir=u"", make_importable=True):
+def create_package(module_name, contents="", tmpdir="", make_importable=True):
     '''
     create a python package folder structure so that the package can be imported
 
@@ -139,8 +204,8 @@ def get_url():
 
     return -- unicode
     '''
-    return u'http{}://{}.com'.format(
-        u's' if random.choice([True, False]) else u'',
+    return 'http{}://{}.com'.format(
+        's' if random.choice([True, False]) else '',
         get_ascii()
     )
 
@@ -167,8 +232,8 @@ def get_str(str_size=0, chars=None):
         # pg 42 - http://www.unicode.org/versions/Unicode6.2.0/ch03.pdf
         # via: http://stackoverflow.com/questions/1477294/generate-random-utf-8-string-in-python
         byte_range = lambda first, last: range(first, last+1)
-        first_values = byte_range(0x00, 0x7F) + byte_range(0xC2, 0xF4)
-        trailing_values = byte_range(0x80, 0xBF)
+        first_values = list(byte_range(0x00, 0x7F)) + list(byte_range(0xC2, 0xF4))
+        trailing_values = list(byte_range(0x80, 0xBF))
 
         def random_utf8_seq():
             while True:
@@ -221,7 +286,7 @@ def get_str(str_size=0, chars=None):
         # we have a defined set of chars
         sg = (random.choice(chars) for c in range(str_size))
 
-    s = u''.join(sg)
+    s = ''.join(sg)
     return s
 
 
@@ -315,7 +380,7 @@ def get_unique_int(min_size=1, max_size=sys.maxsize):
     i = 0;
     found = False
     max_count = max_size - min_size
-    for x in xrange(max_count):
+    for x in range(max_count):
         i = random.randint(min_size, max_size)
         if i not in _previous_ints:
             found = True
@@ -356,7 +421,7 @@ def get_words(word_count=0, as_str=True, words=None):
         words = _words
 
     ret_words = random.sample(words, word_count)
-    return ret_words if not as_str else u' '.join(ret_words)
+    return ret_words if not as_str else ' '.join(ret_words)
 
 
 def get_birthday(as_str=False):
@@ -383,40 +448,40 @@ def get_birthday(as_str=False):
     return bday
 
 
-def get_email(name=u''):
+def get_email(name=''):
     '''return a random email address'''
     if not name: name = get_ascii_name()
     name = re.sub("['-]", "", name)
 
     email_domains = [
-        u"yahoo.com",
-        u"hotmail.com",
-        u"outlook.com",
-        u"aol.com",
-        u"gmail.com",
-        u"msn.com",
-        u"comcast.net",
-        u"hotmail.co.uk",
-        u"sbcglobal.net",
-        u"yahoo.co.uk",
-        u"yahoo.co.in",
-        u"bellsouth.net",
-        u"verizon.com",
-        u"earthlink.net",
-        u"cox.net",
-        u"rediffmail.com",
-        u"yahoo.ca",
-        u"btinternet.com",
-        u"charter.net",
-        u"shaw.ca",
-        u"ntlworld.com",
-        u"gmx.com",
-        u"gmx.net",
-        u"mail.com",
-        u"mailinator.com"
+        "yahoo.com",
+        "hotmail.com",
+        "outlook.com",
+        "aol.com",
+        "gmail.com",
+        "msn.com",
+        "comcast.net",
+        "hotmail.co.uk",
+        "sbcglobal.net",
+        "yahoo.co.uk",
+        "yahoo.co.in",
+        "bellsouth.net",
+        "verizon.com",
+        "earthlink.net",
+        "cox.net",
+        "rediffmail.com",
+        "yahoo.ca",
+        "btinternet.com",
+        "charter.net",
+        "shaw.ca",
+        "ntlworld.com",
+        "gmx.com",
+        "gmx.net",
+        "mail.com",
+        "mailinator.com"
     ]
 
-    return u'{}@{}'.format(name.lower(), random.choice(email_domains))
+    return '{}@{}'.format(name.lower(), random.choice(email_domains))
 
 
 def get_name(name_count=2, as_str=True):
@@ -438,7 +503,7 @@ def get_name(name_count=2, as_str=True):
     names = []
     if name_count > 0:
         #names = random.sample(_names, name_count)
-        for x in xrange(name_count):
+        for x in range(name_count):
             if random.randint(0, 100) < 20:
                 names.append(get_unicode_name())
             else:
@@ -446,9 +511,9 @@ def get_name(name_count=2, as_str=True):
 
         if name_count > 1:
             if random.randint(0, 20) == 1:
-                names[-1] = u'{}-{}'.format(names[-1], random.choice(_names))
+                names[-1] = '{}-{}'.format(names[-1], random.choice(_names))
 
-    return names if not as_str else u' '.join(names)
+    return names if not as_str else ' '.join(names)
 
 
 def get_ascii_name():
@@ -457,18 +522,9 @@ def get_ascii_name():
 
 
 def get_unicode_name():
-    '''return one none ascii safe name'''
-    name = u''
-    while True:
-        # total hack to get around not all the names in _unicode_names being unicode
-        try:
-            name = random.choice(_unicode_names)
-            name.decode('utf-8')
-        except UnicodeEncodeError:
-            break
-
+    '''return one non-ascii safe name'''
+    name = random.choice(_unicode_names)
     return name
-    # return random.choice(_unicode_names)
 
 
 def get_coordinate(v1, v2, round_to=7):
@@ -633,9 +689,15 @@ def patch_class(mod, patches=None, **kwargs_patches):
                     d[k] = copy.deepcopy(v)
         return d
 
+    class_name = ""
+    if is_py2:
+        class_name = b'{}Patched'.format(mod.__name__)
+    elif is_py3:
+        class_name = '{}Patched'.format(mod.__name__)
+
     # http://stackoverflow.com/questions/9541025/how-to-copy-a-python-class
     mod_patched = type(
-        '{}Patched'.format(mod.__name__),
+        class_name,
         mod.__bases__,
         #{k: copy.deepcopy(v) for k, v in mod.__dict__.items()}
         copy_dict(mod)

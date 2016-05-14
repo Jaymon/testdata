@@ -18,6 +18,7 @@ import time
 
 import testdata
 from testdata.path import Filepath, Dirpath
+from testdata.compat import *
 
 
 class PathTest(unittest.TestCase):
@@ -28,11 +29,11 @@ class PathTest(unittest.TestCase):
         f = testdata.create_file("dir.txt", "", d)
         self.assertEqual(d, f.directory)
 
-        m = testdata.create_module("d.i", "", d)
-        self.assertEqual(os.path.join(d, "d"), m.directory)
-
         p = testdata.create_package("r.e", "", d)
         self.assertEqual(os.path.join(d, "r", "e"), p.directory)
+
+        m = testdata.create_module("d.i", "", d)
+        self.assertEqual(os.path.join(d, "d"), m.directory)
 
     def test_permissions(self):
         f = testdata.create_file("permissions.txt")
@@ -41,17 +42,17 @@ class PathTest(unittest.TestCase):
         f.chmod("0755")
         self.assertEqual("0755", f.permissions)
 
-        f.chmod(0o644)
+        f.chmod(644)
         self.assertEqual("0644", f.permissions)
 
         f.chmod("655")
         self.assertEqual("0655", f.permissions)
 
-        with self.assertRaises(ValueError):
-            f.chmod(655)
+        f.chmod(655)
+        self.assertEqual("0655", f.permissions)
 
         f.chmod(500)
-        self.assertEqual("0764", f.permissions)
+        self.assertEqual("0500", f.permissions)
 
     def test_child(self):
         d = testdata.create_dir()
@@ -82,7 +83,24 @@ class PathTest(unittest.TestCase):
 
 
 class TestdataTest(unittest.TestCase):
+    def test_uuid(self):
+        for x in range(10):
+            uuid = testdata.get_uuid()
+            self.assertEqual(36, len(uuid))
 
+    def test_yes(self):
+        for x in range(10):
+            self.assertTrue(testdata.yes() in set([0, 1]))
+
+        for x in range(10):
+            choice = testdata.yes(5)
+            self.assertTrue(choice in set([1, 2, 3, 4, 5]))
+
+        for x in range(10):
+            self.assertTrue(testdata.yes(0.75) in set([0, 1]))
+
+        for x in range(10):
+            self.assertTrue(testdata.yes(75.0) in set([0, 1]))
 
     def test_create_file_structure(self):
         raise unittest.SkipTest("no longer supported")
@@ -200,7 +218,7 @@ class TestdataTest(unittest.TestCase):
         for t in ts:
             f = testdata.create_file(t, s)
             self.assertTrue(os.path.isfile(f))
-            with file(f) as fr:
+            with open(f) as fr:
                 sr = fr.read()
                 self.assertEqual(s, sr)
 
@@ -347,13 +365,19 @@ class TestdataTest(unittest.TestCase):
     def test_get_ascii_name(self):
         name = testdata.get_ascii_name()
         self.assertGreater(len(name), 0)
-        name.decode('utf-8') # this should not fail because the string is ascii
+        if is_py2:
+            name.decode('utf-8') # this should not fail because the string is ascii
+        elif is_py3:
+            bytes(name, encoding="ascii").decode('utf-8')
 
     def test_get_unicode_name(self):
         name = testdata.get_unicode_name()
         self.assertGreater(len(name), 0)
         with self.assertRaises(UnicodeEncodeError):
-            name.decode('utf-8')
+            if is_py2:
+                name.decode('utf-8')
+            elif is_py3:
+                bytes(name, encoding="ascii").decode('utf-8')
 
     def test_get_email(self):
         email = testdata.get_email()
@@ -389,24 +413,30 @@ class TestdataTest(unittest.TestCase):
 
         v = testdata.get_words()
         self.assertNotEqual(u"", v)
-    
+
     def test_get_ascii_words(self):
         v = testdata.get_ascii_words()
         self.assertGreater(len(v), 0)
-        v.decode('utf-8') # this should not fail because the string is ascii
+        if is_py2:
+            v.decode('utf-8') # this should not fail because the string is ascii
+        elif is_py3:
+            bytes(v, encoding="ascii").decode('utf-8')
 
     def test_get_unicode_words(self):
         v = testdata.get_unicode_words()
         self.assertGreater(len(v), 0)
         with self.assertRaises(UnicodeEncodeError):
-            v.decode('utf-8')
+            if is_py2:
+                v.decode('utf-8')
+            elif is_py3:
+                bytes(v, encoding="ascii").decode('utf-8')
 
     def test_get_birthday(self):
         v = testdata.get_birthday()
         self.assertTrue(isinstance(v, datetime.date))
 
         v = testdata.get_birthday(as_str=True)
-        self.assertTrue(isinstance(v, types.StringType))
+        self.assertTrue(isinstance(v, basestring))
 
     def test_get_coordinate(self):
         v1 = 123.3445435454535
@@ -421,7 +451,11 @@ class TestdataTest(unittest.TestCase):
 
         s_byte = s.encode('utf-8')
         with self.assertRaises(UnicodeError):
-            s_byte.encode('utf-8')
+            if is_py2:
+                s_byte.encode('utf-8')
+            elif is_py3:
+                str(s_byte).encode('utf-8')
+
             raise UnicodeError('well what do you know, get_str() returned all ascii')
 
         s = testdata.get_str(24, chars=string.hexdigits.lower())
@@ -467,36 +501,36 @@ class TestdataTest(unittest.TestCase):
 
     def test_get_past_datetime(self):
         now = datetime.datetime.utcnow()
-        for x in xrange(5):
+        for x in range(5):
             dt = testdata.get_past_datetime()
             self.assertGreater(now, dt)
 
-        for x in xrange(5):
+        for x in range(5):
             dt = testdata.get_past_datetime(now)
             self.assertGreater(now, dt)
             now = dt
 
     def test_get_future_datetime(self):
         now = datetime.datetime.utcnow()
-        for x in xrange(5):
+        for x in range(5):
             dt = testdata.get_future_datetime()
             self.assertGreater(dt, now)
 
-        for x in xrange(5):
+        for x in range(5):
             dt = testdata.get_future_datetime(now)
             self.assertGreater(dt, now)
             now = dt
 
     def test_get_between_datetime(self):
         start = testdata.get_past_datetime()
-        for x in xrange(5):
+        for x in range(5):
             dt = testdata.get_between_datetime(start)
             now = datetime.datetime.utcnow()
             self.assertGreater(now, dt)
 
         time.sleep(0.1)
         stop = datetime.datetime.utcnow()
-        for x in xrange(5):
+        for x in range(5):
             dt = testdata.get_between_datetime(start, stop)
             self.assertGreater(dt, start)
             self.assertGreater(stop, dt)

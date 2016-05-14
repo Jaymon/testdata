@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, division
 import os
 import re
 import tempfile
@@ -9,8 +11,10 @@ import pkgutil
 import importlib
 import stat
 
+from .compat import *
 
-class Dirpath(unicode):
+
+class Dirpath(str):
     '''
     create a directory path using a tempdir as the root
 
@@ -22,16 +26,16 @@ class Dirpath(unicode):
 
     on instantiation this class will contain the full directory path
     '''
-    relpath = u""
+    relpath = ""
 
-    basedir = u""
+    basedir = ""
 
     @property
     def permissions(self):
         # https://stomp.colorado.edu/blog/blog/2010/10/22/on-python-stat-octal-and-file-system-permissions/
         mode = stat.S_IMODE(os.stat(self.path).st_mode)
         mode = oct(mode)
-        return mode
+        return mode.replace("o", "")
 
     @permissions.setter
     def permissions(self, v):
@@ -41,7 +45,7 @@ class Dirpath(unicode):
     def path(self):
         """plain jane string for non traditional path children (like Module) to 
         be able to use most of the common functions with minimal override"""
-        return unicode(self)
+        return str(self)
 
     @property
     def relbits(self):
@@ -52,17 +56,15 @@ class Dirpath(unicode):
     def directory(self):
         return self
 
-    def __new__(cls, relpath=u"", basedir=u""):
+    def __new__(cls, relpath="", basedir=""):
         basedir, relpath, path = cls.normalize(relpath, basedir)
-        #pout.v(basedir, relpath, path)
-
         instance = super(Dirpath, cls).__new__(cls, path)
         instance.basedir = basedir
         if relpath: instance.relpath = relpath
         return instance
 
     @classmethod
-    def create_instance(cls, relpath=u"", basedir=u""):
+    def create_instance(cls, relpath="", basedir=""):
         instance = cls(relpath, basedir)
         return instance.create()
 
@@ -80,13 +82,13 @@ class Dirpath(unicode):
         shutil.rmtree(self.path)
 
     @classmethod
-    def normalize(cls, relpath, basedir=u""):
+    def normalize(cls, relpath, basedir=""):
         '''normalize a path, accounting for things like windows dir seps'''
-        if relpath and relpath[0] == u'.':
+        if relpath and relpath[0] == '.':
             raise ValueError("you cannot start a path with ./ or ../")
 
-        if isinstance(relpath, str):
-            relpath = relpath.decode("UTF-8")
+#         if isinstance(relpath, str):
+#             relpath = relpath.decode("UTF-8")
 
         if not basedir: basedir = tempfile.mkdtemp()
 
@@ -107,11 +109,13 @@ class Dirpath(unicode):
             yield f
 
     def chmod(self, permissions):
+        if isinstance(permissions, int):
+            permissions = "{0:04d}".format(permissions)
+
         try:
             permissions = int(permissions, 8)
         except TypeError:
-            if permissions > 511:
-                raise ValueError("You most likely wanted to pass in \"{0:04d}\"".format(permissions))
+            pass
 
         os.chmod(self.path, permissions)
 
@@ -155,7 +159,7 @@ class Dirpath(unicode):
     def modules(self):
         for module_info in pkgutil.iter_modules([self.path]):
             bits = self.relbits + [module_info[1]]
-            yield Modulepath(u".".join(bits), self.basedir)
+            yield Modulepath(".".join(bits), self.basedir)
 
             if module_info[2]: # module is a package because index 2 is True
                 submodules = Dirpath(os.sep.join(bits), self.basedir)
@@ -165,6 +169,10 @@ class Dirpath(unicode):
                     yield submodule
 
     def __div__(self, other):
+        # 2.x
+        return self.__truediv__(other)
+
+    def __truediv__(self, other):
         return self.child(other)
 
 
@@ -189,13 +197,13 @@ class Filepath(Dirpath):
     def name(self):
         return os.path.basename(self.path)
 
-    def __new__(cls, relpath, basedir=u""):
+    def __new__(cls, relpath, basedir=""):
         instance = super(Filepath, cls).__new__(cls, relpath, basedir)
         instance.encoding='UTF-8'
         return instance
 
     @classmethod
-    def create_instance(cls, relpath, contents=u"", basedir=u""):
+    def create_instance(cls, relpath, contents="", basedir=""):
         instance = cls(relpath, basedir)
         return instance.create(contents)
 
@@ -211,7 +219,7 @@ class Filepath(Dirpath):
             ret = f.write(self.normalize_contents(contents))
         return ret
 
-    def create(self, contents=u""):
+    def create(self, contents=""):
         d = self.directory # just by doing this the directory will be created
         d.create()
         if contents:
@@ -219,7 +227,7 @@ class Filepath(Dirpath):
 
         else:
             if not self.exists():
-                with self.open('a') as f:
+                with self.open("a") as f:
                     os.utime(self.path, None)
 
         return self
@@ -278,8 +286,6 @@ class Modulepath(Filepath):
         f = Filepath(self.relpath, self.basedir)
         return f.directory
 
-        return self.basedir
-
     @property
     def module(self):
         injected = False
@@ -300,7 +306,7 @@ class Modulepath(Filepath):
 
     @property
     def relbits(self):
-        return self.split(u'.')
+        return self.split('.')
 
     @property
     def relpath(self):
@@ -310,12 +316,12 @@ class Modulepath(Filepath):
         filebits = bits + ["{}.py".format(basename)]
         module_f = Filepath(os.sep.join(filebits), self.basedir)
         if module_f.exists():
-            relpath = unicode(module_f.relpath)
+            relpath = str(module_f.relpath)
 
         else:
             filebits = bits + [basename, "__init__.py"]
             package_f = Filepath(os.sep.join(filebits), self.basedir)
-            relpath = unicode(package_f.relpath if package_f.exists() else module_f.relpath)
+            relpath = str(package_f.relpath if package_f.exists() else module_f.relpath)
 
         return relpath
 
@@ -323,62 +329,62 @@ class Modulepath(Filepath):
     def path(self):
         return os.path.join(self.basedir, self.relpath)
 
-    def __new__(cls, module_name, basedir=u""):
-        instance = super(Filepath, cls).__new__(cls, module_name, basedir)
+    def __new__(cls, module_name, basedir=""):
+        instance = super(Modulepath, cls).__new__(cls, module_name, basedir)
         return instance
 
     @classmethod
-    def create_instance(cls, module_name, contents=u"", basedir=u"", make_importable=True, is_package=False):
+    def create_instance(cls, module_name, contents="", basedir="", make_importable=True, is_package=False):
         instance = cls(module_name, basedir)
         return instance.create(contents, make_importable, is_package)
 
     @classmethod
-    def normalize(cls, module_name, basedir=u""):
+    def normalize(cls, module_name, basedir=""):
         '''normalize a path, accounting for things like windows dir seps'''
-        mod_bits = filter(None, module_name.split(u'.'))
+        mod_bits = list(filter(None, module_name.split('.')))
         relpath = os.sep.join(mod_bits)
 
         basedir, relpath, path = super(Modulepath, cls).normalize(relpath, basedir)
-        return basedir, None, u".".join(mod_bits)
+        return basedir, None, ".".join(mod_bits)
 
-    def create(self, contents=u"", make_importable=True, is_package=False):
+    def create(self, contents="", make_importable=True, is_package=False):
         module_file = ''
         mod_bits = self.relbits
         base_modname = mod_bits.pop()
 
-        module_base_dir = Dirpath(u"", self.basedir)
+        module_base_dir = Dirpath("", self.basedir)
         module_base_dir.create()
 
         base_dir = self.basedir
         for modname in mod_bits:
             # check to see if there is a file that already exists
-            mod_file = Filepath(u"{}.py".format(modname), base_dir)
+            mod_file = Filepath("{}.py".format(modname), base_dir)
 
             # turn module.py into a package (module/__init__.py)
             base_dir = Dirpath(modname, base_dir)
             base_dir.create()
             if os.path.isfile(mod_file):
-                os.rename(mod_file, os.path.join(base_dir, u"__init__.py"))
+                os.rename(mod_file, os.path.join(base_dir, "__init__.py"))
 
             else:
                 # only add a blank package sentinel file if one already doesn't exist
-                if not os.path.isfile(os.path.join(base_dir, u"__init__.py")):
-                    module_file = Filepath(u"__init__.py", base_dir)
+                if not os.path.isfile(os.path.join(base_dir, "__init__.py")):
+                    module_file = Filepath("__init__.py", base_dir)
                     module_file.create()
 
         # the basename gets treated differently becayse it can be a file
         mod_dir = os.path.join(base_dir, base_modname)
         if os.path.isdir(mod_dir):
-            module_file = Filepath(u"__init__.py", mod_dir)
+            module_file = Filepath("__init__.py", mod_dir)
 
         else:
             if is_package:
                 base_dir = Dirpath(base_modname, base_dir)
                 base_dir.create()
-                module_file = Filepath(u"__init__.py", mod_dir)
+                module_file = Filepath("__init__.py", mod_dir)
 
             else:
-                module_file = Filepath(u"{}.py".format(base_modname), base_dir)
+                module_file = Filepath("{}.py".format(base_modname), base_dir)
 
         module_file.create(contents)
 
@@ -391,5 +397,5 @@ class Modulepath(Filepath):
     def is_package(self):
         """returns True if this moduel is a package (directory with __init__.py file
         in it)"""
-        return self.relpath.endswith(u"__init__.py")
+        return self.relpath.endswith("__init__.py")
 
