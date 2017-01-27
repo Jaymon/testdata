@@ -83,7 +83,18 @@ class PathTest(unittest.TestCase):
 
 
 class TestdataTest(unittest.TestCase):
-    def test_uuid(self):
+    def test_get_md5(self):
+        h1 = testdata.get_md5("foo")
+        h2 = testdata.get_md5("foo")
+        self.assertEqual(h1, h2)
+
+        h3 = testdata.get_md5()
+        h4 = testdata.get_md5()
+        self.assertTrue(h3 != "")
+        self.assertTrue(h4 != "")
+        self.assertNotEqual(h3, h4)
+
+    def test_get_uuid(self):
         for x in range(10):
             uuid = testdata.get_uuid()
             self.assertEqual(36, len(uuid))

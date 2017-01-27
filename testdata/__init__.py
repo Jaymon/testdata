@@ -24,6 +24,7 @@ import imp
 import inspect
 import copy
 import uuid
+import hashlib
 
 from .compat import *
 from .data import _names, \
@@ -36,7 +37,7 @@ from .data import _names, \
 
 from .path import Dirpath, Filepath, Modulepath
 
-__version__ = '0.6.9'
+__version__ = '0.6.10'
 
 
 def yes(specifier=0):
@@ -86,6 +87,18 @@ def yes(specifier=0):
         choice = random.choice([0, 1])
 
     return choice
+
+
+def get_md5(val=""):
+    """Return an md5 hash of val, if no val then return a random md5 hash
+
+    :param val: string, the value you want to md5 hash
+    :returns: string, the md5 hash as a 32 char hex string
+    """
+    if not val:
+        val = get_uuid()
+
+    return hashlib.md5(str(val)).hexdigest()
 
 
 def get_uuid():
