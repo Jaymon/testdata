@@ -740,7 +740,6 @@ class Thread2Test(unittest.TestCase):
             time.sleep(1)
 
         with self.assertRaises(ValueError):
-            #t1 = threading.Thread(target=ws1_send)
             t1 = Thread(target=run1)
             t1.daemon = True
             t1.start()
@@ -755,21 +754,6 @@ class ThreadTest(unittest.TestCase):
             q.get(False)
             q.task_done()
 
-#     def test_monitor_errors(self):
-#         def run():
-#             raise ValueError()
-# 
-#         thread = Thread(target=run)
-#         monitor_errors()
-#         with self.assertRaises(ValueError):
-#             thread.start()
-#             time.sleep(0.5)
-#             while thread.is_alive():
-#                 pout.v("thread still alive")
-#                 time.sleep(0.1)
-# 
-#         pout.h()
-
     def test_success(self):
         q = queue.Queue()
         def run():
@@ -777,9 +761,7 @@ class ThreadTest(unittest.TestCase):
 
         thread = Thread(target=run)
         thread.start()
-        thread.join()
-        self.assertEqual(2, q.get(False))
-
+        thread.join() self.assertEqual(2, q.get(False)) 
     def test_raise_error_daemon_start(self):
         def run():
             raise ValueError("raise_error_daemon_start")

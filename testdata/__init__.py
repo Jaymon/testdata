@@ -39,7 +39,7 @@ from .data import _names, \
 from .path import Dirpath, Filepath, Modulepath
 
 
-__version__ = '0.6.11'
+__version__ = '0.6.12'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
