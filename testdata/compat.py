@@ -12,7 +12,7 @@ if is_py2:
     basestring = basestring
     range = xrange # range is now always an iterator
     import Queue as queue
-    import thread
+    import thread as _thread
 
     # shamelously ripped from six https://bitbucket.org/gutworth/six
     exec("""def reraise(tp, value, tb=None):
@@ -26,7 +26,7 @@ if is_py2:
 elif is_py3:
     basestring = (str, bytes)
     import queue
-    import _thread as thread
+    import _thread
 
     # ripped from six https://bitbucket.org/gutworth/six
     def reraise(tp, value, tb=None):

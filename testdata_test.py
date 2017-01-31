@@ -102,6 +102,10 @@ class TestdataTest(unittest.TestCase):
         self.assertTrue(h4 != "")
         self.assertNotEqual(h3, h4)
 
+        if is_py3:
+            h5 = testdata.get_md5(b"bar")
+            self.assertTrue(h5 != "")
+
     def test_get_uuid(self):
         for x in range(10):
             uuid = testdata.get_uuid()
@@ -761,7 +765,9 @@ class ThreadTest(unittest.TestCase):
 
         thread = Thread(target=run)
         thread.start()
-        thread.join() self.assertEqual(2, q.get(False)) 
+        thread.join()
+        self.assertEqual(2, q.get(False)) 
+
     def test_raise_error_daemon_start(self):
         def run():
             raise ValueError("raise_error_daemon_start")
@@ -821,5 +827,5 @@ class ThreadTest(unittest.TestCase):
             thread.join()
 
         except ValueError as e:
-            self.assertEqual("join_2", e.message)
+            self.assertEqual("join_2", str(e))
 

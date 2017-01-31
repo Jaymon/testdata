@@ -37,9 +37,10 @@ from .data import _names, \
     _words
 
 from .path import Dirpath, Filepath, Modulepath
+from .threading import Thread
 
 
-__version__ = '0.6.12'
+__version__ = '0.6.13'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -104,7 +105,16 @@ def get_md5(val=""):
     if not val:
         val = get_uuid()
 
-    return hashlib.md5(str(val)).hexdigest()
+    ret = ""
+    if is_py2:
+        ret = hashlib.md5(str(val)).hexdigest()
+    else:
+        if getattr(val, "encode", None):
+            ret = hashlib.md5(val.encode("utf-8")).hexdigest()
+        else:
+            ret = hashlib.md5(val).hexdigest()
+
+    return ret
 
 
 def get_uuid():

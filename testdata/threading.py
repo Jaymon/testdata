@@ -4,7 +4,7 @@ import threading
 import sys
 import logging
 
-from .compat import queue, thread, reraise
+from .compat import queue, _thread, reraise
 
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class Thread(threading.Thread):
             exc_info = sys.exc_info()
             exc_queue.put((e, exc_info))
             logger.exception(e)
-            thread.interrupt_main()
+            _thread.interrupt_main()
 
     def join(self, *args, **kwargs):
         try:
