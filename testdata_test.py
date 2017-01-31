@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 test testdata
 
@@ -6,6 +7,7 @@ link -- http://docs.python.org/library/unittest.html
 to run on the command line:
 python -m unittest test_testdata[.ClassTest[.test_method]]
 """
+from __future__ import unicode_literals, division, print_function, absolute_import
 import unittest
 import re
 import string
@@ -15,10 +17,16 @@ import datetime
 import types
 from collections import OrderedDict
 import time
+import logging
 
 import testdata
 from testdata.path import Filepath, Dirpath
 from testdata.compat import *
+from testdata.threading import Thread
+from testdata import threading
+
+
+logging.basicConfig()
 
 
 class PathTest(unittest.TestCase):
@@ -551,6 +559,13 @@ class TestdataTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             dt = testdata.get_between_datetime(now, now)
 
+    def test_get_between_datetime_same_microseconds(self):
+        """noticed a problem when using the same now"""
+        now = datetime.datetime.utcnow()
+        start_dt = testdata.get_past_datetime(now)
+        stop_dt = testdata.get_between_datetime(start_dt, now)
+        self.assertGreater(stop_dt, start_dt)
+
     def test_patch(self):
 
         @classmethod
@@ -708,4 +723,121 @@ class TestdataTest(unittest.TestCase):
         self.assertNotEqual(f.bam(), fm.bam())
         self.assertEqual(id(f), f.bam())
         self.assertEqual(id(fm), fm.bam())
+
+
+class Thread2Test(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        def run():
+            time.sleep(0.5)
+            raise ValueError("setUpClass")
+        thread = Thread(target=run)
+        thread.daemon = True
+        thread.start()
+
+    def test_raise_error_daemon_start(self):
+        def run1():
+            time.sleep(1)
+
+        with self.assertRaises(ValueError):
+            #t1 = threading.Thread(target=ws1_send)
+            t1 = Thread(target=run1)
+            t1.daemon = True
+            t1.start()
+            t1.join()
+
+
+class ThreadTest(unittest.TestCase):
+    def tearDown(self):
+        # clear the queue to make sure one test doesn't inherit the error of another test
+        q = threading.exc_queue
+        while not q.empty():
+            q.get(False)
+            q.task_done()
+
+#     def test_monitor_errors(self):
+#         def run():
+#             raise ValueError()
+# 
+#         thread = Thread(target=run)
+#         monitor_errors()
+#         with self.assertRaises(ValueError):
+#             thread.start()
+#             time.sleep(0.5)
+#             while thread.is_alive():
+#                 pout.v("thread still alive")
+#                 time.sleep(0.1)
+# 
+#         pout.h()
+
+    def test_success(self):
+        q = queue.Queue()
+        def run():
+            q.put(2)
+
+        thread = Thread(target=run)
+        thread.start()
+        thread.join()
+        self.assertEqual(2, q.get(False))
+
+    def test_raise_error_daemon_start(self):
+        def run():
+            raise ValueError("raise_error_daemon_start")
+
+        thread = Thread(target=run)
+        thread.daemon = True
+        with self.assertRaises(KeyboardInterrupt):
+            thread.start()
+            while thread.is_alive():
+                time.sleep(0.1)
+
+        self.assertIsInstance(thread.exception, ValueError)
+
+    def test_raise_error_start(self):
+        def run():
+            raise ValueError("raise_error_start")
+
+        thread = Thread(target=run)
+        with self.assertRaises(KeyboardInterrupt):
+            thread.start()
+            while thread.is_alive():
+                time.sleep(0.1)
+
+        self.assertIsInstance(thread.exception, ValueError)
+
+    def test_raise_error_join(self):
+        def run():
+            time.sleep(0.5)
+            raise ValueError("raise_error_join")
+
+        thread = Thread(target=run)
+        thread.start()
+        with self.assertRaises(ValueError):
+            thread.join()
+
+    def test_raise_error_daemon_join(self):
+        def run():
+            time.sleep(0.5)
+            raise ValueError("raise_error_daemon_join")
+
+        thread = Thread(target=run)
+        thread.daemon = True
+        thread.start()
+        with self.assertRaises(ValueError):
+            thread.join()
+
+    def test_join_2(self):
+        def run():
+            time.sleep(0.5)
+            raise ValueError("join_2")
+
+        thread = Thread(target=run)
+        thread.daemon = True
+        thread.start()
+
+        try:
+            thread.join()
+
+        except ValueError as e:
+            self.assertEqual("join_2", e.message)
 

@@ -8,7 +8,7 @@ for a utf-8 stress test, see: http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-
 you can get all the unicode chars and their names: ftp://ftp.unicode.org/
     ftp://ftp.unicode.org/Public/6.3.0/ucd/UnicodeData-6.3.0d2.txt
 '''
-from __future__ import unicode_literals
+from __future__ import unicode_literals, division, print_function, absolute_import
 import re
 import random
 import string
@@ -25,6 +25,7 @@ import inspect
 import copy
 import uuid
 import hashlib
+import logging
 
 from .compat import *
 from .data import _names, \
@@ -37,7 +38,12 @@ from .data import _names, \
 
 from .path import Dirpath, Filepath, Modulepath
 
-__version__ = '0.6.10'
+
+__version__ = '0.6.11'
+
+
+# get rid of "No handler found" warnings (cribbed from requests)
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 def yes(specifier=0):
@@ -748,6 +754,8 @@ def patch(mod, patches=None, **kwargs_patches):
     return m
 
 
+def get_passed_datetime(*args, **kwargs): return get_past_datetime(*args, **kwargs)
+def get_before_datetime(*args, **kwargs): return get_past_datetime(*args, **kwargs)
 def get_past_datetime(now=None):
     if not now: now = datetime.datetime.utcnow()
     td = now - datetime.datetime(year=2000, month=1, day=1)
@@ -776,11 +784,18 @@ def get_between_datetime(start, stop=None):
         raise ValueError("start datetime >= stop datetime")
 
     td = stop - start
-    return start + datetime.timedelta(
-        days=random.randint(0, td.days),
-        seconds=random.randint(0, (td.seconds - 1)),
-        microseconds=random.randint(0, (td.microseconds - 1)),
-    )
+
+    kwargs = {}
+    if td.days > 0:
+        kwargs["days"] = random.randint(0, td.days)
+
+    if td.seconds - 1 > 0:
+        kwargs["seconds"] = random.randint(0, td.seconds - 1)
+
+    if td.microseconds - 1 > 0:
+        kwargs["microseconds"] = random.randint(0, td.microseconds - 1)
+
+    return start + datetime.timedelta(**kwargs)
 
 
 # used in the get_int() method to make sure it never returns the same int twice
