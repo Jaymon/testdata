@@ -10,6 +10,7 @@ import sys
 import pkgutil
 import importlib
 import stat
+import inspect
 
 from .compat import *
 
@@ -153,17 +154,21 @@ class Dirpath(str):
     def module(self, module_path):
         return self.modpath(module_path).module
 
+    def modules(self):
+        for modpath in self.modpaths():
+            yield modpath.module
+
     def modpath(self, module_path):
         return Modulepath(module_path, self.path)
 
-    def modules(self):
-        for module_info in pkgutil.iter_modules([self.path]):
+    def modpaths(self):
+        for module_info in pkgutil.iter_modules([self.directory]):
             bits = self.relbits + [module_info[1]]
             yield Modulepath(".".join(bits), self.basedir)
 
             if module_info[2]: # module is a package because index 2 is True
                 submodules = Dirpath(os.sep.join(bits), self.basedir)
-                for submodule in submodules.modules():
+                for submodule in submodules.modpaths():
                     #subbits = [module_info[1]] + submodule.relbits
                     #yield Modulepath(u".".join(subbits), self.basedir)
                     yield submodule
@@ -299,6 +304,13 @@ class Modulepath(Filepath):
             sys.path.pop(0) 
 
         return module
+
+    @property
+    def classes(self):
+        m = self.module
+        for m in self.modules():
+            for klass_name, klass in inspect.getmembers(m, inspect.isclass):
+                yield klass
 
     @property
     def name(self):

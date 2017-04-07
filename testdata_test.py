@@ -15,7 +15,7 @@ import os
 import importlib
 import datetime
 import types
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 import time
 import logging
 
@@ -89,8 +89,49 @@ class PathTest(unittest.TestCase):
         self.assertEqual(m.module.__file__, m.path)
         self.assertEqual("bar/foo_test.py", m.relpath)
 
+    def test_modules(self):
+        mpath = testdata.create_modules({
+            "test_modules.foo": [
+                "class Foo(object): pass",
+                "class Bar(object): pass",
+                "",
+            ],
+            "test_modules.bar": [
+                "class Che(object): pass",
+                "class Bar(object): pass",
+                "",
+            ],
+            "test_modules.che": [
+                "class Baz(object): pass",
+                "",
+            ],
+        })
+
+        mp = mpath.modpath("test_modules")
+        mps = list(mp.modpaths())
+        self.assertTrue(3, len(mps))
+        for modpath in ["test_modules.foo", "test_modules.bar", "test_modules.che"]:
+            self.assertTrue(modpath in mps)
+
+        klasses = list(mp.classes)
+        self.assertEqual(5, len(klasses))
+
 
 class TestdataTest(unittest.TestCase):
+    def test_get_hash(self):
+        h = testdata.get_hash()
+        self.assertEqual(32, len(h))
+
+    def test_get_bool(self):
+        results = Counter()
+        for x in range(100):
+            b = testdata.get_bool()
+            results[b] += 1
+
+        self.assertEqual(2, len(results))
+        self.assertLess(0, results[True])
+        self.assertLess(0, results[False])
+
     def test_get_md5(self):
         h1 = testdata.get_md5("foo")
         h2 = testdata.get_md5("foo")
@@ -227,6 +268,23 @@ class TestdataTest(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             testdata.create_dir("./foo/bar")
+
+    def test_get_file(self):
+        f = testdata.get_file()
+        self.assertFalse(f.exists())
+
+        f.write(testdata.get_words())
+        self.assertTrue(f.exists())
+
+        f = testdata.get_file("foobar.txt")
+        self.assertTrue(f.endswith("foobar.txt"))
+
+        words = testdata.get_words()
+        with f.open("w+") as fp:
+            fp.write(words)
+
+        self.assertEqual(words, f.contents())
+
 
     def test_create_file(self):
         ts = [

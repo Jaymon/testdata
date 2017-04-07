@@ -147,6 +147,17 @@ f = testdata.create_files(file_dict)
 
 -------------------------------------------------------------------------------
 
+### get_file
+
+```python
+get_file(path="", tmpdir="")
+```
+
+This will return a `Filepath` instance that you can manipulate but unlike `create_file` it won't actually create the file, just give you a path to a file that could be created.
+
+
+-------------------------------------------------------------------------------
+
 ### create_module
 
 ```python
@@ -194,8 +205,51 @@ return a string of ascii characters
     >>> testdata.get_ascii()
     u'IFUKzVAauqgyRY6OV'
 
+
 -------------------------------------------------------------------------------
 
+### get_md5
+
+```python
+get_md5(val="")
+```
+
+return an md5 hash of val (if passed in) or a random val if val is empty
+
+    >>> testdata.get_md5()
+    'b165765400b30772f1d9b3975ce77320'
+
+
+-------------------------------------------------------------------------------
+
+### get_hash
+
+```python
+get_hash(str_size=32)
+```
+
+return a random hash
+
+    >>> testdata.get_hash()
+    u"jYw3HseUl8GLoMc8QejLYFogC2lUYoUu"
+
+
+-------------------------------------------------------------------------------
+
+### get_bool
+
+```python
+get_bool()
+```
+
+return a boolean (either **True** or **False**)
+
+    >>> testdata.get_bool()
+    False
+    >>> testdata.get_bool()
+    True
+
+-------------------------------------------------------------------------------
 ### get_float
 
 ```python

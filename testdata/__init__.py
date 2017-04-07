@@ -40,7 +40,7 @@ from .path import Dirpath, Filepath, Modulepath
 from .threading import Thread
 
 
-__version__ = '0.6.13'
+__version__ = '0.6.14'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -95,6 +95,10 @@ def yes(specifier=0):
 
     return choice
 
+
+def get_bool():
+    """Returns either True or False randomly"""
+    return random.choice([True, False])
 
 def get_md5(val=""):
     """Return an md5 hash of val, if no val then return a random md5 hash
@@ -170,6 +174,13 @@ def create_files(file_dict, tmpdir=""):
     for file_name, contents in file_dict.items():
         base_dir.create_file(file_name, contents)
     return base_dir
+
+
+def get_file(path="", tmpdir=""):
+    if not path:
+        path = get_ascii()
+
+    return Filepath(path, tmpdir)
 
 
 def create_module(module_name, contents="", tmpdir="", make_importable=True):
@@ -338,6 +349,11 @@ def get_ascii(str_size=0):
     '''
     chars=string.ascii_letters + string.digits
     return get_str(str_size=str_size, chars=chars)
+
+
+def get_hash(str_size=32):
+    """Returns a random hash, if you want an md5 use get_md5()"""
+    return get_ascii(str_size)
 
 
 def get_float(min_size=None, max_size=None):
