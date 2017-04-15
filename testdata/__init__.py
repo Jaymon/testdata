@@ -38,13 +38,33 @@ from .data import _names, \
 
 from .path import Dirpath, Filepath, Modulepath
 from .threading import Thread
+from .output import Capture
 
 
-__version__ = '0.6.14'
+__version__ = '0.6.15'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
 logging.getLogger(__name__).addHandler(logging.NullHandler())
+
+
+def capture(*args, **kwargs):
+    """Capture stdout and stderr so you can inspect it
+
+    this is handy for tests when you are trying to figure out if logging or whatnot
+    is doing the correct thing
+
+    I'd always wanted something similar to php's output buffering ob_start() method
+    http://www.php.net/manual/en/function.ob-start.php
+
+    :example:
+        with testdata.capture() as c:
+            print("foo")
+        if "foo" in c:
+            print("foo was captured")
+    """
+    c = Capture()
+    return c(*args, **kwargs)
 
 
 def yes(specifier=0):

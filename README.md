@@ -17,9 +17,9 @@ Or, with Pip using Github:
     pip install git+https://github.com/Jaymon/testdata#egg=testdata
 
 
-## Functions
+## Functionality
 
-This is an overview of some of the methods found in the Testdata module, there are other methods (like `get_birthday`) that aren't listed here, for the complete list just look at the [source](https://github.com/Jaymon/testdata/blob/master/testdata.py).
+This is an overview of some of the functions and classes found in the Testdata module, there are other functions (like `get_birthday`) that aren't listed here, for the complete list just look at the [source](https://github.com/Jaymon/testdata/blob/master/testdata.py).
 
 
 ### patch
@@ -93,6 +93,37 @@ print foo_patched.boom() # 2
 # be aware though, the original instance was modified, foo_patched == foo
 print foo.boom() # 2
 ```
+
+
+-------------------------------------------------------------------------------
+
+### capture
+
+Output buffering, handy when you want to make sure logging or print statements are doing what you think they should be doing.
+
+```python
+with testdata.capture() as c:
+    print("foo")
+if "foo" in c:
+    print("foo was captured")
+```
+
+
+-------------------------------------------------------------------------------
+
+### Threading
+
+A wrapper around python's builtin `threading.Thread` class that bubbles errors up to the main thread because, by default, python's threading classes suppress errors, this makes it annoying when using threads for testing.
+
+```python
+def run():
+    raise ValueError("join_2")
+
+thread = Thread(target=run)
+thread.start()
+print(thread.exception)
+```
+
 
 -------------------------------------------------------------------------------
 

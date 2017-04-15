@@ -18,15 +18,17 @@ import types
 from collections import OrderedDict, Counter
 import time
 import logging
+import sys
 
 import testdata
 from testdata.path import Filepath, Dirpath
 from testdata.compat import *
 from testdata.threading import Thread
 from testdata import threading
+from testdata.output import Capture
 
-
-logging.basicConfig()
+logging.basicConfig(format="[%(levelname).1s] %(message)s", level=logging.DEBUG, stream=sys.stdout)
+logger = logging.getLogger(__name__)
 
 
 class PathTest(unittest.TestCase):
@@ -886,4 +888,39 @@ class ThreadTest(unittest.TestCase):
 
         except ValueError as e:
             self.assertEqual("join_2", str(e))
+
+
+class CaptureTest(unittest.TestCase):
+    def test_capture_stdout(self):
+        capture = Capture()
+        with capture() as c:
+            print("foo")
+            print("bar")
+
+        self.assertTrue("foo" in capture)
+        self.assertTrue("bar" in capture)
+        self.assertTrue("foo\nbar" in capture)
+
+    def test_capture_mixed(self):
+        capture = Capture()
+        with capture() as c:
+            print("foo stdout")
+            print('bar stderr', file=sys.stderr)
+            print("baz stdout")
+            print('che stderr', file=sys.stderr)
+
+        self.assertTrue("foo stdout\nbar stderr\nbaz stdout\nche stderr" in capture)
+
+    def test_function(self):
+        with testdata.capture() as c:
+            print("foo")
+        self.assertTrue("foo" in c)
+
+    def test_passthrough(self):
+        # no good way to test this one but by spot checking, but make sure the
+        # string is still captured even when it is still being printed
+        with testdata.capture(True) as c:
+            print("foo")
+        self.assertTrue("foo" in c)
+
 
