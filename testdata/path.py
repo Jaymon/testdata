@@ -13,6 +13,7 @@ import stat
 import inspect
 
 from .compat import *
+from . import environ
 
 
 class Dirpath(str):
@@ -88,10 +89,11 @@ class Dirpath(str):
         if relpath and relpath[0] == '.':
             raise ValueError("you cannot start a path with ./ or ../")
 
-#         if isinstance(relpath, str):
-#             relpath = relpath.decode("UTF-8")
-
-        if not basedir: basedir = tempfile.mkdtemp()
+        if not basedir:
+            if environ.TEMPDIR:
+                basedir = tempfile.mkdtemp(dir=environ.TEMPDIR)
+            else:
+                basedir = tempfile.mkdtemp()
 
         if relpath:
             relpath = os.path.normpath(relpath)

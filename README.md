@@ -119,7 +119,7 @@ A wrapper around python's builtin `threading.Thread` class that bubbles errors u
 def run():
     raise ValueError("join_2")
 
-thread = Thread(target=run)
+thread = testdata.Thread(target=run)
 thread.start()
 print(thread.exception)
 ```
