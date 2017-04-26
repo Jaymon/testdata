@@ -93,30 +93,29 @@ class Capture(object):
         mod_stderr = self.modified["stderr"]
 
         for module_name, module in list(sys.modules.items()):
-            members = []
             try:
                 members = inspect.getmembers(module)
+                for member_name, member in members:
+                    if member_name.startswith("__"): continue
+
+                    if member is self.sys_stdout:
+                        logger.info("Capturing stdout module member: {}.{}".format(
+                            module_name,
+                            member_name
+                        ))
+                        mod_stdout.append((module_name, module, member_name))
+                        setattr(module, member_name, self.stdout)
+
+                    elif member is self.sys_stderr:
+                        logger.info("Capturing stderr module member: {}.{}".format(
+                            module_name,
+                            member_name
+                        ))
+                        mod_stderr.append((module_name, module, member_name))
+                        setattr(module, member_name, self.stderr)
+
             except ImportError:
                 pass
-
-            for member_name, member in members:
-                if member_name.startswith("__"): continue
-
-                if member is self.sys_stdout:
-                    logger.info("Capturing stdout module member: {}.{}".format(
-                        module_name,
-                        member_name
-                    ))
-                    mod_stdout.append((module_name, module, member_name))
-                    setattr(module, member_name, self.stdout)
-
-                elif member is self.sys_stderr:
-                    logger.info("Capturing stderr module member: {}.{}".format(
-                        module_name,
-                        member_name
-                    ))
-                    mod_stderr.append((module_name, module, member_name))
-                    setattr(module, member_name, self.stderr)
 
     def capture_logging(self):
         mod_stdout = self.modified["stdout"]
@@ -124,7 +123,7 @@ class Capture(object):
         loggers = list(logging.Logger.manager.loggerDict.items())
         loggers.append(("root", logging.getLogger()))
         for logger_name, logger in loggers:
-            for handler in logger.handlers:
+            for handler in getattr(logger, "handlers", []):
                 members = inspect.getmembers(handler)
                 for member_name, member in members:
                     if member is self.sys_stdout:
