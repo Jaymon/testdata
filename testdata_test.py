@@ -891,9 +891,21 @@ class ThreadTest(unittest.TestCase):
 
 
 class CaptureTest(unittest.TestCase):
+    def test_stream_methods(self):
+
+        with testdata.capture() as c:
+            print("foo\nbar\nbaz")
+
+        self.assertTrue(c.count("\n") > 0)
+        self.assertTrue(len(c.splitlines(False)) > 0)
+        self.assertTrue(len(c) > 0)
+
+        self.assertTrue(str(c))
+        self.assertTrue(unicode(c))
+
     def test_capture_stdout(self):
         capture = Capture()
-        with capture() as c:
+        with capture():
             print("foo")
             print("bar")
 
@@ -903,7 +915,7 @@ class CaptureTest(unittest.TestCase):
 
     def test_capture_mixed(self):
         capture = Capture()
-        with capture() as c:
+        with capture():
             print("foo stdout")
             print('bar stderr', file=sys.stderr)
             print("baz stdout")
@@ -919,12 +931,6 @@ class CaptureTest(unittest.TestCase):
     def test_passthrough(self):
         # no good way to test this one but by spot checking, but make sure the
         # string is still captured even when it is still being printed
-        with testdata.capture(True) as c:
-            print("foo")
-        self.assertTrue("foo" in c)
-
-    def test_six(self):
-        import six
         with testdata.capture(True) as c:
             print("foo")
         self.assertTrue("foo" in c)

@@ -10,7 +10,9 @@ is_py3 = (_ver[0] == 3)
 
 if is_py2:
     basestring = basestring
+    unicode = unicode
     range = xrange # range is now always an iterator
+
     import Queue as queue
     import thread as _thread
     try:
@@ -29,6 +31,8 @@ if is_py2:
 
 elif is_py3:
     basestring = (str, bytes)
+    unicode = str
+
     import queue
     import _thread
     from io import StringIO

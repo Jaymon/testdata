@@ -5,7 +5,7 @@ import sys
 import logging
 from collections import defaultdict
 from contextlib import contextmanager
-from .compat import StringIO
+from .compat import StringIO, is_py2
 import inspect
 import heapq
 from heapq import heappush as hpush, heappop as hpop, merge as hmerge
@@ -17,7 +17,50 @@ from . import environ
 logger = logging.getLogger(__name__)
 
 
-class Stream(object):
+class Base(object):
+    """Inheriting from this class makes an object appear more string like"""
+    def read(self, *args, **kwargs):
+        size = kwargs.get("size", args[1] if args else 0)
+        ret = "".join(self)
+        if size:
+            ret = ret[0:size]
+        return ret
+
+    def __contains__(self, val):
+        """support "VAL" in self"""
+        s = self.read()
+        return val in s
+
+    def __len__(self):
+        """support len(self)"""
+        return len(self.read())
+
+    def __getattr__(self, k):
+        """Pass through any methods to the underlying string, this allows this
+        object to use any string method
+
+        https://docs.python.org/2/library/stdtypes.html#string-methods
+        """
+        return getattr(self.read(), k)
+
+    def __bool__(self):
+        """support bool(self)"""
+        return bool(self.read())
+
+    __nonzero__ = __bool__ # py2
+
+    def __bytes__(self):
+        """Return b"" string of self's contents"""
+        return self.read().encode(sys.getdefaultencoding()) #"utf-8")
+
+    def __unicode__(self):
+        """Return "" string of self's contents"""
+        return self.read()
+
+    __str__ = __bytes__ if is_py2 else __unicode__
+
+
+class Stream(Base):
     """This is what will be used in place of stdout and stderr, it saves each string
     that is written to an array with a timestamp, this is so if you want to combine
     the stdout and stderr streams they will be in the correct order
@@ -40,19 +83,12 @@ class Stream(object):
         if self.stream:
             self.stream.write(s)
 
-    def read(self, *args, **kwargs):
-        return "".join(s for s in self)
-
-    def __contains__(self, val):
-        s = self.read()
-        return val in s
-
     def __iter__(self):
         for t, s in self.heap:
             yield s
 
 
-class Capture(object):
+class Capture(Base):
     """Capture stdout and stderr into internal buffers"""
     def __init__(self):
         self.stdout = None
@@ -72,13 +108,6 @@ class Capture(object):
         bits=hmerge(self.stdout.heap, self.stderr.heap)
         for t, s in bits:
             yield s
-
-    def read(self):
-        return "".join(self)
-
-    def __contains__(self, val):
-        s= self.read()
-        return val in s
 
     @contextmanager
     def __call__(self, passthrough=None):
