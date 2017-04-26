@@ -41,7 +41,7 @@ from .threading import Thread
 from .output import Capture
 
 
-__version__ = '0.6.16'
+__version__ = '0.6.17'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
