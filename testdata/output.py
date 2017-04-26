@@ -92,8 +92,13 @@ class Capture(object):
         mod_stdout = self.modified["stdout"]
         mod_stderr = self.modified["stderr"]
 
-        for module_name, module in sys.modules.items():
-            members = inspect.getmembers(module)
+        for module_name, module in list(sys.modules.items()):
+            members = []
+            try:
+                members = inspect.getmembers(module)
+            except ImportError:
+                pass
+
             for member_name, member in members:
                 if member_name.startswith("__"): continue
 

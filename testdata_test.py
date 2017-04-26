@@ -923,4 +923,9 @@ class CaptureTest(unittest.TestCase):
             print("foo")
         self.assertTrue("foo" in c)
 
+    def test_six(self):
+        import six
+        with testdata.capture(True) as c:
+            print("foo")
+        self.assertTrue("foo" in c)
 
