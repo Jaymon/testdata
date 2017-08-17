@@ -889,6 +889,20 @@ class ThreadTest(unittest.TestCase):
         except ValueError as e:
             self.assertEqual("join_2", str(e))
 
+    def test_no_error_raised(self):
+        # https://github.com/Jaymon/testdata/issues/14
+        class C2(object):
+            def blah(self, *args): pass
+        c2 = C2()
+
+        def c2_send():
+            c2.blah(foo_bar)
+
+        with self.assertRaises(NameError):
+            t2 = testdata.Thread(target=c2_send)
+            t2.start()
+            t2.join()
+
 
 class CaptureTest(unittest.TestCase):
     def test_stream_methods(self):

@@ -41,11 +41,27 @@ from .threading import Thread
 from .output import Capture
 
 
-__version__ = '0.6.18'
+__version__ = '0.6.19'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
 logging.getLogger(__name__).addHandler(logging.NullHandler())
+
+
+def basic_logging(**kwargs):
+    """Lots of times, in tests, I have to add a basic logger, it's basically the
+    same code over and over again, this will just make that a little easier to do
+
+    :example:
+        import testdata
+        testdata.basic_logging() # near top of file
+
+    :param **kwargs: key/val, these will be passed into logger.basicConfig method
+    """
+    kwargs.setdefault("format", "[%(levelname).1s] %(message)s")
+    kwargs.setdefault("level", logging.DEBUG)
+    kwargs.setdefault("stream", sys.stdout)
+    logger.basicConfig(**kwargs)
 
 
 def capture(*args, **kwargs):
