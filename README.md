@@ -127,6 +127,27 @@ print(thread.exception)
 
 -------------------------------------------------------------------------------
 
+### File Server
+
+Sometimes you need to test fetching remote files
+
+
+```python
+import requests
+
+server = testdata.create_fileserver({
+    "foo.txt": ["foo"],
+    "bar.txt": ["bar"],
+})
+
+with server: # the with handles starting and stopping the server
+    res = requests.get(server.url("foo.txt"))
+    print(res) # foo
+```
+
+
+-------------------------------------------------------------------------------
+
 ### create_dir
 
 ```python

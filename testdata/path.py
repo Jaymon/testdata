@@ -90,10 +90,7 @@ class Dirpath(str):
             raise ValueError("you cannot start a path with ./ or ../")
 
         if not basedir:
-            if environ.TEMPDIR:
-                basedir = tempfile.mkdtemp(dir=environ.TEMPDIR)
-            else:
-                basedir = tempfile.mkdtemp()
+            basedir = tempfile.mkdtemp(dir=environ.TEMPDIR)
 
         if relpath:
             relpath = os.path.normpath(relpath)

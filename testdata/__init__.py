@@ -26,6 +26,7 @@ import copy
 import uuid
 import hashlib
 import logging
+import time
 
 from .compat import *
 from .data import _names, \
@@ -39,9 +40,10 @@ from .data import _names, \
 from .path import Dirpath, Filepath, Modulepath
 from .threading import Thread
 from .output import Capture
+from .server import Webserver
 
 
-__version__ = '0.6.19'
+__version__ = '0.6.20'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -132,42 +134,54 @@ def yes(specifier=0):
     return choice
 
 
+def wait(callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1): 
+    """
+    keep running callback(*cb_args, **cb_kwargs) until it returns True or timeout is
+    reached
+
+    :param callback: callable, the function to call, should return True/False
+    :param cb_args: list, any callback arguments
+    :param cb_kwargs: dict, any callback keyword arguments
+    :param timeout: float, how long you should wait before failing with RuntimeError
+    :param interval: float, sleep for this interval inbetween callback calls
+    """
+    if not cb_args: cb_args = []
+    if not cb_kwargs: cb_kwargs = {}
+    start = time.time()
+    while not callback(*cb_args, **cb_kwargs):
+        sleep(interval)
+        if timeout:
+            stop = time.time()
+            if (stop - start) >= timeout:
+                raise RuntimeError("wait() timed out after {} seconds".format(timeout))
+
+
+def sleep(seconds):
+    """
+    Not sure why, but calling testdata.time.sleep() was irritating, so was having
+    to import time when I wanted to sleep for a bit
+
+    :param seconds: float, how many seconds you want to sleep
+    """
+    time.sleep(seconds)
+
+
 def get_bool():
     """Returns either True or False randomly"""
     return random.choice([True, False])
 
-def get_md5(val=""):
-    """Return an md5 hash of val, if no val then return a random md5 hash
 
-    :param val: string, the value you want to md5 hash
-    :returns: string, the md5 hash as a 32 char hex string
+def create_fileserver(file_dict, tmpdir="", hostname="", port=0):
     """
-    if not val:
-        val = get_uuid()
+    create a fileserver that can be used to test remote file retrieval
 
-    ret = ""
-    if is_py2:
-        ret = hashlib.md5(str(val)).hexdigest()
-    else:
-        if getattr(val, "encode", None):
-            ret = hashlib.md5(val.encode("utf-8")).hexdigest()
-        else:
-            ret = hashlib.md5(val).hexdigest()
-
-    return ret
-
-
-def get_uuid():
-    """Generate a random UUID"""
-    return str(uuid.uuid4())
-    # 3088D703-6AD0-4D62-B0D3-0FF824A707F5
-#     return '{}-{}-{}-{}-{}'.format(
-#         get_ascii(8).upper(),
-#         get_ascii(4).upper(),
-#         get_ascii(4).upper(),
-#         get_ascii(4).upper(),
-#         get_ascii(12).upper()
-#     )
+    :param file_dict: dict, same as create_files
+    :param tmpdir: str, same as create_files
+    :param hostname: str, usually leave this alone and it will use localhost
+    :param port: int, the port you want to use
+    """
+    path = create_files(file_dict, tmpdir=tmpdir)
+    return Webserver(path, hostname=hostname, port=port)
 
 
 def create_dir(path="", tmpdir=""):
@@ -390,6 +404,40 @@ def get_ascii(str_size=0):
 def get_hash(str_size=32):
     """Returns a random hash, if you want an md5 use get_md5()"""
     return get_ascii(str_size)
+
+
+def get_md5(val=""):
+    """Return an md5 hash of val, if no val then return a random md5 hash
+
+    :param val: string, the value you want to md5 hash
+    :returns: string, the md5 hash as a 32 char hex string
+    """
+    if not val:
+        val = get_uuid()
+
+    ret = ""
+    if is_py2:
+        ret = hashlib.md5(str(val)).hexdigest()
+    else:
+        if getattr(val, "encode", None):
+            ret = hashlib.md5(val.encode("utf-8")).hexdigest()
+        else:
+            ret = hashlib.md5(val).hexdigest()
+
+    return ret
+
+
+def get_uuid():
+    """Generate a random UUID"""
+    return str(uuid.uuid4())
+    # 3088D703-6AD0-4D62-B0D3-0FF824A707F5
+#     return '{}-{}-{}-{}-{}'.format(
+#         get_ascii(8).upper(),
+#         get_ascii(4).upper(),
+#         get_ascii(4).upper(),
+#         get_ascii(4).upper(),
+#         get_ascii(12).upper()
+#     )
 
 
 def get_float(min_size=None, max_size=None):

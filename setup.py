@@ -20,6 +20,7 @@ setup(
     #py_modules=[name],
     packages=find_packages(),
     license="MIT",
+    tests_require=['requests'],
     classifiers=[ # https://pypi.python.org/pypi?:action=list_classifiers
         'Development Status :: 4 - Beta',
         'Environment :: Plugins',

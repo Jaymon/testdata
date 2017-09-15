@@ -20,6 +20,8 @@ import time
 import logging
 import sys
 
+import requests
+
 import testdata
 from testdata.path import Filepath, Dirpath
 from testdata.compat import *
@@ -27,8 +29,34 @@ from testdata.threading import Thread
 from testdata import threading
 from testdata.output import Capture
 
+
 logging.basicConfig(format="[%(levelname).1s] %(message)s", level=logging.DEBUG, stream=sys.stdout)
 logger = logging.getLogger(__name__)
+
+
+class WebserverTest(unittest.TestCase):
+    def test_serve(self):
+        server = testdata.create_fileserver({
+            "foo.txt": ["foo"],
+            "bar.txt": ["bar"],
+        })
+
+        server.start()
+        res = requests.get(server.url("foo.txt"))
+        self.assertEqual("foo", res.content.decode())
+        server.stop()
+
+        with server:
+            res = requests.get(server.url("bar.txt"))
+            self.assertEqual("bar", res.content.decode())
+
+        # !!! For some reason I couldn't create a new instance with the same port
+        # and I'm not sure enough I care to fix it and nothing in this worked:
+        # https://stackoverflow.com/questions/6380057/python-binding-socket-address-already-in-use
+        with testdata.create_fileserver({"che.txt": ["che"]}, port=(server.port + 1)) as s:
+        #with testdata.create_fileserver({"che.txt": ["che"]}) as s:
+            res = requests.get(s.url("che.txt"))
+            self.assertEqual("che", res.content.decode())
 
 
 class PathTest(unittest.TestCase):
@@ -120,6 +148,20 @@ class PathTest(unittest.TestCase):
 
 
 class TestdataTest(unittest.TestCase):
+    def test_wait(self):
+        start = time.time()
+        def callback():
+            stop = time.time()
+            return (stop - start) > 0.5
+        testdata.wait(callback)
+        stop = time.time()
+        self.assertTrue(stop - start > 0.5)
+
+        start = time.time()
+        def callback(): return False
+        with self.assertRaises(RuntimeError):
+            testdata.wait(callback, timeout=0.5)
+
     def test_get_hash(self):
         h = testdata.get_hash()
         self.assertEqual(32, len(h))

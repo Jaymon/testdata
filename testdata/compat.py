@@ -28,6 +28,8 @@ if is_py2:
             tb = None
     """)
 
+    from SimpleHTTPServer import SimpleHTTPRequestHandler
+    from BaseHTTPServer import HTTPServer as BaseHTTPServer
 
 elif is_py3:
     basestring = (str, bytes)
@@ -36,6 +38,7 @@ elif is_py3:
     import queue
     import _thread
     from io import StringIO
+    from http.server import HTTPServer as BaseHTTPServer, SimpleHTTPRequestHandler
 
     # ripped from six https://bitbucket.org/gutworth/six
     def reraise(tp, value, tb=None):
