@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 import os
-#from contextlib import contextmanager
 from .compat import *
 
 from .threading import Thread
@@ -9,7 +8,8 @@ from . import environ
 
 
 class WebHandler(SimpleHTTPRequestHandler):
-
+    """Overrides built-in handler to allow setting of the base path instead of
+    always using os.getcwd()"""
     def __init__(self, request, client_address, server):
         self.base_path = server.base_path
         SimpleHTTPRequestHandler.__init__(self, request, client_address, server)
@@ -23,23 +23,20 @@ class WebHandler(SimpleHTTPRequestHandler):
 
 
 class HTTPServer(BaseHTTPServer):
+    """This is only needed so that the base_path can be set and then retrieved
+    in the handler"""
     def __init__(self, base_path, server_address, RequestHandlerClass):
         self.base_path = base_path
         BaseHTTPServer.__init__(self, server_address, RequestHandlerClass)
 
-#         BaseHTTPServer.__init__(self, server_address, RequestHandlerClass, bind_and_activate=False)
-#         self.allow_reuse_address = True
-#         self.server_bind()
-#         self.server_activate()
-
-#     def server_bind(self):
-#         import socket
-#         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#         self.socket.bind(self.server_address)
 
 class Webserver(str):
+    """This is the Webserver master class, it masquerades as a string whose value
+    is the url scheme://hostname:port but adds helper methods to manage the webserver
+    """
     @property
     def started(self):
+        """Returns True if the webserver has been started"""
         try:
             ret = True if self.thread else False
         except AttributeError:
@@ -48,10 +45,12 @@ class Webserver(str):
 
     @property
     def directory(self):
+        """alias for self.path"""
         return self.path
 
     @property
     def path(self):
+        """returns the base path the server is serving from"""
         return self.server.path
 
     def __new__(cls, base_path, hostname="", port=0):
@@ -65,48 +64,31 @@ class Webserver(str):
         instance.port = port
         return instance
 
-#     def __init__(self, base_path, hostname="", port=0):
-#         #base_path = testdata.create_files(files)
-# 
-#         if not hostname: hostname = environ.HOSTNAME
-#         if not port: port = environ.HOSTPORT
-#         self.hostname = "http://{}:{}".format(host, port)
-# 
-#         httpd = HTTPServer(base_path, ("", port), WebHandler)
-#         self.httpd = httpd
-
-#     @classmethod
-#     @contextmanager
-#     def create(cls, *args, **kwargs):
-#         instance = cls(*args, **kwargs)
-#         try:
-#             yield instance()
-# 
-#         finally:
-#             instance.stop()
-
-#     @contextmanager
-#     def __call__(self):
-#         try:
-#             self.start()
-#             yield self
-# 
-#         finally:
-#             self.stop()
-
     def __enter__(self):
+        """Allows webserver to be used with "with" keyword"""
         self.start()
         return self
 
     def __exit__(self, type, value, traceback):
+        """Allows webserver to be used with "with" keyword"""
         self.stop()
 
     def url(self, *parts):
+        """Use this method to get a full url for the file you want
+
+        :example:
+            s = WebServer("/some/path")
+            print(s.url("foo.txt")) # http://localhost:PORT/foo.txt
+
+        :param *parts: list, the path parts you will add to the scheme://netloc
+        :returns: the full url scheme://netloc/parts
+        """
         vs = [self]
         vs.extend(map(lambda p: p.strip("/"), parts))
         return "/".join(vs)
 
     def start(self):
+        """Start the webserver"""
         if self.started: return
         server = self.server
 
@@ -122,6 +104,7 @@ class Webserver(str):
         self.thread = th
 
     def stop(self):
+        """stop the webserver"""
         if self.started:
             self.server.shutdown()
             self.thread = None
