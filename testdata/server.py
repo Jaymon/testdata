@@ -7,25 +7,28 @@ from .threading import Thread
 from . import environ
 
 
-class WebHandler(SimpleHTTPRequestHandler):
+class HTTPHandler(SimpleHTTPRequestHandler):
     """Overrides built-in handler to allow setting of the base path instead of
-    always using os.getcwd()"""
-    def __init__(self, request, client_address, server):
-        self.base_path = server.base_path
-        SimpleHTTPRequestHandler.__init__(self, request, client_address, server)
+    always using os.getcwd()
 
+    https://github.com/python/cpython/blob/2.7/Lib/BaseHTTPServer.py#L114
+    """
     def translate_path(self, path):
-        #path = super(WebHandler, self).translate_path(self, path) # >3.0
         path = SimpleHTTPRequestHandler.translate_path(self, path)
         relpath = os.path.relpath(path, os.getcwd())
-        fullpath = os.path.join(self.base_path, relpath)
+        fullpath = os.path.join(self.server.base_path, relpath)
         return fullpath
 
 
 class HTTPServer(BaseHTTPServer):
     """This is only needed so that the base_path can be set and then retrieved
-    in the handler"""
-    def __init__(self, base_path, server_address, RequestHandlerClass):
+    in the handler
+
+    http://2ality.com/2014/06/simple-http-server.html
+    https://github.com/python/cpython/blob/2.7/Lib/SimpleHTTPServer.py
+    https://github.com/python/cpython/blob/2.7/Lib/SocketServer.py
+    """
+    def __init__(self, base_path, server_address, RequestHandlerClass=HTTPHandler):
         self.base_path = base_path
         BaseHTTPServer.__init__(self, server_address, RequestHandlerClass)
 
@@ -57,7 +60,7 @@ class Webserver(str):
         if not hostname: hostname = environ.HOSTNAME
         if not port: port = environ.HOSTPORT
         netloc = "http://{}:{}".format(hostname, port)
-        server = HTTPServer(base_path, (hostname, port), WebHandler)
+        server = HTTPServer(base_path, (hostname, port))
         instance = super(Webserver, cls).__new__(cls, netloc)
         instance.server = server
         instance.hostname = hostname

@@ -4,16 +4,21 @@
 from setuptools import setup, find_packages
 import re
 import os
+from codecs import open
 
 
 name = 'testdata'
 with open(os.path.join(name, "__init__.py")) as f:
     version = re.search("^__version__\s*=\s*[\'\"]([^\'\"]+)", f.read(), flags=re.I | re.M).group(1)
 
+with open('README.rst', encoding='utf-8') as f:
+    long_description = f.read()
+
 setup(
     name=name,
     version=version,
     description='Easily generate random unicode test data among other things',
+    long_description=long_description,
     author='Jay Marcyes',
     author_email='jay@marcyes.com',
     url='http://github.com/Jaymon/{}'.format(name),

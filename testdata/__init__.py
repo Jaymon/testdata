@@ -43,7 +43,7 @@ from .output import Capture
 from .server import Webserver
 
 
-__version__ = '0.6.20'
+__version__ = '0.6.21'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
