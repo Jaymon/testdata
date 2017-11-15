@@ -11,8 +11,10 @@ name = 'testdata'
 with open(os.path.join(name, "__init__.py")) as f:
     version = re.search("^__version__\s*=\s*[\'\"]([^\'\"]+)", f.read(), flags=re.I | re.M).group(1)
 
-with open('README.rst', encoding='utf-8') as f:
-    long_description = f.read()
+long_description = ""
+if os.path.isfile('README.rst'):
+    with open('README.rst', encoding='utf-8') as f:
+        long_description = f.read()
 
 setup(
     name=name,
