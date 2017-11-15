@@ -43,13 +43,15 @@ from .output import Capture
 from .server import Webserver
 
 
-__version__ = '0.6.21'
+__version__ = '0.6.22'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
+def log(**kwargs): return basic_logging(**kwargs)
+def logger(**kwargs): return basic_logging(**kwargs)
 def basic_logging(**kwargs):
     """Lots of times, in tests, I have to add a basic logger, it's basically the
     same code over and over again, this will just make that a little easier to do
@@ -63,7 +65,7 @@ def basic_logging(**kwargs):
     kwargs.setdefault("format", "[%(levelname).1s] %(message)s")
     kwargs.setdefault("level", logging.DEBUG)
     kwargs.setdefault("stream", sys.stdout)
-    logger.basicConfig(**kwargs)
+    logging.basicConfig(**kwargs)
 
 
 def capture(*args, **kwargs):
