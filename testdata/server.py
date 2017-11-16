@@ -31,6 +31,12 @@ class HTTPServer(BaseHTTPServer):
     def __init__(self, base_path, server_address, RequestHandlerClass=HTTPHandler):
         self.base_path = base_path
         BaseHTTPServer.__init__(self, server_address, RequestHandlerClass)
+        #pout.v(self.server_port)
+
+#     def server_bind(self):
+#         pout.v(self.server_address)
+#         BaseHTTPServer.server_bind(self)
+#         #super(HTTPServer, self).server_bind()
 
 
 class Webserver(str):
@@ -56,15 +62,15 @@ class Webserver(str):
         """returns the base path the server is serving from"""
         return self.server.path
 
-    def __new__(cls, base_path, hostname="", port=0):
+    def __new__(cls, base_path, hostname="", port=None):
         if not hostname: hostname = environ.HOSTNAME
-        if not port: port = environ.HOSTPORT
-        netloc = "http://{}:{}".format(hostname, port)
+        if port is None: port = environ.HOSTPORT
         server = HTTPServer(base_path, (hostname, port))
+        netloc = "http://{}:{}".format(hostname, server.server_port)
         instance = super(Webserver, cls).__new__(cls, netloc)
         instance.server = server
         instance.hostname = hostname
-        instance.port = port
+        instance.port = server.server_port
         return instance
 
     def __enter__(self):

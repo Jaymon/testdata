@@ -18,7 +18,7 @@ import os
 import codecs
 import datetime
 from random import randint # make it possible to do testdata.randint so 2 imports aren't needed
-from collections import deque
+from collections import deque, Sequence
 import types
 import imp
 import inspect
@@ -43,15 +43,13 @@ from .output import Capture
 from .server import Webserver
 
 
-__version__ = '0.6.22'
+__version__ = '0.6.23'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
-def log(**kwargs): return basic_logging(**kwargs)
-def logger(**kwargs): return basic_logging(**kwargs)
 def basic_logging(**kwargs):
     """Lots of times, in tests, I have to add a basic logger, it's basically the
     same code over and over again, this will just make that a little easier to do
@@ -177,11 +175,16 @@ def create_fileserver(file_dict, tmpdir="", hostname="", port=0):
     """
     create a fileserver that can be used to test remote file retrieval
 
-    :param file_dict: dict, same as create_files
+    :param file_dict: dict|list|str, same as create_files
     :param tmpdir: str, same as create_files
     :param hostname: str, usually leave this alone and it will use localhost
     :param port: int, the port you want to use
     """
+    if isinstance(file_dict, Sequence):
+        file_dict = {
+            "index.html": file_dict
+        }
+
     path = create_files(file_dict, tmpdir=tmpdir)
     return Webserver(path, hostname=hostname, port=port)
 

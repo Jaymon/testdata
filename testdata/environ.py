@@ -14,5 +14,6 @@ TEMPDIR = os.environ.get("TESTDATA_TEMPDIR", tempfile.gettempdir())
 
 # The server hostname and port information
 HOSTNAME = os.environ.get("TESTDATA_HOSTNAME", "127.0.0.1")
-HOSTPORT = int(os.environ.get("TESTDATA_HOSTPORT", 8765))
+#HOSTPORT = int(os.environ.get("TESTDATA_HOSTPORT", 8765))
+HOSTPORT = int(os.environ.get("TESTDATA_HOSTPORT", 0))
 

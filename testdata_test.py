@@ -35,6 +35,30 @@ logger = logging.getLogger(__name__)
 
 
 class WebserverTest(unittest.TestCase):
+    def test_alternate_args(self):
+
+        server = testdata.create_fileserver("foo")
+        with server:
+            res = requests.get(server)
+            self.assertEqual("foo", res.content.decode())
+
+        server = testdata.create_fileserver(["foo"])
+        with server:
+            res = requests.get(server)
+            self.assertEqual("foo", res.content.decode())
+
+        return
+        from collections import Mapping, Sequence
+
+        file_dict = "foo bar"
+        pout.v(file_dict, isinstance(file_dict, Mapping), isinstance(file_dict, Sequence))
+
+        file_dict = ["foo bar"]
+        pout.v(file_dict, isinstance(file_dict, Mapping), isinstance(file_dict, Sequence))
+
+        file_dict = {"foo.txt": "foo bar"}
+        pout.v(file_dict, isinstance(file_dict, Mapping), isinstance(file_dict, Sequence))
+
     def test_serve(self):
         server = testdata.create_fileserver({
             "foo.txt": ["foo"],
