@@ -285,15 +285,18 @@ class CookieServer(CallbackServer):
                 #pout.v(morsel.key, morsel.value, morsel)
 
             # How many passed up cookies from client were found?
-            ret = total_morsels - len(morsels)
+            ret = {"read_cookies": total_morsels - len(morsels)}
 
         else:
-            #handler.send_response(204)
+            # Turns out Chrome won't set a cookie on a 204, this might be a thing
+            # in the spec, but just to be safe we will send information down
             handler.send_response(200)
+            count = 0
             for morsel in cls.make_morsels(handler):
                 handler.send_header("Set-Cookie", morsel.OutputString())
+                count += 1
             handler.end_headers()
-            ret = 5
+            ret = {"sent_cookies": count}
 
         return ret
 

@@ -72,12 +72,13 @@ class ServerTest(unittest.TestCase):
             self.assertEqual(cookies["foo"], res.cookies["foo"])
             self.assertEqual(cookies["bar"], res.cookies["bar"])
             self.assertEqual(str(cookies["che"]), res.cookies["che"])
+            self.assertEqual(len(cookies), res.json()["sent_cookies"])
 
             cookies = res.cookies
             b = requests.Session()
             b.cookies = cookies
             res = b.get(server)
-            self.assertEqual(3, res.json())
+            self.assertEqual(len(cookies), res.json()["read_cookies"])
 
     def test_any(self):
         server = AnyServer()
