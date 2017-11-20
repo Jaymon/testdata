@@ -140,7 +140,7 @@ class CallbackHandler(AnyHandler):
         return AnyHandler.end_headers(self)
 
     def send_header(self, keyword, value):
-        self.log_message("%s: %s", keyword, value)
+        self.log_message("res - %s: %s", keyword, value)
         return AnyHandler.send_header(self, keyword, value)
 
 
