@@ -40,10 +40,10 @@ from .data import _names, \
 from .path import Dirpath, Filepath, Modulepath
 from .threading import Thread
 from .output import Capture
-from .server import Webserver
+from .server import PathServer, CookieServer
 
 
-__version__ = '0.6.23'
+__version__ = '0.6.24'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -186,7 +186,18 @@ def create_fileserver(file_dict, tmpdir="", hostname="", port=0):
         }
 
     path = create_files(file_dict, tmpdir=tmpdir)
-    return Webserver(path, hostname=hostname, port=port)
+    return PathServer(path, hostname=hostname, port=port)
+
+
+def create_cookieserver(cookies, hostname="", port=0):
+    """
+    create a fileserver that can be used to test remote file retrieval
+
+    :param cookies: a list ot tuples(name, val)
+    :param hostname: str, usually leave this alone and it will use localhost
+    :param port: int, the port you want to use
+    """
+    return CookieServer(cookies, hostname=hostname, port=port)
 
 
 def create_dir(path="", tmpdir=""):

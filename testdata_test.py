@@ -28,13 +28,69 @@ from testdata.compat import *
 from testdata.threading import Thread
 from testdata import threading
 from testdata.output import Capture
+from testdata.server import AnyServer, CookieServer, CallbackServer
 
 
-logging.basicConfig(format="[%(levelname).1s] %(message)s", level=logging.DEBUG, stream=sys.stdout)
+#logging.basicConfig(format="[%(levelname).1s] %(message)s", level=logging.DEBUG, stream=sys.stdout)
+testdata.basic_logging()
 logger = logging.getLogger(__name__)
 
 
-class WebserverTest(unittest.TestCase):
+class ServerTest(unittest.TestCase):
+    def test_callback(self):
+        def do_GET(handler):
+            return None
+
+        def do_POST(handler):
+            return handler.body
+
+        server = CallbackServer({
+            "GET": do_GET,
+            "POST": do_POST,
+        })
+        with server:
+            res = requests.get(server.url("/foo/bar/get?foo=1"))
+            self.assertEqual(204, res.status_code)
+
+            res = requests.post(server.url("/foo/bar/post"), {"foo": 1})
+            self.assertEqual(200, res.status_code)
+
+            res = requests.request("BOGUS", server.url("/foo/bar/bogus"))
+            self.assertEqual(501, res.status_code)
+
+    def test_cookies(self):
+#         server = CookieServer([
+#             ("foo", 1),
+#             ("bar", 2),
+#         ])
+        server = testdata.create_cookieserver([
+            ("foo", 1),
+            ("bar", 2),
+        ])
+
+        with server:
+            res = requests.get(server)
+            self.assertEqual("1", res.cookies["foo"])
+            self.assertEqual("2", res.cookies["bar"])
+
+            cookies = res.cookies
+            b = requests.Session()
+            b.cookies = cookies
+            res = b.get(server)
+            self.assertEqual(2, res.json())
+
+    def test_any(self):
+        server = AnyServer()
+        with server:
+            res = requests.get(server.url("/foo/bar/che"))
+            self.assertTrue(204, res.status_code)
+
+            res = requests.get(server.url("/foo"))
+            self.assertTrue(204, res.status_code)
+
+            res = requests.get(server)
+            self.assertTrue(204, res.status_code)
+
     def test_alternate_args(self):
 
         server = testdata.create_fileserver("foo")
