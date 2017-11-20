@@ -87,8 +87,13 @@ class CallbackHandler(AnyHandler):
         return self.do()
 
     def do(self):
-        self.headers_sent = False
         ret = None
+        self.headers_sent = False
+
+        # log request headers
+        for h, v in self.headers.items():
+            self.log_message("req - %s: %s", h, v)
+
         try:
             callbacks = getattr(self.server, "callbacks", {})
             if callbacks:
