@@ -59,25 +59,25 @@ class ServerTest(unittest.TestCase):
             self.assertEqual(501, res.status_code)
 
     def test_cookies(self):
-#         server = CookieServer([
-#             ("foo", 1),
-#             ("bar", 2),
-#         ])
-        server = testdata.create_cookieserver([
-            ("foo", 1),
-            ("bar", 2),
-        ])
+        cookies = {
+            "foo": testdata.get_ascii(),
+            "bar": testdata.get_ascii(),
+            "che": 1,
+        }
+
+        server = testdata.create_cookieserver(cookies.items())
 
         with server:
             res = requests.get(server)
-            self.assertEqual("1", res.cookies["foo"])
-            self.assertEqual("2", res.cookies["bar"])
+            self.assertEqual(cookies["foo"], res.cookies["foo"])
+            self.assertEqual(cookies["bar"], res.cookies["bar"])
+            self.assertEqual(str(cookies["che"]), res.cookies["che"])
 
             cookies = res.cookies
             b = requests.Session()
             b.cookies = cookies
             res = b.get(server)
-            self.assertEqual(2, res.json())
+            self.assertEqual(3, res.json())
 
     def test_any(self):
         server = AnyServer()

@@ -244,8 +244,12 @@ class CookieServer(CallbackServer):
                     # TODO: this isn't right :(
                     c[bytes(name)] = val
                 else:
-                    #c[name] = str(val).decode("utf-8")
-                    c[bytes(name)] = bytes(val)
+                    # NOTE -- cookies can't really have unicode values
+                    if isinstance(val, basestring):
+                        val = val.encode("utf-8")
+                    else:
+                        val = bytes(val)
+                    c[name.encode("utf-8")] = val
 
             else:
                 if isinstance(val, Mapping):
