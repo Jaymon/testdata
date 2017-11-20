@@ -288,10 +288,12 @@ class CookieServer(CallbackServer):
             ret = total_morsels - len(morsels)
 
         else:
-            handler.send_response(204)
+            #handler.send_response(204)
+            handler.send_response(200)
             for morsel in cls.make_morsels(handler):
                 handler.send_header("Set-Cookie", morsel.OutputString())
             handler.end_headers()
+            ret = 5
 
         return ret
 
