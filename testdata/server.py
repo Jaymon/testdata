@@ -134,6 +134,12 @@ class CallbackHandler(AnyHandler):
         self.headers_sent = True
         return AnyHandler.end_headers(self)
 
+    def send_header(self, keyword, value):
+        self.log_message("%s: %s", keyword, value)
+        return AnyHandler.send_header(self, keyword, value)
+
+
+
 
 # class CookieHandler(CallbackHandler):
 #     def end_headers(self):
