@@ -193,7 +193,7 @@ def create_cookieserver(cookies, hostname="", port=0):
     """
     create a fileserver that can be used to test remote file retrieval
 
-    :param cookies: a list ot tuples(name, val)
+    :param cookies: a dict of name: val or a list ot tuples(name, val)
     :param hostname: str, usually leave this alone and it will use localhost
     :param port: int, the port you want to use
     """

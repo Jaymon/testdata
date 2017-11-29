@@ -246,8 +246,6 @@ class CookieServer(CallbackServer):
     @classmethod
     def make_morsels(cls, handler):
         ret = []
-        # NOTE -- we do it this way so 2 cookies with the same name won't overwrite
-        # each other
         for name, val in handler.server.cookies:
             c = cookies.SimpleCookie()
             if is_py2:
@@ -273,36 +271,67 @@ class CookieServer(CallbackServer):
         return ret
 
     @classmethod
+    def get_morsel_dict(cls, morsel):
+        """converts the morsel class into a dict"""
+        ret = {}
+        ret = dict(morsel)
+        ret["value"] = morsel.value
+        ret["name"] = morsel.key
+        return ret
+
+    @classmethod
     def callback(cls, handler):
         ret = None
-        req_cookies = handler.headers.get("Cookie", "")
+        req_cookies = handler.headers.get("cookie", "")
         if req_cookies:
-            morsels = set(m.OutputString() for m in cls.make_morsels(handler))
-            total_morsels = len(morsels)
-            c = cookies.SimpleCookie(req_cookies)
-            for morsel in c.values():
-                morsels.discard(morsel.OutputString())
-                #pout.v(morsel.key, morsel.value, morsel)
+            ret = {}
+            read_cookies = {}
+            unread_cookies = {}
+
+            server_morsels = set(m.OutputString() for m in cls.make_morsels(handler))
+            total_server_morsels = len(server_morsels)
+            req_c = cookies.SimpleCookie(req_cookies)
+            for req_morsel in req_c.values():
+                req_s = req_morsel.OutputString()
+                morsel_d = cls.get_morsel_dict(req_morsel)
+                if req_s in server_morsels:
+                    read_cookies[req_morsel.key] = morsel_d
+                else:
+                    unread_cookies[req_morsel.key] = morsel_d
+
+                server_morsels.discard(req_s)
 
             # How many passed up cookies from client were found?
-            ret = {"read_cookies": total_morsels - len(morsels)}
+            ret["read_count"] = total_server_morsels - len(server_morsels)
+            ret["read_cookies"] = read_cookies
+            ret["unread_cookies"] = unread_cookies
 
         else:
             # Turns out Chrome won't set a cookie on a 204, this might be a thing
             # in the spec, but just to be safe we will send information down
             handler.send_response(200)
             count = 0
+            sent_cookies = {}
             for morsel in cls.make_morsels(handler):
                 handler.send_header("Set-Cookie", morsel.OutputString())
+                sent_cookies[morsel.key] = cls.get_morsel_dict(morsel)
                 count += 1
             handler.end_headers()
-            ret = {"sent_cookies": count}
+            ret = {"sent_count": count, "sent_cookies": sent_cookies}
 
         return ret
 
     def __new__(cls, cookies, hostname="", port=None, handler_cls=CallbackHandler, server_cls=HTTPServer):
         instance = super(CookieServer, cls).__new__(cls, cls.callback, hostname, port, handler_cls, server_cls)
-        instance.server.cookies = cookies
+
+        # we store cookies as (name, val) tuples because you could have cookies
+        # with the same name but different paths and things like that so we want
+        # to support that, but since most people don't need that dicts are fine
+        # to pass in also with name: val
+        if isinstance(cookies, Mapping):
+            instance.server.cookies = cookies.items()
+        else:
+            instance.server.cookies = cookies
         return instance
 
 
