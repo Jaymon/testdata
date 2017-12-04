@@ -18,6 +18,12 @@ class PathHandler(SimpleHTTPRequestHandler):
     always using os.getcwd()
 
     https://github.com/python/cpython/blob/2.7/Lib/BaseHTTPServer.py#L114
+
+
+    the parent classes:
+        https://github.com/python/cpython/blob/2.7/Lib/SimpleHTTPServer.py
+        https://github.com/python/cpython/blob/2.7/Lib/BaseHTTPServer.py
+        https://github.com/python/cpython/blob/2.7/Lib/SocketServer.py
     """
     def translate_path(self, path):
         path = SimpleHTTPRequestHandler.translate_path(self, path)
@@ -243,6 +249,11 @@ class CallbackServer(AnyServer):
 
 
 class CookieServer(CallbackServer):
+    """This will write and read cookies to make sure a client is passing cookies
+    correctly to the server
+
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+    """
     @classmethod
     def make_morsels(cls, handler):
         ret = []
