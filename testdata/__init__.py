@@ -58,6 +58,15 @@ def basic_logging(**kwargs):
         import testdata
         testdata.basic_logging() # near top of file
 
+    this basically does this:
+        import sys, logging
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+        log_handler = logging.StreamHandler(stream=sys.stderr)
+        log_formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        log_handler.setFormatter(log_formatter)
+        logger.addHandler(log_handler)
+
     :param **kwargs: key/val, these will be passed into logger.basicConfig method
     """
     kwargs.setdefault("format", "[%(levelname).1s] %(message)s")
