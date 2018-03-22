@@ -20,8 +20,6 @@ import time
 import logging
 import sys
 
-import requests
-
 import testdata
 from testdata.path import Filepath, Dirpath
 from testdata.compat import *
@@ -49,13 +47,13 @@ class ServerTest(unittest.TestCase):
             "POST": do_POST,
         })
         with server:
-            res = requests.get(server.url("/foo/bar/get?foo=1"))
+            res = testdata.fetch(server.url("/foo/bar/get?foo=1"))
             self.assertEqual(204, res.status_code)
 
-            res = requests.post(server.url("/foo/bar/post"), {"foo": 1})
+            res = testdata.fetch(server.url("/foo/bar/post"), {"foo": 1})
             self.assertEqual(200, res.status_code)
 
-            res = requests.request("BOGUS", server.url("/foo/bar/bogus"))
+            res = testdata.fetch(server.url("/foo/bar/bogus"), method="BOGUS")
             self.assertEqual(501, res.status_code)
 
     def test_cookies(self):
@@ -68,44 +66,50 @@ class ServerTest(unittest.TestCase):
         server = testdata.create_cookieserver(cookies)
 
         with server:
-            res = requests.get(server)
+            #res = requests.get(server)
+#             pout.v(res.cookies)
+#             return
+            res = testdata.fetch(server)
             self.assertEqual(cookies["foo"], res.cookies["foo"])
             self.assertEqual(cookies["bar"], res.cookies["bar"])
             self.assertEqual(str(cookies["che"]), res.cookies["che"])
             self.assertEqual(len(cookies), res.json()["sent_count"])
 
-            cookies = res.cookies
-            b = requests.Session()
-            b.cookies = cookies
-            res = b.get(server)
+#             cookies = res.cookies
+#             b = requests.Session()
+#             b.cookies = cookies
+#             res = b.get(server)
+
+            res = testdata.fetch(server, cookies=res.cookies)
+            #pout.v(res, res.json())
             self.assertEqual(len(cookies), res.json()["read_count"])
 
             # test with different case
-            res = requests.get(server, headers={"cookie": "foo=1234"})
+            res = testdata.fetch(server, headers={"cookie": "foo=1234"})
             self.assertEqual("1234", res.json()["unread_cookies"]["foo"]["value"])
 
     def test_any(self):
         server = AnyServer()
         with server:
-            res = requests.get(server.url("/foo/bar/che"))
+            res = testdata.fetch(server.url("/foo/bar/che"))
             self.assertTrue(204, res.status_code)
 
-            res = requests.get(server.url("/foo"))
+            res = testdata.fetch(server.url("/foo"))
             self.assertTrue(204, res.status_code)
 
-            res = requests.get(server)
+            res = testdata.fetch(server)
             self.assertTrue(204, res.status_code)
 
     def test_alternate_args(self):
 
         server = testdata.create_fileserver("foo")
         with server:
-            res = requests.get(server)
+            res = testdata.fetch(server)
             self.assertEqual("foo", res.content.decode())
 
         server = testdata.create_fileserver(["foo"])
         with server:
-            res = requests.get(server)
+            res = testdata.fetch(server)
             self.assertEqual("foo", res.content.decode())
 
     def test_serve(self):
@@ -115,12 +119,12 @@ class ServerTest(unittest.TestCase):
         })
 
         server.start()
-        res = requests.get(server.url("foo.txt"))
+        res = testdata.fetch(server.url("foo.txt"))
         self.assertEqual("foo", res.content.decode())
         server.stop()
 
         with server:
-            res = requests.get(server.url("bar.txt"))
+            res = testdata.fetch(server.url("bar.txt"))
             self.assertEqual("bar", res.content.decode())
 
         # !!! For some reason I couldn't create a new instance with the same port
@@ -128,7 +132,7 @@ class ServerTest(unittest.TestCase):
         # https://stackoverflow.com/questions/6380057/python-binding-socket-address-already-in-use
         with testdata.create_fileserver({"che.txt": ["che"]}, port=(server.port + 1)) as s:
         #with testdata.create_fileserver({"che.txt": ["che"]}) as s:
-            res = requests.get(s.url("che.txt"))
+            res = testdata.fetch(s.url("che.txt"))
             self.assertEqual("che", res.content.decode())
 
 
@@ -1021,7 +1025,6 @@ class ThreadTest(unittest.TestCase):
 
 class CaptureTest(unittest.TestCase):
     def test_stream_methods(self):
-
         with testdata.capture() as c:
             print("foo\nbar\nbaz")
 
@@ -1063,4 +1066,28 @@ class CaptureTest(unittest.TestCase):
         with testdata.capture(True) as c:
             print("foo")
         self.assertTrue("foo" in c)
+
+
+class ClientTest(unittest.TestCase):
+    def test_run_basic(self):
+        r1 = testdata.run("echo 1")
+        r2 = testdata.run(["echo", "1"])
+        self.assertEqual(r1, r2)
+
+    def test_run_file(self):
+        path1 = testdata.create_file("foo.py", "print(1)")
+        path2 = testdata.get_file(path1.fileroot, tmpdir=path1.basedir)
+
+        r1 = testdata.run(path1)
+        r2 = testdata.run(path2)
+        r3 = path1.run()
+        r4 = path2.run()
+        self.assertTrue(r1 == r2 == r3 == r4)
+
+    def test_run_module(self):
+        mod1 = testdata.create_module("foo.bar.__main__", "print(1)")
+        #pout.v(mod1.parent, mod1.relpath, mod1)
+        r1 = testdata.run(mod1)
+        r2 = mod1.run()
+        self.assertEqual(r1, r2)
 

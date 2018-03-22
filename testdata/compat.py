@@ -30,8 +30,10 @@ if is_py2:
 
     from SimpleHTTPServer import SimpleHTTPRequestHandler
     from BaseHTTPServer import HTTPServer
-    import Cookie as cookies
+    from Cookie import SimpleCookie
     import urlparse
+    from urllib import urlencode
+    from urllib2 import Request, urlopen, URLError, HTTPError
 
 elif is_py3:
     basestring = (str, bytes)
@@ -41,8 +43,12 @@ elif is_py3:
     import _thread
     from io import StringIO
     from http.server import HTTPServer, SimpleHTTPRequestHandler
-    from http import cookies
+    #from http import cookies
+    from http.cookies import SimpleCookie
     from urllib import parse as urlparse
+    from urllib.request import Request, urlopen
+    from urllib.error import URLError, HTTPError
+    from urllib.parse import urlencode
 
     # ripped from six https://bitbucket.org/gutworth/six
     def reraise(tp, value, tb=None):

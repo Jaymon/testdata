@@ -41,9 +41,10 @@ from .path import Dirpath, Filepath, Modulepath
 from .threading import Thread
 from .output import Capture
 from .server import PathServer, CookieServer
+from .client import Command, ModuleCommand, FileCommand, HTTP
 
 
-__version__ = '0.6.24'
+__version__ = '0.6.25'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -180,6 +181,68 @@ def get_bool():
     return random.choice([True, False])
 
 
+def run(cmd, arg_str="", **kwargs):
+    """Run a command on the command line
+
+    :param cmd: mixed, the command you want to run
+    :param arg_str: string, extra flags that will be appended to the cmd
+    :param **kwargs: allows you to pass into underlying Command.run() method
+    :returns: string, the output from the command
+    """
+    if isinstance(cmd, Modulepath):
+        ret = cmd.run(arg_str, **kwargs)
+
+    elif isinstance(cmd, Filepath):
+        ret = cmd.run(arg_str, **kwargs)
+
+    else:
+        cmd = Command(cmd)
+        ret = cmd.run(arg_str, **kwargs)
+
+    return ret
+
+
+def fetch(url, body=None, query=None, **kwargs):
+    """fetch a url
+
+    :Example:
+        # make a simple get request
+        c = testdata.fetch("http://example.com/foo/bar")
+
+        # make a request with a cookie
+        c = testdata.fetch("http://example.com/foo/bar", cookies={"foo": "1"})
+
+        # make a request with a different method
+        c = testdata.fetch("http://example.com/foo/bar", method="PUT")
+
+        # make a POST request
+        c = testdata.fetch("http://example.com/foo/bar", {"foo": 1})
+
+        # make a json POST request
+        c = testdata.fetch("http://example.com/foo/bar", {"foo": 1}, json=True)
+
+    :param url: string, the full url you want to request
+    :param body: dict, the body you want to POST, pass None for GET request
+    :param query: dict, if you want to attach query params with ?
+    :param **kwargs: anything else you want to pass to the underlying HTTP object
+        method -- string, things like HEAD, or PUT
+        cookies -- dict, the cookies you want to pass to the server
+    :returns: HTTPResponse, has .code, .body, and other properties and methods
+    """
+    c = HTTP(url, **kwargs)
+    method = kwargs.pop("method", "")
+    if method:
+        ret = c.fetch(method, url, query, body, **kwargs)
+
+    else:
+        if body is None:
+            ret = c.get(url, query, **kwargs)
+        else:
+            ret = c.post(url, body, query=query, **kwargs)
+
+    return ret
+
+
 def create_fileserver(file_dict, tmpdir="", hostname="", port=0):
     """
     create a fileserver that can be used to test remote file retrieval
@@ -224,17 +287,24 @@ def create_dir(path="", tmpdir=""):
     return Dirpath.create_instance(path, tmpdir)
 
 
-def create_file(path, contents="", tmpdir=""):
+def create_file(path, contents="", tmpdir="", encoding=""):
     '''
     create a file and return the full path to that file
 
-    path -- string -- the path to the file
-    contents -- string -- the file contents
-    tmpdir -- string -- the temp directory to use as the base
+    :param path: string, the path to the file
+    :param contents: string, the file contents
+    :param tmpdir: string, the temp directory to use as the base
+    :param encoding: string, whatever encoding you want the file to have
 
-    return -- Filepath -- the full file path
+    :returns: Filepath, the full file path
     '''
-    return Filepath.create_instance(path, contents, tmpdir)
+    if encoding:
+        instance = Filepath(path, tmpdir)
+        instance.encoding = encoding
+        instance.create(contents)
+    else:
+        instance = Filepath.create_instance(path, contents, tmpdir)
+    return instance
 
 
 def create_files(file_dict, tmpdir=""):
@@ -325,13 +395,14 @@ def get_url():
     )
 
 
+def get_unicode(str_size=0, chars=None): return get_str(str_size, chars)
 def get_str(str_size=0, chars=None):
     '''
     generate a random unicode string
 
     if chars is None, this can generate up to a 4-byte utf-8 unicode string, which can
     break legacy utf-8 things
-    
+
     str_size -- integer -- how long you want the string to be
     chars -- sequence -- the characters you want the string to use, if this is None, it
         will default to pretty much the entire unicode range of characters
@@ -487,7 +558,7 @@ def get_float(min_size=None, max_size=None):
         i = random.uniform(min_size, max_size)
         if i not in _previous_floats:
             _previous_floats.add(i)
-            # we cap the list at 100000 unique ints
+            # we cap the list at 100000 unique values
             if len(_previous_floats) > 100000:
                 _previous_floats.pop()
             break
@@ -519,6 +590,7 @@ def get_int64(min_size=1):
     return get_unique_int(min_size, 2**63-1)
 
 
+def get_uniq_int(min_size=1, max_size=sys.maxsize): return get_unique_int(min_size, max_size)
 def get_unique_int(min_size=1, max_size=sys.maxsize):
     '''
     get a random integer
@@ -539,12 +611,13 @@ def get_unique_int(min_size=1, max_size=sys.maxsize):
         if i not in _previous_ints:
             found = True
             _previous_ints.add(i)
-            # we cap the list at 100000 unique ints
+            # we cap the list at 100000 unique values
             if len(_previous_ints) > 100000:
                 _previous_ints.pop()
             break
 
-    assert found, "no unique ints from {} to {} could be found".format(min_size, max_size)
+    if not found:
+        raise ValueError("no unique ints from {} to {} could be found".format(min_size, max_size))
     return i
 
 
@@ -600,6 +673,13 @@ def get_birthday(as_str=False):
         bday = "{:%Y-%m-%d}".format(bday)
 
     return bday
+
+
+def get_uniq_email(name=''): return get_unique_email(name)
+def get_unique_email(name=''):
+    if not name: name = get_ascii_name()
+    timestamp = "{:.6f}".format(time.time()).replace(".", "")
+    return get_email(name + timestamp)
 
 
 def get_email(name=''):
@@ -914,6 +994,18 @@ def get_between_datetime(start, stop=None):
     """get a datetime between start and stop"""
     if not stop:
         stop = datetime.datetime.utcnow()
+
+    # account for start or stop being a timedelta
+    if isinstance(start, datetime.timedelta) and isinstance(stop, datetime.timedelta):
+        now = datetime.datetime.utcnow()
+        start = now - start
+        stop = now - stop
+
+    elif isinstance(start, datetime.timedelta):
+        start = stop - start
+
+    elif isinstance(stop, datetime.timedelta):
+        stop = start + stop
 
     if start >= stop:
         raise ValueError("start datetime >= stop datetime")

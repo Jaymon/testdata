@@ -258,7 +258,7 @@ class CookieServer(CallbackServer):
     def make_morsels(cls, handler):
         ret = []
         for name, val in handler.server.cookies:
-            c = cookies.SimpleCookie()
+            c = SimpleCookie()
             if is_py2:
                 if isinstance(val, Mapping):
                     # TODO: this isn't right :(
@@ -301,7 +301,10 @@ class CookieServer(CallbackServer):
 
             server_morsels = set(m.OutputString() for m in cls.make_morsels(handler))
             total_server_morsels = len(server_morsels)
-            req_c = cookies.SimpleCookie(req_cookies)
+            if is_py2:
+                req_c = SimpleCookie(b"\r\n".join(req_cookies.split(b", ")))
+            else:
+                req_c = SimpleCookie("\r\n".join(req_cookies.split(", ")))
             for req_morsel in req_c.values():
                 req_s = req_morsel.OutputString()
                 morsel_d = cls.get_morsel_dict(req_morsel)

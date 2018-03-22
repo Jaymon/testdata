@@ -97,6 +97,33 @@ print foo.boom() # 2
 
 -------------------------------------------------------------------------------
 
+### run
+
+Run a command on the command line
+
+
+```python
+r = testdata.run("echo 1")
+print(r) # 1
+```
+
+
+-------------------------------------------------------------------------------
+
+### fetch
+
+Request a url
+
+
+```python
+r = testdata.fetch("http://example.com")
+print(r.code) # 200
+print(r.body) # the html body of example.com
+```
+
+
+-------------------------------------------------------------------------------
+
 ### capture
 
 Output buffering, handy when you want to make sure logging or print statements are doing what you think they should be doing.
@@ -141,7 +168,7 @@ server = testdata.create_fileserver({
 })
 
 with server: # the with handles starting and stopping the server
-    res = requests.get(server.url("foo.txt"))
+    res = testdata.fetch(server.url("foo.txt"))
     print(res) # foo
 ```
 

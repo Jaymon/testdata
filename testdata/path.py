@@ -14,6 +14,7 @@ import inspect
 
 from .compat import *
 from . import environ
+from .client import ModuleCommand, FileCommand
 
 
 class Dirpath(str):
@@ -33,6 +34,16 @@ class Dirpath(str):
     basedir = ""
 
     @property
+    def parent(self):
+        ret = None
+        bits = self.relbits
+        bits.pop(-1)
+        if len(bits) > 0:
+            ret = Dirpath(os.sep.join(bits), self.basedir)
+
+        return ret
+
+    @property
     def permissions(self):
         # https://stomp.colorado.edu/blog/blog/2010/10/22/on-python-stat-octal-and-file-system-permissions/
         mode = stat.S_IMODE(os.stat(self.path).st_mode)
@@ -42,6 +53,18 @@ class Dirpath(str):
     @permissions.setter
     def permissions(self, v):
         self.chmod(v)
+
+    @property
+    def name(self):
+        parentname, name = os.path.split(self.path)
+        return name
+
+    @property
+    def fileroot(self):
+        name = self.name
+        return name
+        fileroot, ext = os.path.splitext(name)
+
 
     @property
     def path(self):
@@ -191,6 +214,10 @@ class Filepath(Dirpath):
     on instantiation this class will contain the full file path
     '''
     @property
+    def parent(self):
+        return self.directory
+
+    @property
     def directory(self):
         return Dirpath(
             os.path.dirname(self.relpath),
@@ -200,6 +227,18 @@ class Filepath(Dirpath):
     @property
     def name(self):
         return os.path.basename(self.path)
+
+    @property
+    def fileroot(self):
+        name = self.name
+        fileroot, ext = os.path.splitext(name)
+        return fileroot
+
+    @property
+    def ext(self):
+        name = self.name
+        fileroot, ext = os.path.splitext(name)
+        return ext.lstrip(".")
 
     def __new__(cls, relpath, basedir=""):
         instance = super(Filepath, cls).__new__(cls, relpath, basedir)
@@ -275,6 +314,10 @@ class Filepath(Dirpath):
     def files(self):
         raise NotImplementedError()
 
+    def run(self, arg_str="", **kwargs):
+        cmd = FileCommand(self)
+        return cmd.run(arg_str, **kwargs)
+
 
 class Modulepath(Filepath):
     '''
@@ -285,6 +328,16 @@ class Modulepath(Filepath):
     tmpdir -- string -- the temp directory that will be added to the syspath if make_importable is True
     make_importable -- boolean -- if True, then tmpdir will be added to the python path so it can be imported
     '''
+    @property
+    def parent(self):
+        """If self was foo.bar.che this would return foo.bar"""
+        ret = None
+        bits = self.relbits
+        bits.pop(-1)
+        if len(bits) > 0:
+            ret = type(self)(".".join(bits), self.basedir)
+        return ret
+
     @property
     def directory(self):
         f = Filepath(self.relpath, self.basedir)
@@ -406,7 +459,14 @@ class Modulepath(Filepath):
         return self
 
     def is_package(self):
-        """returns True if this moduel is a package (directory with __init__.py file
+        """returns True if this module is a package (directory with __init__.py file
         in it)"""
         return self.relpath.endswith("__init__.py")
+
+    def run(self, arg_str="", **kwargs):
+        mod = self
+        if self.endswith("__main__") or self.endswith("__init__"):
+            mod = self.parent
+        cmd = ModuleCommand(mod, cwd=mod.basedir)
+        return cmd.run(arg_str, **kwargs)
 
