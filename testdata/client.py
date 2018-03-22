@@ -14,30 +14,18 @@ from .compat import *
 
 
 class Command(object):
-    """makes running a captain script from a non CLI environment easy peasy
-    We've basically had this in our private repo, and then we created a new project
-    and we copy/pasted it into that project so we could test some scripts, then we
-    created another project and did the same thing, and that's when it clicked, hey,
-    why don't we spend some time to make this generic and put it in the actual
-    package? That way there would be one canonical place for running a Captain script.
-    And there were high fives all around
+    """makes running a command from a non CLI environment easy peasy
+
+    This is handy when you need to test some CLI functionality of your python
+    modules.
+
+    c = Command("echo")
+    r = c.run("hello")
+    print(r) # hello
     """
-
-    script_prefix = ""
-    """this will be prepended to the passed in script on initialization"""
-
-    script_postfix = ""
-    """this will be appended to the passed in script on initialization"""
 
     quiet = False
     """this is the default quiet setting for running a script, it can be overriden in run()"""
-
-    cmd_prefix = "python"
-    """this is what will be used to invoke captain from the command line when run()
-    is called"""
-
-    thread_class = threading.Thread
-    """the threading class to use if run_async() is called instead of run()"""
 
     bufsize = 1000
     """how many lines to buffer of output, set to 0 to suppress all output"""
@@ -182,6 +170,10 @@ class FileCommand(ModuleCommand):
 
 
 class HTTPResponse(object):
+    """This is the response object that is returned from an HTTP request, it tries
+    its best to look like a requests response object so you can switch this out
+    when you need a more full-featured solution
+    """
     @property
     def cookies(self):
         # https://stackoverflow.com/questions/25387340/is-comma-a-valid-character-in-cookie-value

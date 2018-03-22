@@ -2,9 +2,9 @@
 
 Generate Random Test Data.
 
-These are just a bunch of functions designed to make it easier to test your code.
+These are just a bunch of handy functions designed to make it easier to test your code.
 
-To use testdata in your tests, just include the `testdata.py` module:
+To use testdata in your tests, just import it into your testing module:
 
     import testdata
 
@@ -169,7 +169,7 @@ server = testdata.create_fileserver({
 
 with server: # the with handles starting and stopping the server
     res = testdata.fetch(server.url("foo.txt"))
-    print(res) # foo
+    print(res.body) # foo
 ```
 
 

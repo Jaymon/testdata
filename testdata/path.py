@@ -35,6 +35,7 @@ class Dirpath(str):
 
     @property
     def parent(self):
+        """return the directory portion of a directory/dirname path"""
         ret = None
         bits = self.relbits
         bits.pop(-1)
@@ -56,15 +57,14 @@ class Dirpath(str):
 
     @property
     def name(self):
+        """Return the dirname portion of a directory/dirname path"""
         parentname, name = os.path.split(self.path)
         return name
 
     @property
     def fileroot(self):
-        name = self.name
-        return name
-        fileroot, ext = os.path.splitext(name)
-
+        """see name"""
+        return self.name
 
     @property
     def path(self):
@@ -79,6 +79,7 @@ class Dirpath(str):
 
     @property
     def directory(self):
+        """Return itself, this is just for api compatibility with children classes"""
         return self
 
     def __new__(cls, relpath="", basedir=""):
@@ -104,6 +105,7 @@ class Dirpath(str):
         return Filepath.create_instance(relpath, contents, self)
 
     def delete(self):
+        """Remove this whole directory and all subdirectories and files in it"""
         shutil.rmtree(self.path)
 
     @classmethod
@@ -143,6 +145,7 @@ class Dirpath(str):
         os.chmod(self.path, permissions)
 
     def files(self):
+        """iterate through all the files in this directory and subdirectories"""
         for basedir, directories, files in os.walk(self.path, topdown=True):
             for basename in files:
                 path = os.path.join(basedir, basename)
@@ -150,9 +153,11 @@ class Dirpath(str):
                 yield Filepath(path.replace(self.basedir, ""), self.basedir)
 
     def exists(self):
+        """True if this directory actually exists"""
         return os.path.isdir(self.path)
 
     def child(self, *bits):
+        """Return a child instance (Filepath or Dirpath) relative to this directory"""
         relpath = os.path.join(self.relpath, *bits)
         fullpath = os.path.join(self.basedir, relpath)
         if os.path.isfile(fullpath):
@@ -174,16 +179,22 @@ class Dirpath(str):
         return ps
 
     def module(self, module_path):
+        """similar to modpath but returns the actual module instead of Modulepath
+        instance"""
         return self.modpath(module_path).module
 
     def modules(self):
+        """iterate through all the modules under this directory"""
         for modpath in self.modpaths():
             yield modpath.module
 
     def modpath(self, module_path):
+        """Return a module that is rooted in this directory"""
         return Modulepath(module_path, self.path)
 
     def modpaths(self):
+        """Similar to modules, returns all the modules under this directory as
+        Modulepath instances"""
         for module_info in pkgutil.iter_modules([self.directory]):
             bits = self.relbits + [module_info[1]]
             yield Modulepath(".".join(bits), self.basedir)
@@ -195,12 +206,10 @@ class Dirpath(str):
                     #yield Modulepath(u".".join(subbits), self.basedir)
                     yield submodule
 
-    def __div__(self, other):
-        # 2.x
-        return self.__truediv__(other)
-
     def __truediv__(self, other):
+        """Synctactic sugar, allows self / "bit" to work"""
         return self.child(other)
+    __div__ = __truediv__ # 2.x
 
 
 class Filepath(Dirpath):
@@ -208,17 +217,20 @@ class Filepath(Dirpath):
     create a file and return the full path to that file
 
     path -- string -- the path to the file
-    contents -- string -- the file contents
-    tmpdir -- string -- the temp directory to use as the base
+    contents() -- string -- the file contents
+    basedir -- string -- the temp directory to use as the base
+    relpath -- string -- the directory tree from basedir
 
     on instantiation this class will contain the full file path
     '''
     @property
     def parent(self):
+        """return the directory portion of a directory/fileroot.ext path"""
         return self.directory
 
     @property
     def directory(self):
+        """return the directory portion of a directory/fileroot.ext path"""
         return Dirpath(
             os.path.dirname(self.relpath),
             self.basedir
@@ -226,16 +238,21 @@ class Filepath(Dirpath):
 
     @property
     def name(self):
+        """Return the fileroot.ext portion of a directory/fileroot.ext path"""
         return os.path.basename(self.path)
 
     @property
     def fileroot(self):
+        """Return the fileroot portion of a directory/fileroot.ext path"""
+        # https://stackoverflow.com/questions/2235173/
+        # https://stackoverflow.com/a/2235762/5006
         name = self.name
         fileroot, ext = os.path.splitext(name)
         return fileroot
 
     @property
     def ext(self):
+        """Return the ext portion of a directory/fileroot.ext path"""
         name = self.name
         fileroot, ext = os.path.splitext(name)
         return ext.lstrip(".")
@@ -251,18 +268,26 @@ class Filepath(Dirpath):
         return instance.create(contents)
 
     def exists(self):
+        """True if the file exists, False otherwise"""
         return os.path.isfile(self.path)
 
     def open(self, mode="r"):
+        """open the file"""
         return codecs.open(self.path, encoding=self.encoding, mode=mode)
 
     def write(self, contents):
+        """Unlike create, this will just write the contents into the file"""
         with self.open("w+") as f:
             f.truncate(0)
             ret = f.write(self.normalize_contents(contents))
         return ret
 
     def create(self, contents=""):
+        """This will create not only the file, but the directory also and place
+        contents into the file
+
+        :param contents: string, what you want the file to contain
+        """
         d = self.directory # just by doing this the directory will be created
         d.create()
         if contents:
@@ -286,16 +311,16 @@ class Filepath(Dirpath):
         """return line count"""
         return len(list(self.lines()))
 
-    def exists(self):
-        return os.path.isfile(self.path)
-
     def clear(self):
+        """get rid of the contents from the file but leave the file"""
         self.write("")
 
     def delete(self):
+        """remove the file"""
         os.unlink(self.path)
 
     def contents(self):
+        """Return the body of the file"""
         with self.open("r") as f:
             return f.read()
 
@@ -315,6 +340,11 @@ class Filepath(Dirpath):
         raise NotImplementedError()
 
     def run(self, arg_str="", **kwargs):
+        """Treat this file like a script and execute it
+
+        :param arg_str: string, flags you want to pass into the execution of the script
+        :returns: string, the output of running the file/script
+        """
         cmd = FileCommand(self)
         return cmd.run(arg_str, **kwargs)
 
@@ -340,11 +370,13 @@ class Modulepath(Filepath):
 
     @property
     def directory(self):
+        """Return the directory this module lives in"""
         f = Filepath(self.relpath, self.basedir)
         return f.directory
 
     @property
     def module(self):
+        """Return the actual module this Modulepath represents"""
         injected = False
         if self.basedir not in sys.path:
             injected = True
@@ -359,17 +391,25 @@ class Modulepath(Filepath):
 
     @property
     def classes(self):
+        """Return all the classes this module contains"""
         m = self.module
         for m in self.modules():
             for klass_name, klass in inspect.getmembers(m, inspect.isclass):
                 yield klass
 
     @property
+    def fileroot(self):
+        """see name"""
+        return self.name
+
+    @property
     def name(self):
+        """Return the name of the module"""
         return self.relbits.pop(-1)
 
     @property
     def relbits(self):
+        """If this module was foo.bar this would return ["foo", "bar"]"""
         return self.split('.')
 
     @property
@@ -464,6 +504,11 @@ class Modulepath(Filepath):
         return self.relpath.endswith("__init__.py")
 
     def run(self, arg_str="", **kwargs):
+        """Run this module on the command line
+
+        :param arg_str: string, flags you want to pass into the execution of this module
+        :returns: string, the output of running the file/script
+        """
         mod = self
         if self.endswith("__main__") or self.endswith("__init__"):
             mod = self.parent

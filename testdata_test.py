@@ -17,7 +17,6 @@ import datetime
 import types
 from collections import OrderedDict, Counter
 import time
-import logging
 import sys
 
 import testdata
@@ -29,9 +28,7 @@ from testdata.output import Capture
 from testdata.server import AnyServer, CookieServer, CallbackServer
 
 
-#logging.basicConfig(format="[%(levelname).1s] %(message)s", level=logging.DEBUG, stream=sys.stdout)
 testdata.basic_logging()
-logger = logging.getLogger(__name__)
 
 
 class ServerTest(unittest.TestCase):
@@ -66,22 +63,13 @@ class ServerTest(unittest.TestCase):
         server = testdata.create_cookieserver(cookies)
 
         with server:
-            #res = requests.get(server)
-#             pout.v(res.cookies)
-#             return
             res = testdata.fetch(server)
             self.assertEqual(cookies["foo"], res.cookies["foo"])
             self.assertEqual(cookies["bar"], res.cookies["bar"])
             self.assertEqual(str(cookies["che"]), res.cookies["che"])
             self.assertEqual(len(cookies), res.json()["sent_count"])
 
-#             cookies = res.cookies
-#             b = requests.Session()
-#             b.cookies = cookies
-#             res = b.get(server)
-
             res = testdata.fetch(server, cookies=res.cookies)
-            #pout.v(res, res.json())
             self.assertEqual(len(cookies), res.json()["read_count"])
 
             # test with different case
@@ -137,6 +125,13 @@ class ServerTest(unittest.TestCase):
 
 
 class PathTest(unittest.TestCase):
+    def test_file(self):
+        f = testdata.create_file("foo.txt", "this is the text")
+        self.assertEqual("foo", f.fileroot)
+        self.assertEqual("txt", f.ext)
+        self.assertEqual("foo.txt", f.name)
+        self.assertEqual(f.directory, f.parent)
+
     def test_directory(self):
         d = testdata.create_dir()
         self.assertEqual(d, d.directory)
