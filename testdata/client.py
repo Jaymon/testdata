@@ -92,6 +92,7 @@ class Command(object):
         """runs the passed in arguments and returns an iterator on the output of
         running command"""
 
+        expected_ret_code = kwargs.pop('code', 0)
         # any kwargs with all capital letters should be considered environment
         # variables
         environ = self.environ
@@ -117,26 +118,39 @@ class Command(object):
             # another round of links
             # http://stackoverflow.com/a/17413045/5006 (what I used)
             # http://stackoverflow.com/questions/2715847/
-            if is_py2:
-                for line in iter(process.stdout.readline, ""):
-                    yield line
-            else:
-                for line in iter(process.stdout.readline, b""):
-                    line = line.decode("utf-8")
-                    yield line
+            for line in iter(process.stdout.readline, b""):
+                line = line.decode("utf-8")
+                yield line
+
+#             if is_py2:
+#                 for line in iter(process.stdout.readline, ""):
+#                     yield line
+#             else:
+#                 for line in iter(process.stdout.readline, b""):
+#                     line = line.decode("utf-8")
+#                     yield line
 
             process.wait()
-            if process.returncode > 0:
-                raise RuntimeError("{} returned {}".format(cmd, process.returncode))
+            if process.returncode != expected_ret_code:
+                raise RuntimeError("{} returned {}, expected {}".format(
+                    cmd,
+                    process.returncode,
+                    expected_ret_code
+                ))
 
         except subprocess.CalledProcessError as e:
-            raise RuntimeError("{} returned {}".format(cmd, e.returncode))
+            if e.returncode != expected_ret_code:
+                raise RuntimeError("{} returned {}, expected {}".format(
+                    cmd,
+                    e.returncode,
+                    expected_ret_code
+                ))
 
 
 class ModuleCommand(Command):
     """This sets the client up so you can just pass the module name and have everything
     just work"""
-    cmd_prefix = "python -m"
+    cmd_prefix = "{} -m".format(sys.executable)
     """this is what will be used to invoke captain from the command line when run()
     is called"""
 
@@ -149,7 +163,7 @@ class ModuleCommand(Command):
 
 class FileCommand(ModuleCommand):
     """This will add the .py to a script so you don't have to"""
-    cmd_prefix = "python"
+    cmd_prefix = sys.executable
 
     script_prefix = ""
     """this will be prepended to the passed in script on initialization"""

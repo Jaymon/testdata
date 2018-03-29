@@ -1064,6 +1064,22 @@ class CaptureTest(unittest.TestCase):
 
 
 class ClientTest(unittest.TestCase):
+    def test_unicode_output(self):
+        mod1 = testdata.create_module("foo.bar.__main__", [
+            "import testdata",
+            "print(testdata.get_unicode_words().encode('utf8'))",
+        ])
+
+        r = testdata.run(mod1)
+
+    def test_return_code(self):
+        path1 = testdata.create_file("foo.py", ["print('foo')", "exit(1)"])
+        r = testdata.run(path1, code=1)
+        self.assertTrue("foo" in r)
+
+        with self.assertRaises(RuntimeError):
+            r = testdata.run(path1)
+
     def test_run_basic(self):
         r1 = testdata.run("echo 1")
         r2 = testdata.run(["echo", "1"])
@@ -1085,4 +1101,37 @@ class ClientTest(unittest.TestCase):
         r1 = testdata.run(mod1)
         r2 = mod1.run()
         self.assertEqual(r1, r2)
+
+
+class TCTest(testdata.TestCase):
+    def test_assert_within(self):
+        with self.assertRaises(AssertionError):
+            with self.assertWithin(0.25):
+                time.sleep(0.3)
+
+    def test_assert_regex(self):
+        self.assertRegex("foo", r"^foo$")
+        self.assertNotRegex("bar", r"^foo$")
+
+    @testdata.TestCase.expectedFailure()
+    def test_failure_1(self):
+        raise RuntimeError()
+
+    @testdata.TestCase.expected_failure()
+    def test_failure_2(self):
+        raise RuntimeError()
+
+    @testdata.TestCase.expect_failure()
+    def test_failure_3(self):
+        raise RuntimeError()
+
+    @testdata.TestCase.skipUnless(False)
+    def test_skip_1(self):
+        self.assertTrue(True)
+
+    def test_skip_2(self):
+        self.skip()
+
+    def test_skip_3(self):
+        self.skip_test()
 

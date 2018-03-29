@@ -16,8 +16,9 @@ class Service(object):
     """If True then failures when running the command will be ignored, failure is
     usually defined as an exit code >0"""
 
-    def __init__(self, name):
+    def __init__(self, name, ignore_failure=True):
         self.name = name
+        self.ignore_failure = ignore_failure
 
     def format_cmd(self, action, **kwargs):
         raise NotImplementedError()

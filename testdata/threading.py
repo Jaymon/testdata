@@ -8,7 +8,11 @@ from .compat import queue, _thread, reraise
 
 
 logger = logging.getLogger(__name__)
-exc_queue = queue.Queue()
+
+Queue = queue.Queue
+Empty = queue.Empty
+
+exc_queue = Queue()
 
 
 class Thread(threading.Thread):
@@ -30,7 +34,7 @@ class Thread(threading.Thread):
             thread_e_info = exc_queue.get(False)
             exc_queue.task_done()
 
-        except queue.Empty:
+        except Empty:
             pass
 
         return thread_e_info[0] if thread_e_info else None
@@ -61,7 +65,7 @@ class Thread(threading.Thread):
                 thread_e_info = exc_queue.get(False)
                 exc_queue.task_done()
 
-            except queue.Empty:
+            except Empty:
                 pass
 
             finally:

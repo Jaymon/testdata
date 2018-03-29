@@ -27,6 +27,7 @@ import uuid
 import hashlib
 import logging
 import time
+from time import sleep
 
 from .compat import *
 from .data import _names, \
@@ -42,9 +43,10 @@ from .threading import Thread
 from .output import Capture
 from .server import PathServer, CookieServer
 from .client import Command, ModuleCommand, FileCommand, HTTP
+from .test import TestCase
 
 
-__version__ = '0.6.25'
+__version__ = '0.6.26'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -155,7 +157,11 @@ def wait(callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1):
     :param timeout: float, how long you should wait before failing with RuntimeError
     :param interval: float, sleep for this interval inbetween callback calls
     """
-    if not cb_args: cb_args = []
+    if cb_args is None:
+        cb_args = []
+    else:
+        if not isinstance(cb_args, list):
+            cb_args = [cb_args]
     if not cb_kwargs: cb_kwargs = {}
     start = time.time()
     while not callback(*cb_args, **cb_kwargs):
@@ -166,14 +172,18 @@ def wait(callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1):
                 raise RuntimeError("wait() timed out after {} seconds".format(timeout))
 
 
-def sleep(seconds):
-    """
-    Not sure why, but calling testdata.time.sleep() was irritating, so was having
-    to import time when I wanted to sleep for a bit
+def choice(*args):
+    """Wrapper around random.choice that makes sure everything is a list, handy
+    for python 3 code where you have to wrap a lot of generators in list(...)
 
-    :param seconds: float, how many seconds you want to sleep
+    :param *args: iter(s), one or more iterators or lists that will all be combined
+        into one giant list
+    :returns: a single object from all the *args
     """
-    time.sleep(seconds)
+    vals = []
+    for arg in args:
+        vals.extend(arg)
+    return random.choice(vals)
 
 
 def get_bool():
