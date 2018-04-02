@@ -41,12 +41,13 @@ from .data import _names, \
 from .path import Dirpath, Filepath, Modulepath
 from .threading import Thread
 from .output import Capture
-from .server import PathServer, CookieServer
+from .server import PathServer, CookieServer, CallbackServer
+from .service import Upstart, InitD
 from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.6.26'
+__version__ = '0.6.27'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -66,7 +67,7 @@ def basic_logging(**kwargs):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
         log_handler = logging.StreamHandler(stream=sys.stderr)
-        log_formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        log_formatter = logging.Formatter('[%(levelname).1s] %(message)s')
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
 
@@ -76,6 +77,50 @@ def basic_logging(**kwargs):
     kwargs.setdefault("level", logging.DEBUG)
     kwargs.setdefault("stream", sys.stdout)
     logging.basicConfig(**kwargs)
+
+
+def start_service(service_name, ignore_failure=True):
+    """start a local service
+
+    :param service_name: string, the service you want to start
+    :param ignore_failure: bool, True if it should ignore a failure return code
+    :returns: Service instance
+    """
+    for service_class in [Upstart, InitD]:
+        s = service_class(service_name)
+        s.ignore_failure = ignore_failure
+        if s.exists():
+            s.start()
+            break
+        else:
+            s = None
+
+    if s is None:
+        raise RuntimeError("Could not find a valid service for {}".format(service_name))
+
+    return s
+
+
+def stop_service(service_name, ignore_failure=True):
+    """stop a local service
+
+    :param service_name: string, the service you want to stop
+    :param ignore_failure: bool, True if it should ignore a failure return code
+    :returns: Service instance
+    """
+    for service_class in [Upstart, InitD]:
+        s = service_class(service_name)
+        s.ignore_failure = ignore_failure
+        if s.exists():
+            s.stop()
+            break
+        else:
+            s = None
+
+    if s is None:
+        raise RuntimeError("Could not find a valid service for {}".format(service_name))
+
+    return s
 
 
 def capture(*args, **kwargs):
@@ -405,7 +450,6 @@ def get_url():
     )
 
 
-def get_unicode(str_size=0, chars=None): return get_str(str_size, chars)
 def get_str(str_size=0, chars=None):
     '''
     generate a random unicode string
@@ -484,6 +528,7 @@ def get_str(str_size=0, chars=None):
 
     s = ''.join(sg)
     return s
+get_unicode = get_str
 
 
 def get_hex(str_size=0):
@@ -584,6 +629,7 @@ def get_posint(max_size=2**31-1):
     """
     min_size = 1
     return random.randint(min_size, max_size)
+get_positive_int = get_posint
 
 
 def get_int(min_size=1, max_size=sys.maxsize):
@@ -600,7 +646,6 @@ def get_int64(min_size=1):
     return get_unique_int(min_size, 2**63-1)
 
 
-def get_uniq_int(min_size=1, max_size=sys.maxsize): return get_unique_int(min_size, max_size)
 def get_unique_int(min_size=1, max_size=sys.maxsize):
     '''
     get a random integer
@@ -629,6 +674,7 @@ def get_unique_int(min_size=1, max_size=sys.maxsize):
     if not found:
         raise ValueError("no unique ints from {} to {} could be found".format(min_size, max_size))
     return i
+get_uniq_int = get_unique_int
 
 
 def get_ascii_words(word_count=0, as_str=True):
@@ -637,6 +683,7 @@ def get_ascii_words(word_count=0, as_str=True):
 
 def get_unicode_words(word_count=0, as_str=True):
     return get_words(word_count, as_str, words=_unicode_words)
+get_uni_words = get_unicode_words
 
 
 def get_words(word_count=0, as_str=True, words=None):
@@ -661,35 +708,11 @@ def get_words(word_count=0, as_str=True, words=None):
     return ret_words if not as_str else ' '.join(ret_words)
 
 
-def get_birthday(as_str=False):
-    """
-    return a random YYYY-MM-DD
-
-    as_str -- boolean -- true to return the bday as a YYYY-MM-DD string
-    return -- datetime.date|string
-    """
-    year = random.randint(1950, 1999)
-    month = random.randint(1, 12)
-    day = 1
-    if month == 2:
-        day = random.randint(1, 28)
-    elif month in [9, 4, 6, 11]:
-        day = random.randint(1, 30)
-    else:
-        day = random.randint(1, 31)
-
-    bday = datetime.date(year, month, day)
-    if as_str:
-        bday = "{:%Y-%m-%d}".format(bday)
-
-    return bday
-
-
-def get_uniq_email(name=''): return get_unique_email(name)
 def get_unique_email(name=''):
     if not name: name = get_ascii_name()
     timestamp = "{:.6f}".format(time.time()).replace(".", "")
     return get_email(name + timestamp)
+get_uniq_email = get_unique_email
 
 
 def get_email(name=''):
@@ -769,6 +792,7 @@ def get_unicode_name():
     '''return one non-ascii safe name'''
     name = random.choice(_unicode_names)
     return name
+get_uni_name = get_unicode_name
 
 
 def get_coordinate(v1, v2, round_to=7):
@@ -786,23 +810,22 @@ def get_coordinate(v1, v2, round_to=7):
     v1 = [int(x) for x in str(round(v1, round_to)).split('.')]
     v2 = [int(x) for x in str(round(v2, round_to)).split('.')]
     scale_max = int('9' * round_to)
-    
+
     min = v1
     max = v2
     if v1[0] > v2[0]:
       min = v2
       max = v1
-    
+
     min_size = min[0]
     min_scale_range = [min[1], scale_max]
-    
+
     max_size = max[0]
     max_scale_range = [0, max[1]]
-    
+
     scale = 0
     size = random.randint(min_size, max_size)
 
-    
     if size == min_size:
       scale = random.randint(min_scale_range[0], min_scale_range[1])
     elif size == max_size:
@@ -819,8 +842,9 @@ def get_coordinate(v1, v2, round_to=7):
             scale = random.randint(int('1' + ('0' * (round_to - 1))), max_scale_range[1])
     else:
       scale = random.randint(0, scale_max)
-  
+
     return float('{}.{}'.format(size, scale))
+get_coord = get_coordinate
 
 
 def patch_module(mod_name, attr_name='', patches=None, **kwargs_patches):
@@ -979,29 +1003,70 @@ def patch(mod, patches=None, **kwargs_patches):
     return m
 
 
-def get_passed_datetime(*args, **kwargs): return get_past_datetime(*args, **kwargs)
-def get_before_datetime(*args, **kwargs): return get_past_datetime(*args, **kwargs)
+def get_birthday(as_str=False, start_age=18, stop_age=100):
+    """
+    return a random YYYY-MM-DD
+
+    :param as_str: boolean, true to return the bday as a YYYY-MM-DD string
+    :param start_age: int, minimum age of the birthday date
+    :param stop_age: int, maximum age of the birthday date
+    :returns: datetime.date|string
+    """
+    age = random.randint(start_age, stop_age)
+    year = (datetime.datetime.utcnow() - datetime.timedelta(weeks=(age * 52))).year
+    month = random.randint(1, 12)
+    if month == 2:
+        day = random.randint(1, 28)
+    elif month in [9, 4, 6, 11]:
+        day = random.randint(1, 30)
+    else:
+        day = random.randint(1, 31)
+
+    bday = datetime.date(year, month, day)
+    if as_str:
+        bday = "{:%Y-%m-%d}".format(bday)
+
+    return bday
+get_bday = get_birthday
+
+
 def get_past_datetime(now=None):
+    """return a datetime guaranteed to be in the past from now"""
     if not now: now = datetime.datetime.utcnow()
+    if isinstance(now, datetime.timedelta):
+        now = datetime.datetime.utcnow() - now
+
     td = now - datetime.datetime(year=2000, month=1, day=1)
     return now - datetime.timedelta(
         days=random.randint(1, max(td.days, 1)),
         seconds=random.randint(1, max(td.seconds, 1))
     )
+get_past_dt = get_past_datetime
+get_passed_datetime = get_past_datetime
+get_before_datetime = get_past_datetime
 
 
 def get_future_datetime(now=None):
+    """return a datetime guaranteed to be in the future from now"""
     if not now: now = datetime.datetime.utcnow()
+    if isinstance(now, datetime.timedelta):
+        now = datetime.datetime.utcnow() + now
+
     return now + datetime.timedelta(
         weeks=random.randint(1, 52 * 50),
         hours=random.randint(0, 24),
         days=random.randint(0, 365),
         seconds=random.randint(0, 86400)
     )
+get_future_dt = get_future_datetime
+get_after_dt = get_future_datetime
 
 
 def get_between_datetime(start, stop=None):
-    """get a datetime between start and stop"""
+    """get a datetime between start and stop
+
+    return a datetime guaranteed to be in the future from start and in the past from stop
+    """
     if not stop:
         stop = datetime.datetime.utcnow()
 
@@ -1033,6 +1098,7 @@ def get_between_datetime(start, stop=None):
         kwargs["microseconds"] = random.randint(0, td.microseconds - 1)
 
     return start + datetime.timedelta(**kwargs)
+get_between_dt = get_between_datetime
 
 
 # used in the get_int() method to make sure it never returns the same int twice

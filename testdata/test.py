@@ -89,5 +89,7 @@ class TestCase(BaseTestCase):
             # TODO -- make this work with testdata.output so we can use this
             # method in py2
             # https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertLogs
+            # this is the class py2 uses:
+            # https://github.com/python/cpython/blob/d918bbda4bb201c35d1ded3dde686d8b00a91851/Lib/unittest/case.py#L297
             raise NotImplementedError()
 

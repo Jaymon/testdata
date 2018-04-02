@@ -117,6 +117,22 @@ class Capture(Base):
         yield self
         self.stop()
 
+    def capture_sys(self):
+        """just switch out sys.stdout and sys.stderr which is exactly what python
+        proper does:
+
+            https://github.com/python/cpython/blob/3.6/Lib/test/support/__init__.py#L1458
+            https://github.com/python/cpython/blob/2.7/Lib/test/support/__init__.py#L1211
+        """
+        mod_stdout = self.modified["stdout"]
+        mod_stderr = self.modified["stderr"]
+
+        mod_stdout.append(("sys", sys, "stdout"))
+        setattr(sys, "stdout", self.stdout)
+
+        mod_stderr.append(("sys", sys, "stderr"))
+        setattr(sys, "stderr", self.stderr)
+
     def capture_modules(self):
         mod_stdout = self.modified["stdout"]
         mod_stderr = self.modified["stderr"]
@@ -183,8 +199,9 @@ class Capture(Base):
         self.stdout = Stream(self.sys_stdout if passthrough else None)
         self.stderr = Stream(self.sys_stderr if passthrough else None)
 
-        self.capture_modules()
-        self.capture_logging()
+        self.capture_sys()
+        #self.capture_modules()
+        #self.capture_logging()
         self.capturing = True
 
     def stop(self):

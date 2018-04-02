@@ -3,8 +3,11 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import subprocess
 
 
-# NOTE -- 9-20-2017 -- I'm still testing these with some projects trying to get
+# 9-20-2017 -- I'm still testing these with some projects trying to get
 # the api right and so they aren't fully integrated yet
+# 3-29-2018 - I've further integrated this with the testdata.start_service() and
+# testdata.stop_service() methods
+
 
 class Service(object):
     """base class for services"""
@@ -24,6 +27,9 @@ class Service(object):
         raise NotImplementedError()
 
     def is_running(self):
+        raise NotImplementedError()
+
+    def exists(self):
         raise NotImplementedError()
 
     def start(self):
@@ -88,6 +94,9 @@ class Upstart(Service):
         ret = self.run(cmd, kwargs)
         return "start/running" in ret
 
+    def exists(self):
+        return os.path.isfile("/etc/init/{}".format(self.name))
+
 
 class InitD(Service):
     """Handle starting init.d services"""
@@ -104,4 +113,7 @@ class InitD(Service):
         cmd, kwargs = self.format_cmd("status")
         ret = self.run(cmd, kwargs)
         return ret is None
+
+    def exists(self):
+        return os.path.isfile("/etc/init.d/{}".format(self.name))
 

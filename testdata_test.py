@@ -8,7 +8,6 @@ to run on the command line:
 python -m unittest test_testdata[.ClassTest[.test_method]]
 """
 from __future__ import unicode_literals, division, print_function, absolute_import
-import unittest
 import re
 import string
 import os
@@ -20,6 +19,7 @@ import time
 import sys
 
 import testdata
+from testdata.test import TestCase, SkipTest
 from testdata.path import Filepath, Dirpath
 from testdata.compat import *
 from testdata.threading import Thread
@@ -31,7 +31,7 @@ from testdata.server import AnyServer, CookieServer, CallbackServer
 testdata.basic_logging()
 
 
-class ServerTest(unittest.TestCase):
+class ServerTest(TestCase):
     def test_callback(self):
         def do_GET(handler):
             return None
@@ -124,7 +124,7 @@ class ServerTest(unittest.TestCase):
             self.assertEqual("che", res.content.decode())
 
 
-class PathTest(unittest.TestCase):
+class PathTest(TestCase):
     def test_file(self):
         f = testdata.create_file("foo.txt", "this is the text")
         self.assertEqual("foo", f.fileroot)
@@ -219,7 +219,7 @@ class PathTest(unittest.TestCase):
         self.assertEqual(5, len(klasses))
 
 
-class TestdataTest(unittest.TestCase):
+class TestdataTest(TestCase):
     def test_wait(self):
         start = time.time()
         def callback():
@@ -283,7 +283,7 @@ class TestdataTest(unittest.TestCase):
             self.assertTrue(testdata.yes(75.0) in set([0, 1]))
 
     def test_create_file_structure(self):
-        raise unittest.SkipTest("no longer supported")
+        raise SkipTest("no longer supported")
         ts = [
             (
                 """
@@ -903,7 +903,7 @@ class TestdataTest(unittest.TestCase):
         self.assertEqual(id(fm), fm.bam())
 
 
-class Thread2Test(unittest.TestCase):
+class Thread2Test(TestCase):
     @classmethod
     def setUpClass(cls):
         def run():
@@ -924,7 +924,7 @@ class Thread2Test(unittest.TestCase):
             t1.join()
 
 
-class ThreadTest(unittest.TestCase):
+class ThreadTest(TestCase):
     def tearDown(self):
         # clear the queue to make sure one test doesn't inherit the error of another test
         q = threading.exc_queue
@@ -1018,7 +1018,7 @@ class ThreadTest(unittest.TestCase):
             t2.join()
 
 
-class CaptureTest(unittest.TestCase):
+class CaptureTest(TestCase):
     def test_stream_methods(self):
         with testdata.capture() as c:
             print("foo\nbar\nbaz")
@@ -1062,8 +1062,40 @@ class CaptureTest(unittest.TestCase):
             print("foo")
         self.assertTrue("foo" in c)
 
+    def test_imports(self):
+        path = testdata.create_modules({
+            "one": [
+                "from sys import stdout",
+                "from sys import stderr",
+                "",
+                "stdout.write('one:stdout\\n')",
+                "stderr.write('one:stderr\\n')",
+            ],
+            "three": [
+                "from sys import stdout as o",
+                "from sys import stderr as e",
+                "",
+                "o.write('three:stdout as o\\n')",
+                "e.write('three:stderr as e\\n')",
+            ],
+            "two": [
+                "import testdata",
+                "",
+                "captured = None",
+                "with testdata.capture(passthrough=False) as c:",
+                "    import one",
+                "    import three",
+                "    captured = c",
+            ]
+        })
 
-class ClientTest(unittest.TestCase):
+        m = path.module("two")
+        captured = str(m.captured)
+        for s in ["one:stdout", "one:stderr", "as o", "as e"]:
+            self.assertTrue(s in captured)
+
+
+class ClientTest(TestCase):
     def test_unicode_output(self):
         mod1 = testdata.create_module("foo.bar.__main__", [
             "import testdata",
@@ -1134,4 +1166,14 @@ class TCTest(testdata.TestCase):
 
     def test_skip_3(self):
         self.skip_test()
+
+
+class ServiceTest(testdata.TestCase):
+    def test_start_service(self):
+        # TODO -- figure out how to test this method
+        raise self.skip_test()
+
+    def test_stop_service(self):
+        # TODO -- figure out how to test this method
+        raise self.skip_test()
 
