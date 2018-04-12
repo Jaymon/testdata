@@ -681,9 +681,19 @@ def get_ascii_words(word_count=0, as_str=True):
     return get_words(word_count, as_str, words=_ascii_words)
 
 
+def get_ascii_word():
+    return get_words(1, as_str=True, words=_ascii_words)
+
+
 def get_unicode_words(word_count=0, as_str=True):
     return get_words(word_count, as_str, words=_unicode_words)
 get_uni_words = get_unicode_words
+
+
+def get_unicode_word():
+    return get_words(1, as_str=True, words=_unicode_words)
+get_uni_word = get_unicode_word
+
 
 
 def get_words(word_count=0, as_str=True, words=None):
@@ -706,6 +716,10 @@ def get_words(word_count=0, as_str=True, words=None):
 
     ret_words = random.sample(words, word_count)
     return ret_words if not as_str else ' '.join(ret_words)
+
+
+def get_word(words=None):
+    return get_words(1, as_str=True, words=words)
 
 
 def get_unique_email(name=''):
