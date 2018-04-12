@@ -109,6 +109,7 @@ class Command(object):
         kwargs["cwd"] = self.cwd
         kwargs["env"] = environ
 
+        process = None
         try:
             process = subprocess.Popen(
                 cmd,
@@ -145,6 +146,10 @@ class Command(object):
                     e.returncode,
                     expected_ret_code
                 ))
+
+        finally:
+            if process:
+                process.stdout.close()
 
 
 class ModuleCommand(Command):
