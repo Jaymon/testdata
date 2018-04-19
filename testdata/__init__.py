@@ -47,7 +47,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.6.27'
+__version__ = '0.6.28'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -397,16 +397,24 @@ def create_module(module_name, contents="", tmpdir="", make_importable=True):
     return Modulepath.create_instance(module_name, contents, tmpdir, make_importable)
 
 
-def create_modules(module_dict, tmpdir="", make_importable=True):
+def create_modules(module_dict, tmpdir="", make_importable=True, prefix=""):
     """
     create a whole bunch of modules all at once
 
-    module_dict -- dict -- keys are the module_name, values are the module contents
-    tmpdir -- string -- same as create_module() tmpdir
-    make_importable -- boolean -- same as create_module() tmpdir
-    return -- Dirpath
+    :param module_dict: dict, keys are the module_name, values are the module contents
+    :param tmpdir: string, same as create_module() tmpdir
+    :param make_importable: boolean, same as create_module() tmpdir
+    :param prefix: string, if you want all the modules in module_dict to have a prefix, you
+        can pass this in, so if you did prefix is "foo.bar" then all the keys in module_dict
+        will be prepended with "foo.bar"
+    :returns: Dirpath
     """
     module_base_dir = Dirpath(basedir=tmpdir)
+
+    if prefix:
+        ks = module_dict.keys()
+        for k in ks:
+            module_dict["{}.{}".format(prefix, k)] = module_dict.pop(k)
 
     for module_name, contents in module_dict.items():
         Modulepath.create_instance(module_name, contents, module_base_dir, make_importable)

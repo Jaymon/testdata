@@ -191,7 +191,7 @@ class PathTest(TestCase):
         self.assertEqual(m.module.__file__, m.path)
         self.assertEqual("bar/foo_test.py", m.relpath)
 
-    def test_modules(self):
+    def test_modules_1(self):
         mpath = testdata.create_modules({
             "test_modules.foo": [
                 "class Foo(object): pass",
@@ -217,6 +217,30 @@ class PathTest(TestCase):
 
         klasses = list(mp.classes)
         self.assertEqual(5, len(klasses))
+
+    def test_modules_prefix(self):
+        mpath = testdata.create_modules({
+            "foo": [
+                "class Foo(object): pass",
+                "class Bar(object): pass",
+                "",
+            ],
+            "bar": [
+                "class Che(object): pass",
+                "class Bar(object): pass",
+                "",
+            ],
+            "che": [
+                "class Baz(object): pass",
+                "",
+            ],
+        }, prefix="modpref")
+
+        mp = mpath.modpath("modpref")
+        mps = list(mp.modpaths())
+        self.assertTrue(3, len(mps))
+        for modpath in ["modpref.foo", "modpref.bar", "modpref.che"]:
+            self.assertTrue(modpath in mps)
 
 
 class TestdataTest(TestCase):
