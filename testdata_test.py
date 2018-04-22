@@ -1096,6 +1096,15 @@ class CaptureTest(TestCase):
                 "stdout.write('one:stdout\\n')",
                 "stderr.write('one:stderr\\n')",
             ],
+            "two": [
+                "import sys",
+                "from sys import stderr",
+                "",
+                "so = sys.stdout",
+                "se = stderr",
+                "so.write('two:stdout set so\\n')",
+                "se.write('two:stderr set se\\n')",
+            ],
             "three": [
                 "from sys import stdout as o",
                 "from sys import stderr as e",
@@ -1103,20 +1112,22 @@ class CaptureTest(TestCase):
                 "o.write('three:stdout as o\\n')",
                 "e.write('three:stderr as e\\n')",
             ],
-            "two": [
+            "four": [
                 "import testdata",
                 "",
                 "captured = None",
                 "with testdata.capture(passthrough=False) as c:",
                 "    import one",
+                "    import two",
                 "    import three",
                 "    captured = c",
             ]
         })
 
-        m = path.module("two")
+        m = path.module("four")
         captured = str(m.captured)
-        for s in ["one:stdout", "one:stderr", "as o", "as e"]:
+        pout.v(captured)
+        for s in ["one:stdout", "one:stderr", "as o", "as e", "set so", "set se"]:
             self.assertTrue(s in captured)
 
     def test_logging(self):
