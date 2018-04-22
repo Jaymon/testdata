@@ -201,7 +201,7 @@ class Capture(Base):
 
         self.capture_sys()
         #self.capture_modules()
-        #self.capture_logging()
+        self.capture_logging()
         self.capturing = True
 
     def stop(self):

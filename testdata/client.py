@@ -43,6 +43,9 @@ class Command(object):
         else:
             environ["PYTHONPATH"] = pythonpath
 
+        if os.getcwd() not in environ["PYTHONPATH"]:
+            environ["PYTHONPATH"] += os.pathsep + os.getcwd()
+
         self._environ = environ
         return environ
 

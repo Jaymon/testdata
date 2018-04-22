@@ -17,6 +17,7 @@ import types
 from collections import OrderedDict, Counter
 import time
 import sys
+import logging
 
 import testdata
 from testdata.test import TestCase, SkipTest
@@ -1117,6 +1118,23 @@ class CaptureTest(TestCase):
         captured = str(m.captured)
         for s in ["one:stdout", "one:stderr", "as o", "as e"]:
             self.assertTrue(s in captured)
+
+    def test_logging(self):
+        logger = logging.getLogger("output_test_logging")
+        logger.setLevel(logging.DEBUG)
+        log_handler = logging.StreamHandler(stream=sys.stderr)
+        log_formatter = logging.Formatter('%(message)s')
+        log_handler.setFormatter(log_formatter)
+        logger.addHandler(log_handler)
+        logger.propagate = False
+
+        with testdata.capture() as c:
+            logger.debug("foo bar che 1")
+        self.assertTrue("foo bar che 1" in c)
+
+        with testdata.capture(passthrough=False) as c:
+            logger.debug("foo bar che 2")
+        self.assertTrue("foo bar che 2" in c)
 
 
 class ClientTest(TestCase):

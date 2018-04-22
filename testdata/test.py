@@ -51,6 +51,11 @@ class TestCase(BaseTestCase):
         """
         raise SkipTest(*args, **kwargs)
 
+    def assertUntilTrue(callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1): 
+        # TODO -- move all the __init__ functions into a func package, so they
+        # can be imported into this and this can just call wait
+        pass
+
     @contextmanager
     def assertWithin(self, seconds):
         try:
