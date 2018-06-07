@@ -38,7 +38,7 @@ from .data import _names, \
     _unicode_words, \
     _words
 
-from .path import Dirpath, Filepath, Modulepath
+from .path import Dirpath, Filepath, Modulepath, Contents
 from .threading import Thread
 from .output import Capture
 from .server import PathServer, CookieServer, CallbackServer
@@ -47,7 +47,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.6.29'
+__version__ = '0.6.30'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -327,6 +327,19 @@ def create_cookieserver(cookies, hostname="", port=0):
     return CookieServer(cookies, hostname=hostname, port=port)
 
 
+def get_contents(fileroot, basedir=""):
+    """Returns the contents of a file matching basedir/fileroot.*
+
+    :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
+        in which case basedir/fileroot.* will be searched for and first file matched
+        will be used
+    :param basedir: string, the directory to search for fileroot.*, if not passed
+        in then os.getcwd()/*/testdata will be searched for
+    :returns: string, the contents of the found file
+    """
+    return Contents(fileroot, basedir=basedir)
+
+
 def create_dir(path="", tmpdir=""):
     '''
     create a directory path using a tempdir as the root
@@ -340,6 +353,7 @@ def create_dir(path="", tmpdir=""):
     return -- Dirpath -- the full directory path
     '''
     return Dirpath.create_instance(path, tmpdir)
+create_directory = create_dir
 
 
 def create_file(path, contents="", tmpdir="", encoding=""):

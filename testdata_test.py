@@ -21,7 +21,7 @@ import logging
 
 import testdata
 from testdata.test import TestCase, SkipTest
-from testdata.path import Filepath, Dirpath
+from testdata.path import Filepath, Dirpath, Contents
 from testdata.compat import *
 from testdata.threading import Thread
 from testdata import threading
@@ -126,6 +126,49 @@ class ServerTest(TestCase):
 
 
 class PathTest(TestCase):
+    def test_dirpath_clear(self):
+        d = testdata.create_dir()
+        foo_f = d.create_file("foo.txt", "foo")
+        bar_f = d.create_file("bar/bar.txt", "bar")
+        che_d = d.create_dir("che")
+
+        self.assertTrue(foo_f.exists())
+        self.assertTrue(bar_f.exists())
+        self.assertTrue(che_d.exists())
+
+        d.clear()
+        self.assertFalse(foo_f.exists())
+        self.assertFalse(bar_f.exists())
+        self.assertFalse(che_d.exists())
+        self.assertEqual(0, len(list(d.files())))
+
+    def test_contents(self):
+
+        base_d = testdata.create_dir()
+        os.chdir(base_d)
+
+        # check scanning failure
+        with self.assertRaises(IOError):
+            c = Contents("foo")
+
+        # check scanning success
+        foo_f = base_d.create_file("testdata/foo.txt", "bar")
+        c = Contents("foo")
+        self.assertEqual(foo_f.contents(), c)
+
+        # check passed in directory
+        c = Contents("foo", base_d.child("testdata"))
+        self.assertEqual(foo_f.contents(), c)
+
+        # check direct match
+        c = Contents("foo.txt")
+        self.assertEqual(foo_f.contents(), c)
+
+        # check wrapper
+        c = testdata.get_contents("foo")
+        self.assertEqual(foo_f.contents(), c)
+
+
     def test_file(self):
         f = testdata.create_file("foo.txt", "this is the text")
         self.assertEqual("foo", f.fileroot)
@@ -1126,7 +1169,6 @@ class CaptureTest(TestCase):
 
         m = path.module("four")
         captured = str(m.captured)
-        pout.v(captured)
         for s in ["one:stdout", "one:stderr", "as o", "as e", "set so", "set se"]:
             self.assertTrue(s in captured)
 

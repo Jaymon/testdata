@@ -11,10 +11,54 @@ import pkgutil
 import importlib
 import stat
 import inspect
+import glob
 
 from .compat import *
 from . import environ
 from .client import ModuleCommand, FileCommand
+
+
+class Contents(str):
+    """Find the first file matching basedir/fileroot.* and read its contents"""
+    def __new__(cls, fileroot, basedir=""):
+        d = cls._find_directory(basedir)
+        path = os.path.join(d, fileroot)
+        if not os.path.isfile(path):
+            g = os.path.join(d, "{}.*".format(fileroot))
+            paths = glob.glob(g)
+            if not paths:
+                raise IOError("Could not find a file matching {}".format(g))
+            path = paths[0]
+
+        with codecs.open(path, encoding='UTF-8', mode='r') as f:
+            contents = f.read()
+
+        instance = super(Contents, cls).__new__(cls, contents)
+        instance.path = Filepath(os.path.basename(path), basedir=os.path.dirname(path))
+        instance.directory = Dirpath("", basedir=d)
+        return instance
+
+    @classmethod
+    def _find_directory(cls, basedir):
+        d = ""
+        if basedir:
+            d = basedir
+
+        if not d:
+            d = environ.CONTENTS_DIR
+
+        if not d:
+            # scan the current working directory looking for a testdata
+            # directory
+            basename = __name__.split(".")[0]
+            for root_dir, dirs, files in os.walk(os.getcwd(), topdown=True):
+                if basename in dirs:
+                    d = os.path.join(root_dir, basename)
+                    break
+
+        if not d:
+            raise IOError("Could not find a testdata directory")
+        return d
 
 
 class Dirpath(str):
@@ -104,9 +148,23 @@ class Dirpath(str):
         """create the file with path relative to this directory with contents"""
         return Filepath.create_instance(relpath, contents, self)
 
+    def create_dir(self, relpath):
+        """create a child directory relative to this directory"""
+        return self.child(relpath).create()
+
     def delete(self):
         """Remove this whole directory and all subdirectories and files in it"""
         shutil.rmtree(self.path)
+
+    def clear(self):
+        for root_dir, dirs, files in os.walk(self.path, topdown=True):
+            for basename in files:
+                filepath = os.path.join(root_dir, basename)
+                os.unlink(filepath)
+
+            for basename in dirs:
+                dirpath = os.path.join(root_dir, basename)
+                shutil.rmtree(dirpath)
 
     @classmethod
     def normalize(cls, relpath, basedir=""):

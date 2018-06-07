@@ -12,6 +12,10 @@ PASSTHROUGH = bool(os.environ.get("TESTDATA_PASSTHROUGH", True))
 # it will use system temp directory
 TEMPDIR = os.environ.get("TESTDATA_TEMPDIR", tempfile.gettempdir())
 
+# if you have a directory where you put a lot of testdata files, you can set the
+# directory and then use path.Contents to easily load those files
+CONTENTS_DIR = os.environ.get("TESTDATA_CONTENTS_DIR", "")
+
 # The server hostname and port information
 HOSTNAME = os.environ.get("TESTDATA_HOSTNAME", "127.0.0.1")
 #HOSTPORT = int(os.environ.get("TESTDATA_HOSTPORT", 8765))
