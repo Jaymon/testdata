@@ -18,6 +18,7 @@ from . import environ
 from .client import ModuleCommand, FileCommand
 
 
+# TODO -- this should probably return unicode instead of bytes?
 class Contents(str):
     """Find the first file matching basedir/fileroot.* and read its contents"""
     def __new__(cls, fileroot, basedir=""):

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import unicode_literals, division, print_function, absolute_import
 import sys
 import re
 
-# all the names to choose from in get_name() (english and russian)
-_names = re.split(r"\s+", """
+
+_first_names_female = list(set(re.split(r"\s+", """
 mary patricia linda barbara elizabeth jennifer maria susan margaret dorothy lisa nancy karen betty helen
 sandra donna carol ruth sharon michelle laura sarah kimberly deborah jessica shirley cynthia angela
 melissa brenda amy anna rebecca virginia kathleen pamela martha debra amanda stephanie carolyn
@@ -74,6 +74,93 @@ angelique francesca britney kaitlin lolita florine rowena reyna twila fanny jane
 alba brigitte alyson vonda pansy elba noelle letitia kitty deann brandie louella leta felecia sharlene
 lesa beverley robert isabella herminia terra celina
 
+Abbie-Leigh Abbie-Louise Abbie-May Aimee-Grace Aimee-Jo Aimee-Lea Aimee-Lee Aimee-Leigh
+Aimee-Louise Aimee-Rose Alesha-Mae Alexa-Rose Alice-Mae Alice-May Alicia-Mae Alicia-May Alisha-May
+Alisha-Rose Alissa-Mae Alyssa-Mae Amber-Leigh Amber-Louise Amber-Mae Amber-Rose Amelia-Grace Amelia-Jane
+Amelia-Jayne Amelia-Mae Amelia-Mai Amelia-Rose Amelie-Grace Amelie-Rose Amie-Leigh Amy-Grace Amy-Jane
+Amy-Jayne Amy-Jo Amy-Lea Amy-Lee Amy-Leigh Amy-Lou Amy-Louise Amy-May Amy-Rose Ana-Maria Angel-Louise Angel-Mae
+Angel-Mai Angel-Marie Angel-Rose Anna-Leigh Anna-Louise Anna-Mae Anna-Maria Anna-Marie Anna-May
+Anna-Rose Anna-Sophia Anne-Marie Annie-Mae Annie-Mai Annie-May Annie-Rose Ann-Marie Anya-Rose April-Rose
+Autumn-Rose Ava-Grace Ava-Jane Ava-Jo Ava-Leigh Ava-Lily Ava-Louise Ava-Mae Ava-Mai Ava-Marie Ava-May
+Ava-Nicole Ava-Rose Ava-Sophia Bailey-Mae Bailey-Rae Bella-Rose Bethany-Ann Bethany-Rose Billie-Jean Billie-Jo
+Billie-Mae Billie-Rose Bobbie-Jo Bobbie-Leigh Bobbi-Jo Bonnie-May Brodie-Leigh Brooke-Elise Brooke-Leigh
+Brooke-Louise Cara-Louise Carol-Ann Carrie-Ann Carrie-Anne Casey-Jayne Casey-Leigh Casey-Mae Casey-Marie
+Casey-May Charlie-Mae Charlie-May Charlotte-Rose Chloe-Ann Chloe-Anne Chloe-Jade Chloe-Leigh Chloe-Louise Chloe-Mae
+Chloe-Mai Chloe-Marie Chloe-May Chloe-Rose Chloe-Sophia Codie-Leigh Connie-Mae Connie-Rose Courtney-Jade
+Courtney-Leigh Courtney-Rose Daisy-Ann Daisy-Boo Daisy-Leigh Daisy-Lou Daisy-Mae Daisy-Mai Daisy-May
+Daisy-Rose Darcey-Leigh Darcey-May Darcie-Mae Darcie-Rose Darci-Leigh Darci-Rose Darcy-Mae Darcy-May
+Demi-Elise Demi-Jo Demi-Lea Demi-Lee Demi-Leigh Demi-Lou Demi-Louise Demi-Mai Demi-Marie Demi-May Demi-Rae
+Demi-Rose Destiny-Mai Dollie-Mai Ebony-Grace Ebony-Mae Ebony-Mai Ebony-Rose Eden-Rose Edie-Mae Eliza-Rose
+Ella-Grace Ella-Jade Ella-Jai Ella-Jane Ella-Jayne Ella-Louise Ella-Mae Ella-Mai Ella-Marie Ella-May Ella-Rae
+Ella-Rose Elle-Louise Elle-Mae Elle-Mai Elle-May Ellie-Ann Ellie-Anne Ellie-Grace Ellie-Jane Ellie-Jay Ellie-Jayne
+Ellie-Jo Ellie-Leigh Ellie-Louise Ellie-Mae Ellie-Mai Ellie-Marie Ellie-May Ellie-Rae Ellie-Rose Elli-Mae
+Elli-Mai Elsie-Mae Elsie-May Elsie-Rose Emily-Ann Emily-Anne Emily-Grace Emily-Jane Emily-Jayne Emily-Louise
+Emily-Mae Emily-Mai Emily-May Emily-Rose Emma-Jane Emma-Jayne Emma-Leigh Emma-Louise Emmie-Lou Erin-Mae
+Eva-Mae Eva-Maria Eva-Marie Eva-May Eva-Rose Evelyn-Rose Evie-Anne Evie-Grace Evie-Jane Evie-Jayne Evie-Jean
+Evie-Jo Evie-Leigh Evie-Louise Evie-Mae Evie-Mai Evie-Marie Evie-May Evie-Rose Faatimah-Zahra Faith-Marie Felicity-Rose
+Frankie-Lee Frankie-Leigh Freya-Grace Freya-Leigh Freya-Louise Freya-Mae Freya-Mai Freya-May Georgia-Leigh
+Georgia-Mae Georgia-Mai Georgia-May Georgia-Rose Georgie-May Grace-Lily Gracie-Ann Gracie-Jane Gracie-Jayne
+Gracie-Lea Gracie-Lee Gracie-Leigh Gracie-Lou Gracie-Mae Gracie-Mai Gracie-May Gracie-Rose Hailie-Jade Halle-Mae
+Halle-Mai Hallie-Mae Hannah-Louise Hannah-Mae Hannah-May Hollie-Ann Hollie-Grace Hollie-Louise Hollie-Mae
+Hollie-Mai Hollie-May Hollie-Rose Holly-Ann Holly-Louise Holly-Mae Holly-Mai Holly-Marie Holly-May Holly-Rose
+Honey-Mae India-Rose Indie-Rose Isabella-Grace Isabella-Mae Isabella-Rose Isabelle-Rose Isla-Mae
+Isla-May Isla-Rose Isobel-Rose Izzy-Mai Jaimee-Lee Jaimee-Leigh Jaime-Leigh Jamie-Lea Jamie-Lee Jamie-Leigh
+Jamie-Louise Jasmine-Rose Jaycee-Leigh Jayme-Leigh Jaymie-Leigh Jessica-Jane Jessica-Leigh Jessica-Lily
+Jessica-Louise Jessica-Mae Jessica-Mai Jessica-May Jessica-Paige Jessica-Rose Jessica-Taylor Jessie-Mai
+Jodie-Leigh Josie-May Julie-Ann Kacey-Lee Kacey-Leigh Kacey-Louise Kacey-May Kacie-Ann Kacie-Leigh Kacie-Mae
+Kacie-May Kaci-Leigh Kaci-Louise Kaci-Mae Kaci-May Kadie-Leigh Kady-Leigh Kara-Louise Kasey-Leigh Kate-Lynn
+Katie-Ann Katie-Jane Katie-Jayne Katie-Jo Katie-Lee Katie-Leigh Katie-Louise Katie-Mae Katie-Mai Katie-Marie
+Katie-May Katie-Rose Katy-Leigh Kaycee-Leigh Kaycie-Leigh Kaydee-Leigh Kaydie-Leigh Kayla-Mae Kayla-Mai
+Kayla-May Kayla-Rose Kay-Leigh Kayleigh-Ann Kayleigh-May Keira-Lee Keira-Leigh Keira-Louise Keira-Marie Kelly-Anne
+Kelsie-Ann Kerry-Ann Kerry-Anne Kiara-Leigh Kiera-Leigh Kiera-Louise Kira-Leigh Kitty-Rose Kyla-Mae Kyla-May
+Kyra-Lea Kyra-Leigh Kyra-Louise Lacey-Ann Lacey-Anne Lacey-Jade Lacey-Jane Lacey-Jay Lacey-Jo Lacey-Leigh
+Lacey-Louise Lacey-Mae Lacey-Mai Lacey-Marie Lacey-May Lacey-Rose Lacie-Leigh Lacie-Mae Lacie-Mai Lacie-May
+Laci-Mai Laila-Mai Laila-Marie Laila-Rose Layla-Faye Layla-Grace Layla-Louise Layla-Mae Layla-Mai Layla-May
+Layla-Rae Layla-Rose Leah-Louise Leah-Mae Leah-Marie Leah-May Leah-Rose Lexi-Ann Lexi-Anne Lexie-Grace Lexie-Jay
+Lexie-Jayne Lexie-Jo Lexie-Leigh Lexie-Lou Lexie-Mae Lexie-Mai Lexie-May Lexie-Rae Lexie-Rose Lexi-Grace Lexi-Jane
+Lexi-Jayne Lexi-Jo Lexi-Lea Lexi-Leigh Lexi-Lou Lexi-Louise Lexi-Mae Lexi-Mai Lexi-Marie Lexi-May Lexi-Rose Libby-Jane
+Libby-Louise Libby-Mae Libby-Mai Libby-May Libby-Rose Liberty-Grace Lila-Grace Lilah-Grace Lila-Rose Lili-Mae
+Lili-Mai Lili-May Lillie-Ann Lillie-Anne Lillie-Mae Lillie-Mai Lillie-Marie Lillie-May Lillie-Rae Lillie-Rose Lilli-Mae
+Lilli-Mai Lilli-Rose Lilly-Ann Lilly-Anna Lilly-Anne Lilly-Belle Lilly-Ella Lilly-Grace Lilly-Jade Lilly-Jane
+Lilly-Jayne Lilly-Jean Lilly-Jo Lilly-Louise Lilly-Mae Lilly-Mai Lilly-Marie Lilly-May Lilly-Rae Lilly-Rose Lilly-Sue
+Lily-Ann Lily-Anna Lily-Anne Lily-Belle Lily-Beth Lily-Ella Lily-Faye Lily-Grace Lily-Jade Lily-Jane Lily-Jay
+Lily-Jayne Lily-Jo Lily-Louise Lily-Mae Lily-Mai Lily-Marie Lily-May Lily-Rae Lily-Rose Lily-Sue Lisa-Marie Lola-Grace
+Lola-Jo Lola-Louise Lola-Mae Lola-Mai Lola-May Lola-Rose Lucie-Jo Lucie-Mae Lucy-Ann Lucy-Anne Lucy-Jane Lucy-Jo
+Lucy-Louise Lucy-Mae Lucy-May Lucy-Rose Lydia-Mae Lyla-Grace Lyla-Rose Macey-Leigh Macie-Lea Macie-Leigh Macie-Rose Macy-Jo
+Maddie-Rose Maddison-Grace Maddison-Rose Madison-Grace Madison-Leigh Maisie-Ann Maisie-Grace Maisie-Jane Maisie-Jayne
+Maisie-Jo Maisie-Lee Maisie-Leigh Maisie-Lou Maisie-Mae Maisie-May Maisie-Rose Maisy-Jane Maisy-May Mary-Ann
+Mary-Anne Mary-Ellen Mary-Jane Mary-Jayne Mary-Kate Mary-Rose Matilda-Rose Mckenzie-Leigh Megan-Grace Megan-Leigh
+Megan-Rose Melody-Rose Mia-Ann Mia-Grace Mia-Jade Mia-Jayne Mia-Jo Mia-Leigh Mia-Lily Mia-Louise Mia-Nicole Mia-Rose
+Miley-Grace Miley-Jo Miley-Mae Miley-Mai Miley-Rae Miley-Rose Milli-Ann Millie-Ann Millie-Anne Millie-Grace Millie-Jayne
+Millie-Jo Millie-Mae Millie-Mai Millie-May Millie-Rose Milly-May Milly-Rose Mollie-Ann Mollie-Louise Mollie-Mae
+Mollie-May Mollie-Rose Molly-Ann Molly-Anne Molly-Jo Molly-Mae Molly-Mai Molly-May Molly-Rose Morgan-Leigh
+Mya-Louise Mya-Rose Nancy-May Nevaeh-Rose Noor-Fatima Olivia-Grace Olivia-Jane Olivia-Leigh Olivia-Mae
+Olivia-Mai Olivia-may Olivia-Paige Olivia-Rose Paige-Marie Phoebe-Lee Phoebe-Louise Phoebe-Rose Poppy-Ann
+Poppy-Anne Poppy-Grace Poppy-Jo Poppy-Mae Poppy-Mai Poppy-May Poppy-Rose Ronnie-May Rose-Marie Rosie-Ann
+Rosie-Leigh Rosie-Mae Rosie-Mai Rosie-May Rubie-Leigh Rubie-Mae Rubie-Mai Ruby-Ann Ruby-Anne Ruby-Blu Ruby-Grace
+Ruby-Jane Ruby-Jean Ruby-Jo Ruby-Lea Ruby-Lee Ruby-Leigh Ruby-Lou Ruby-Louise Ruby-Mae Ruby-Mai Ruby-Marie
+Ruby-May Ruby-Rae Ruby-Rose Sadie-Rose Sammi-Jo Sammy-Jo Sarah-Jane Sarah-Jayne Sarah-Louise Scarlet-Rose
+Scarlett-Louise Scarlett-Mae Scarlett-Marie Scarlett-Rose Seren-Louise Shannon-Louise Shayla-Louise Shayla-Rae
+Sienna-Grace Sienna-Lee Sienna-Leigh Sienna-Mae Sienna-Marie Sienna-May Sienna-Rose Skye-Louise Skye-Marie Skyla-Mae
+Skyla-Mai Sky-Louise Sophia-Rose Sophie-Ann Sophie-Anne Sophie-Ella Sophie-Grace Sophie-Jane Sophie-Leigh
+Sophie-Louise Sophie-Mae Sophie-Mai Sophie-Marie Sophie-May Sophie-Rose Stevie-Leigh Summer-Jade Summer-Jayne Summer-Lea
+Summer-Leigh Summer-Lily Summer-Louise Summer-Mae Summer-Marie Summer-May Summer-Rose Sydney-Rose Tallulah-Mae
+Taylor-Ann Taylor-Grace Taylor-Jane Taylor-Jay Taylor-Leigh Taylor-Louise Taylor-Mae Taylor-May Taylor-Rose
+Tegan-Louise Tia-Leigh Tia-Louise Tia-Mae Tia-Mai Tia-Marie Tia-May Tia-Rae Tia-Rose Tiana-Leigh Tiana-Marie
+Tianna-Marie Tiffany-Marie Tiger-Lilly Tiger-Lily Tillie-Mae Tillie-Mai Tilly-Mae Tilly-Mai Tilly-Marie Tilly-May
+Tilly-Rose Toni-Ann Toni-Leigh Toni-Marie Tori-Lee Tori-Leigh Umme-Haani Violet-Rose Willow-Rose 
+
+Toa'ale Hau'oli O'Brie God'iss Domi'nique La'tanya Rah'Nee A'merika Shau'Nay Mich'ele
+N'cole A'Brianna Ma'Kayla Sha'tyana Zy'shonne November'Lashae Ja'Kingston and Ke'Shawn D'nasia
+An'Gelina O'Livia Dan'Yelle Ky'Lee Rach'El Cie'Rrea Sh'nia Day'quandray Don'ta'ja Fiaavd'e I'Lanny Day'twain La'tko
+L'Cole Sei'Jearr Ta'Quwereus 
+A'jA Anah'reya A'Majena Be'aJa Cier'rrea D'aSiyahna D'Kota E'ryn I'Zeyonna Ja'genevia JaKeil'a Ta-Shay
+Ja'mya Jane't Kei'Lee Ken'yel K'le Mi'Angel N'finique Sanai' Sh'nia Syn'Cere Syri'yah Ti-Leigh'yah
+Zae'kee Zy'Erica Zy'rreah 
+""".strip())))
+
+
+_first_names_male = list(set(re.split(r"\s+", """
 aaron abdul abe abel abraham abram adalberto adam adan adolfo adolph adrian agustin ahmad ahmed al alan
 albert alberto alden aldo alec alejandro alex alexander alexis alfonso alfonzo alfred alfredo ali allan
 allen alonso alonzo alphonse alphonso alton alva alvaro alvin amado ambrose amos anderson andre andrea
@@ -155,6 +242,33 @@ wilbur wilburn wiley wilford wilfred wilfredo will willard william williams will
 wilmer wilson wilton winford winfred winston wm woodrow wyatt xavier yong young zachariah zachary zachery
 zack zackary zane
 
+Aaron-James Abdul-Aziz Abdul-Hadi Abdul-Malik Abdul-Raheem Abdul-Rahim Abdul-Rahman Abdul-Rehman Abdul-Sami
+Abdur-Raheem Abdur-Rahim Abdus-Samad Abu-Bakar Abu-Bakr Abu-Sufyan Aiden-James Aiden-Lee A-Jay Al-Amin
+Alexander-James Alfie-Jack Alfie-Jai Alfie-James Alfie-Jay Alfie-Joe Alfie-John Alfie-Lee Alfie-Ray Andrew-James
+Archie-Jay Archie-Lee Ashton-Lee Aston-Lee Bailey-James Bailey-Rae Billy-Jay Billy-Joe Billy-Lee Billy-Ray
+Bobby-Jack Bobby-James Bobby-Jay Bobby-Joe Bobby-Lee Braiden-Lee Brandon-Lee Brogan-Lee Callum-James Cameron-James
+Cameron-Jay Charlie-Dean Charlie-George Charlie-James Charlie-Jay Charlie-Joe Charlie-Ray C-Jay Cody-James
+Cody-Jay Cody-Lee Conner-Lee Connor-James Connor-Jay Connor-Lee Corey-James Corey-Lee Daniel-James Daniel-Junior
+Danny-Lee David-James Dylan-James Ethan-James Ethan-Lee Finley-James Frankie-Lee Freddie-Jay Freddie-Lee Harley-James
+Harley-Jay Harley-Joe Harley-John Harley-Ray Harrison-Lee Harry-George Harry-James Harry-Lee Harvey-James Harvey-Jay
+Harvey-Lee Harvey-Leigh Hayden-Lee Henry-James Jacob-James Jacob-Lee Jaiden-Lee James-Dean Jamie-Lee Jason-James
+Jay-D Jaydan-Lee Jayden-James Jayden-Jay Jayden-John Jayden-Lee Jayden-Leigh Jay-Jay Jay-Junior Jay-Lee Jean-Paul
+Jean-Pierre Jesse-James J-Jay Joe-Lewis Johnny-Lee John-Joseph John-Paul Jon-Paul Jordan-Lee Joseph-James Joshua-James
+Joshua-Jay Junior-Jay Justin-Lee Kaiden-Lee Kal-El Kayden-Lee Keegan-Lee Kenzie-James Kenzie-Jay Kenzie-Lee
+Kieran-Lee K-Jay Layton-James Layton-Lee Lee-Jay Leighton-James Leo-James Leon-Junior Levi-James Levi-Jay
+Lewis-James Lewis-Lee Liam-James L-Jay Logan-James Logan-Jay Logan-Lee Louie-Jay Lucas-Jack Lucas-James
+Lucas-Jay Mackenzie-Lee Marley-Lee Marley-Rae Mason-James Mason-Jay Mason-Lee Mckenzie-Jay Mckenzie-Lee
+Michael-John Michael-Lee Mohamed-Amin Mohammed-Ibrahim Mohammed-Mustafa Muhammah-Ali Muhammad-Ibrahim Muhammad-Yusef
+Nathan-Lee Oliver-James Owen-James Peter-Junior Ricky-Junior Riley-James Riley-Jay Riley-Joe Ronnie-Lee Russell-James
+Ryan-James Ryan-Lee Saif-Ullah Sean-Paul Sonny-Lee Taylor-Jake Taylor-James Taylor-Jay Taylor-Lee Tee-Jay Thomas-James
+Thomas-Jay Thomas-Lee T-Jay Tommy-Lee Tyler-Jack Tyler-Jake Tyler-James Tyler-Jay Tyler-Joe Tyler-Lee
+
+D'Angelo De'wayne D'Juan X'Zavier Cha'Nce Jer'Miah J'siah Cam'Ron Chanze'es D'Jon D'Monie 
+O'Jai O'Merion Q'ndell R'Son Ja'sheem Ted'Quarius Xa'Viance za'Veann Z'Jayden R'yaire 
+""".strip())))
+
+
+_last_names = list(set(re.split(r"\s+", """
 smith johnson williams brown jones miller davis garcia rodriguez wilson martinez anderson taylor thomas
 hernandez moore martin jackson thompson white lopez lee gonzalez harris clark lewis robinson walker
 perez hall young allen sanchez wright king scott green baker adams nelson hill ramirez campbell mitchell
@@ -224,120 +338,8 @@ bird lucero terrell riggs joyce mercer rollins galloway duke odom andersen downs
 huerta travis mcneil hinton zhang hays mayo fritz branch mooney ewing ritter esparza frey braun gay
 riddle haney kaiser holder chaney mcknight gamble vang cooley carney cowan forbes ferrell davies barajas
 shea osborn bright cuevas bolton murillo lutz duarte kidd key cooke
+""".strip())))
 
-Jay Dee DeAnne Kenzie Marcyes Mark Hendrickson Peter Sauer John Rico Charles Zim Jean Dubois Rasczak
-Jelal Dizzy Flores charlie Young CJ Cregg Mandy Hampton Sam Seaborn Donna Moss Toby Ziegler Josiah
-Jed Bartlet Leo McGarry Josh Lyman Will Bailey Kate Harper Annabeth Schott Matt Santos Arnold Vinick
-Homer Simpson Marge Simpson Bart Simpson Lisa Simpson Maggie Simpson Ned Flanders Maude Flanders
-Rod Flanders Todd Flanders Itchy Scratchy Troy McClure Nelson Muntz Clancy Wiggum Ralph Wiggum Krusty
-Willie Blossom Bubbles Buttercup Abigail Bartlet
-
-Abbie-Leigh Abbie-Louise Abbie-May Aimee-Grace Aimee-Jo Aimee-Lea Aimee-Lee Aimee-Leigh
-Aimee-Louise Aimee-Rose Alesha-Mae Alexa-Rose Alice-Mae Alice-May Alicia-Mae Alicia-May Alisha-May
-Alisha-Rose Alissa-Mae Alyssa-Mae Amber-Leigh Amber-Louise Amber-Mae Amber-Rose Amelia-Grace Amelia-Jane
-Amelia-Jayne Amelia-Mae Amelia-Mai Amelia-Rose Amelie-Grace Amelie-Rose Amie-Leigh Amy-Grace Amy-Jane
-Amy-Jayne Amy-Jo Amy-Lea Amy-Lee Amy-Leigh Amy-Lou Amy-Louise Amy-May Amy-Rose Ana-Maria Angel-Louise Angel-Mae
-Angel-Mai Angel-Marie Angel-Rose Anna-Leigh Anna-Louise Anna-Mae Anna-Maria Anna-Marie Anna-May
-Anna-Rose Anna-Sophia Anne-Marie Annie-Mae Annie-Mai Annie-May Annie-Rose Ann-Marie Anya-Rose April-Rose
-Autumn-Rose Ava-Grace Ava-Jane Ava-Jo Ava-Leigh Ava-Lily Ava-Louise Ava-Mae Ava-Mai Ava-Marie Ava-May
-Ava-Nicole Ava-Rose Ava-Sophia Bailey-Mae Bailey-Rae Bella-Rose Bethany-Ann Bethany-Rose Billie-Jean Billie-Jo
-Billie-Mae Billie-Rose Bobbie-Jo Bobbie-Leigh Bobbi-Jo Bonnie-May Brodie-Leigh Brooke-Elise Brooke-Leigh
-Brooke-Louise Cara-Louise Carol-Ann Carrie-Ann Carrie-Anne Casey-Jayne Casey-Leigh Casey-Mae Casey-Marie
-Casey-May Charlie-Mae Charlie-May Charlotte-Rose Chloe-Ann Chloe-Anne Chloe-Jade Chloe-Leigh Chloe-Louise Chloe-Mae
-Chloe-Mai Chloe-Marie Chloe-May Chloe-Rose Chloe-Sophia Codie-Leigh Connie-Mae Connie-Rose Courtney-Jade
-Courtney-Leigh Courtney-Rose Daisy-Ann Daisy-Boo Daisy-Leigh Daisy-Lou Daisy-Mae Daisy-Mai Daisy-May
-Daisy-Rose Darcey-Leigh Darcey-May Darcie-Mae Darcie-Rose Darci-Leigh Darci-Rose Darcy-Mae Darcy-May
-Demi-Elise Demi-Jo Demi-Lea Demi-Lee Demi-Leigh Demi-Lou Demi-Louise Demi-Mai Demi-Marie Demi-May Demi-Rae
-Demi-Rose Destiny-Mai Dollie-Mai Ebony-Grace Ebony-Mae Ebony-Mai Ebony-Rose Eden-Rose Edie-Mae Eliza-Rose
-Ella-Grace Ella-Jade Ella-Jai Ella-Jane Ella-Jayne Ella-Louise Ella-Mae Ella-Mai Ella-Marie Ella-May Ella-Rae
-Ella-Rose Elle-Louise Elle-Mae Elle-Mai Elle-May Ellie-Ann Ellie-Anne Ellie-Grace Ellie-Jane Ellie-Jay Ellie-Jayne
-Ellie-Jo Ellie-Leigh Ellie-Louise Ellie-Mae Ellie-Mai Ellie-Marie Ellie-May Ellie-Rae Ellie-Rose Elli-Mae
-Elli-Mai Elsie-Mae Elsie-May Elsie-Rose Emily-Ann Emily-Anne Emily-Grace Emily-Jane Emily-Jayne Emily-Louise
-Emily-Mae Emily-Mai Emily-May Emily-Rose Emma-Jane Emma-Jayne Emma-Leigh Emma-Louise Emmie-Lou Erin-Mae
-Eva-Mae Eva-Maria Eva-Marie Eva-May Eva-Rose Evelyn-Rose Evie-Anne Evie-Grace Evie-Jane Evie-Jayne Evie-Jean
-Evie-Jo Evie-Leigh Evie-Louise Evie-Mae Evie-Mai Evie-Marie Evie-May Evie-Rose Faatimah-Zahra Faith-Marie Felicity-Rose
-Frankie-Lee Frankie-Leigh Freya-Grace Freya-Leigh Freya-Louise Freya-Mae Freya-Mai Freya-May Georgia-Leigh
-Georgia-Mae Georgia-Mai Georgia-May Georgia-Rose Georgie-May Grace-Lily Gracie-Ann Gracie-Jane Gracie-Jayne
-Gracie-Lea Gracie-Lee Gracie-Leigh Gracie-Lou Gracie-Mae Gracie-Mai Gracie-May Gracie-Rose Hailie-Jade Halle-Mae
-Halle-Mai Hallie-Mae Hannah-Louise Hannah-Mae Hannah-May Hollie-Ann Hollie-Grace Hollie-Louise Hollie-Mae
-Hollie-Mai Hollie-May Hollie-Rose Holly-Ann Holly-Louise Holly-Mae Holly-Mai Holly-Marie Holly-May Holly-Rose
-Honey-Mae India-Rose Indie-Rose Isabella-Grace Isabella-Mae Isabella-Rose Isabelle-Rose Isla-Mae
-Isla-May Isla-Rose Isobel-Rose Izzy-Mai Jaimee-Lee Jaimee-Leigh Jaime-Leigh Jamie-Lea Jamie-Lee Jamie-Leigh
-Jamie-Louise Jasmine-Rose Jaycee-Leigh Jayme-Leigh Jaymie-Leigh Jessica-Jane Jessica-Leigh Jessica-Lily
-Jessica-Louise Jessica-Mae Jessica-Mai Jessica-May Jessica-Paige Jessica-Rose Jessica-Taylor Jessie-Mai
-Jodie-Leigh Josie-May Julie-Ann Kacey-Lee Kacey-Leigh Kacey-Louise Kacey-May Kacie-Ann Kacie-Leigh Kacie-Mae
-Kacie-May Kaci-Leigh Kaci-Louise Kaci-Mae Kaci-May Kadie-Leigh Kady-Leigh Kara-Louise Kasey-Leigh Kate-Lynn
-Katie-Ann Katie-Jane Katie-Jayne Katie-Jo Katie-Lee Katie-Leigh Katie-Louise Katie-Mae Katie-Mai Katie-Marie
-Katie-May Katie-Rose Katy-Leigh Kaycee-Leigh Kaycie-Leigh Kaydee-Leigh Kaydie-Leigh Kayla-Mae Kayla-Mai
-Kayla-May Kayla-Rose Kay-Leigh Kayleigh-Ann Kayleigh-May Keira-Lee Keira-Leigh Keira-Louise Keira-Marie Kelly-Anne
-Kelsie-Ann Kerry-Ann Kerry-Anne Kiara-Leigh Kiera-Leigh Kiera-Louise Kira-Leigh Kitty-Rose Kyla-Mae Kyla-May
-Kyra-Lea Kyra-Leigh Kyra-Louise Lacey-Ann Lacey-Anne Lacey-Jade Lacey-Jane Lacey-Jay Lacey-Jo Lacey-Leigh
-Lacey-Louise Lacey-Mae Lacey-Mai Lacey-Marie Lacey-May Lacey-Rose Lacie-Leigh Lacie-Mae Lacie-Mai Lacie-May
-Laci-Mai Laila-Mai Laila-Marie Laila-Rose Layla-Faye Layla-Grace Layla-Louise Layla-Mae Layla-Mai Layla-May
-Layla-Rae Layla-Rose Leah-Louise Leah-Mae Leah-Marie Leah-May Leah-Rose Lexi-Ann Lexi-Anne Lexie-Grace Lexie-Jay
-Lexie-Jayne Lexie-Jo Lexie-Leigh Lexie-Lou Lexie-Mae Lexie-Mai Lexie-May Lexie-Rae Lexie-Rose Lexi-Grace Lexi-Jane
-Lexi-Jayne Lexi-Jo Lexi-Lea Lexi-Leigh Lexi-Lou Lexi-Louise Lexi-Mae Lexi-Mai Lexi-Marie Lexi-May Lexi-Rose Libby-Jane
-Libby-Louise Libby-Mae Libby-Mai Libby-May Libby-Rose Liberty-Grace Lila-Grace Lilah-Grace Lila-Rose Lili-Mae
-Lili-Mai Lili-May Lillie-Ann Lillie-Anne Lillie-Mae Lillie-Mai Lillie-Marie Lillie-May Lillie-Rae Lillie-Rose Lilli-Mae
-Lilli-Mai Lilli-Rose Lilly-Ann Lilly-Anna Lilly-Anne Lilly-Belle Lilly-Ella Lilly-Grace Lilly-Jade Lilly-Jane
-Lilly-Jayne Lilly-Jean Lilly-Jo Lilly-Louise Lilly-Mae Lilly-Mai Lilly-Marie Lilly-May Lilly-Rae Lilly-Rose Lilly-Sue
-Lily-Ann Lily-Anna Lily-Anne Lily-Belle Lily-Beth Lily-Ella Lily-Faye Lily-Grace Lily-Jade Lily-Jane Lily-Jay
-Lily-Jayne Lily-Jo Lily-Louise Lily-Mae Lily-Mai Lily-Marie Lily-May Lily-Rae Lily-Rose Lily-Sue Lisa-Marie Lola-Grace
-Lola-Jo Lola-Louise Lola-Mae Lola-Mai Lola-May Lola-Rose Lucie-Jo Lucie-Mae Lucy-Ann Lucy-Anne Lucy-Jane Lucy-Jo
-Lucy-Louise Lucy-Mae Lucy-May Lucy-Rose Lydia-Mae Lyla-Grace Lyla-Rose Macey-Leigh Macie-Lea Macie-Leigh Macie-Rose Macy-Jo
-Maddie-Rose Maddison-Grace Maddison-Rose Madison-Grace Madison-Leigh Maisie-Ann Maisie-Grace Maisie-Jane Maisie-Jayne
-Maisie-Jo Maisie-Lee Maisie-Leigh Maisie-Lou Maisie-Mae Maisie-May Maisie-Rose Maisy-Jane Maisy-May Mary-Ann
-Mary-Anne Mary-Ellen Mary-Jane Mary-Jayne Mary-Kate Mary-Rose Matilda-Rose Mckenzie-Leigh Megan-Grace Megan-Leigh
-Megan-Rose Melody-Rose Mia-Ann Mia-Grace Mia-Jade Mia-Jayne Mia-Jo Mia-Leigh Mia-Lily Mia-Louise Mia-Nicole Mia-Rose
-Miley-Grace Miley-Jo Miley-Mae Miley-Mai Miley-Rae Miley-Rose Milli-Ann Millie-Ann Millie-Anne Millie-Grace Millie-Jayne
-Millie-Jo Millie-Mae Millie-Mai Millie-May Millie-Rose Milly-May Milly-Rose Mollie-Ann Mollie-Louise Mollie-Mae
-Mollie-May Mollie-Rose Molly-Ann Molly-Anne Molly-Jo Molly-Mae Molly-Mai Molly-May Molly-Rose Morgan-Leigh
-Mya-Louise Mya-Rose Nancy-May Nevaeh-Rose Noor-Fatima Olivia-Grace Olivia-Jane Olivia-Leigh Olivia-Mae
-Olivia-Mai Olivia-may Olivia-Paige Olivia-Rose Paige-Marie Phoebe-Lee Phoebe-Louise Phoebe-Rose Poppy-Ann
-Poppy-Anne Poppy-Grace Poppy-Jo Poppy-Mae Poppy-Mai Poppy-May Poppy-Rose Ronnie-May Rose-Marie Rosie-Ann
-Rosie-Leigh Rosie-Mae Rosie-Mai Rosie-May Rubie-Leigh Rubie-Mae Rubie-Mai Ruby-Ann Ruby-Anne Ruby-Blu Ruby-Grace
-Ruby-Jane Ruby-Jean Ruby-Jo Ruby-Lea Ruby-Lee Ruby-Leigh Ruby-Lou Ruby-Louise Ruby-Mae Ruby-Mai Ruby-Marie
-Ruby-May Ruby-Rae Ruby-Rose Sadie-Rose Sammi-Jo Sammy-Jo Sarah-Jane Sarah-Jayne Sarah-Louise Scarlet-Rose
-Scarlett-Louise Scarlett-Mae Scarlett-Marie Scarlett-Rose Seren-Louise Shannon-Louise Shayla-Louise Shayla-Rae
-Sienna-Grace Sienna-Lee Sienna-Leigh Sienna-Mae Sienna-Marie Sienna-May Sienna-Rose Skye-Louise Skye-Marie Skyla-Mae
-Skyla-Mai Sky-Louise Sophia-Rose Sophie-Ann Sophie-Anne Sophie-Ella Sophie-Grace Sophie-Jane Sophie-Leigh
-Sophie-Louise Sophie-Mae Sophie-Mai Sophie-Marie Sophie-May Sophie-Rose Stevie-Leigh Summer-Jade Summer-Jayne Summer-Lea
-Summer-Leigh Summer-Lily Summer-Louise Summer-Mae Summer-Marie Summer-May Summer-Rose Sydney-Rose Tallulah-Mae
-Taylor-Ann Taylor-Grace Taylor-Jane Taylor-Jay Taylor-Leigh Taylor-Louise Taylor-Mae Taylor-May Taylor-Rose
-Tegan-Louise Tia-Leigh Tia-Louise Tia-Mae Tia-Mai Tia-Marie Tia-May Tia-Rae Tia-Rose Tiana-Leigh Tiana-Marie
-Tianna-Marie Tiffany-Marie Tiger-Lilly Tiger-Lily Tillie-Mae Tillie-Mai Tilly-Mae Tilly-Mai Tilly-Marie Tilly-May
-Tilly-Rose Toni-Ann Toni-Leigh Toni-Marie Tori-Lee Tori-Leigh Umme-Haani Violet-Rose Willow-Rose 
-
-Aaron-James Abdul-Aziz Abdul-Hadi Abdul-Malik Abdul-Raheem Abdul-Rahim Abdul-Rahman Abdul-Rehman Abdul-Sami
-Abdur-Raheem Abdur-Rahim Abdus-Samad Abu-Bakar Abu-Bakr Abu-Sufyan Aiden-James Aiden-Lee A-Jay Al-Amin
-Alexander-James Alfie-Jack Alfie-Jai Alfie-James Alfie-Jay Alfie-Joe Alfie-John Alfie-Lee Alfie-Ray Andrew-James
-Archie-Jay Archie-Lee Ashton-Lee Aston-Lee Bailey-James Bailey-Rae Billy-Jay Billy-Joe Billy-Lee Billy-Ray
-Bobby-Jack Bobby-James Bobby-Jay Bobby-Joe Bobby-Lee Braiden-Lee Brandon-Lee Brogan-Lee Callum-James Cameron-James
-Cameron-Jay Charlie-Dean Charlie-George Charlie-James Charlie-Jay Charlie-Joe Charlie-Ray C-Jay Cody-James
-Cody-Jay Cody-Lee Conner-Lee Connor-James Connor-Jay Connor-Lee Corey-James Corey-Lee Daniel-James Daniel-Junior
-Danny-Lee David-James Dylan-James Ethan-James Ethan-Lee Finley-James Frankie-Lee Freddie-Jay Freddie-Lee Harley-James
-Harley-Jay Harley-Joe Harley-John Harley-Ray Harrison-Lee Harry-George Harry-James Harry-Lee Harvey-James Harvey-Jay
-Harvey-Lee Harvey-Leigh Hayden-Lee Henry-James Jacob-James Jacob-Lee Jaiden-Lee James-Dean Jamie-Lee Jason-James
-Jay-D Jaydan-Lee Jayden-James Jayden-Jay Jayden-John Jayden-Lee Jayden-Leigh Jay-Jay Jay-Junior Jay-Lee Jean-Paul
-Jean-Pierre Jesse-James J-Jay Joe-Lewis Johnny-Lee John-Joseph John-Paul Jon-Paul Jordan-Lee Joseph-James Joshua-James
-Joshua-Jay Junior-Jay Justin-Lee Kaiden-Lee Kal-El Kayden-Lee Keegan-Lee Kenzie-James Kenzie-Jay Kenzie-Lee
-Kieran-Lee K-Jay Layton-James Layton-Lee Lee-Jay Leighton-James Leo-James Leon-Junior Levi-James Levi-Jay
-Lewis-James Lewis-Lee Liam-James L-Jay Logan-James Logan-Jay Logan-Lee Louie-Jay Lucas-Jack Lucas-James
-Lucas-Jay Mackenzie-Lee Marley-Lee Marley-Rae Mason-James Mason-Jay Mason-Lee Mckenzie-Jay Mckenzie-Lee
-Michael-John Michael-Lee Mohamed-Amin Mohammed-Ibrahim Mohammed-Mustafa Muhammah-Ali Muhammad-Ibrahim Muhammad-Yusef
-Nathan-Lee Oliver-James Owen-James Peter-Junior Ricky-Junior Riley-James Riley-Jay Riley-Joe Ronnie-Lee Russell-James
-Ryan-James Ryan-Lee Saif-Ullah Sean-Paul Sonny-Lee Taylor-Jake Taylor-James Taylor-Jay Taylor-Lee Tee-Jay Thomas-James
-Thomas-Jay Thomas-Lee T-Jay Tommy-Lee Tyler-Jack Tyler-Jake Tyler-James Tyler-Jay Tyler-Joe Tyler-Lee
-
-Toa'ale Hau'oli O'Brie D'Angelo God'iss Domi'nique De'wayne La'tanya D'Juan Rah'Nee A'merika Shau'Nay Mich'ele
-N'cole A'Brianna Ma'Kayla Sha'tyana Zy'shonne November'Lashae Ja'Kingston and Ke'Shawn D'nasia
-X'Zavier An'Gelina Cha'Nce O'Livia Dan'Yelle Jer'Miah Ky'Lee Rach'El Cie'Rrea Sh'nia J'siah
-Cam'Ron Chanze'es Day'quandray D'Jon D'Monie Don'ta'ja Fiaavd'e I'Lanny Ja'sheem Day'twain Chris La'tko
-L'Cole O'Jai O'Merion Q'ndell R'Son Sei'Jearr Ta'Quwereus Ted'Quarius Xa'Viance za'Veann Z'Jayden 
-A'jA Anah'reya A'Majena Be'aJa Cier'rrea D'aSiyahna R'yaire D'Kota E'ryn I'Zeyonna Ja'genevia JaKeil'a Ta-Shay
-Ja'mya Jane't Kei'Lee Ken'yel K'le Mi'Angel N'finique Sanai' Sh'nia Syn'Cere Syri'yah Ti-Leigh'yah
-Zae'kee Zy'Erica Zy'rreah 
-""".strip())
 
 _unicode_names = re.split(r'\s+', """
 \u0410\u0431\u0440\u0430\u043c \u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440
@@ -394,7 +396,8 @@ _unicode_names = re.split(r'\s+', """
 \u0418\u043d\u0435\u0441\u0441\u0430 \u0418\u0437\u0430\u0431\u0435\u043b\u043b\u0430
 \u0418\u0437\u043e\u043b\u044c\u0434\u0430 \u0418\u0441\u043a\u0440\u0430 \u041a\u043b\u0430\u0440\u0430
 \u041a\u043b\u0430\u0432\u0434\u0438\u044f \u041a\u0441\u0435\u043d\u0438\u044f
-\u041a\u0430\u043f\u0438\u0442\u043e\u043b\u0438\u043d\u0430 \u041a\u043b\u0435\u043c\u0435\u043d\u0442\u0438\u043d\u0430
+\u041a\u0430\u043f\u0438\u0442\u043e\u043b\u0438\u043d\u0430
+\u041a\u043b\u0435\u043c\u0435\u043d\u0442\u0438\u043d\u0430
 \u041a\u0440\u0438\u0441\u0442\u0438\u043d\u0430 \u041b\u0430\u0434\u0430
 \u041b\u0430\u0440\u0438\u0441\u0430 \u041b\u0438\u0434\u0438\u044f \u041b\u044e\u0431\u043e\u0432\u044c
 \u041b\u0438\u043b\u0438\u044f \u041b\u044e\u0434\u043c\u0438\u043b\u0430
@@ -414,8 +417,14 @@ _unicode_names = re.split(r'\s+', """
 \u042d\u043c\u0438\u043b\u0438\u044f \u042d\u043c\u043c\u0430 \u042e\u043b\u0438\u044f
 \u042f\u0440\u043e\u0441\u043b\u0430\u0432\u0430 \u042f\u043d\u0430
 
-Rene\u2019e A\u2019Laysyn, D\u2019Kota \u2019Ese Cam\u2019Ron Da\u2019neyelle No\u2019elle ZI\u2019eyekel Miche\u2019le
+Rene\u2019e A\u2019Laysyn, D\u2019Kota \u2019Ese Cam\u2019Ron Da\u2019neyelle
+No\u2019elle ZI\u2019eyekel Miche\u2019le
 """.strip())
+
+
+_first_names = _first_names_female + _first_names_male
+_names = _first_names + _last_names
+
 
 # via: http://www.lipsum.com/feed/html
 # russian is from: http://masterrussian.com/vocabulary/most_common_words.htm
@@ -470,6 +479,7 @@ ac turpis egestas. Nam vel nibh eu nulla blandit facilisis. Sed varius turpis ac
 Curabitur vel erat. Morbi sed purus id erat tincidunt ullamcorper.
 '''
 
+
 _unicode_paragraphs = '''
 \u0437\u043d\u0430\u0442\u044c \u043c\u043e\u0439 \u0434\u043e \u0438\u043b\u0438 \u0435\u0441\u043b\u0438
 \u0432\u0440\u0435\u043c\u044f \u0440\u0443\u043a\u0430 \u043d\u0435\u0442 \u0441\u0430\u043c\u044b\u0439
@@ -517,6 +527,7 @@ _unicode_paragraphs = '''
 \u043f\u0440\u043e \u043b\u0438\u0448\u044c \u043c\u0438\u043d\u0443\u0442\u0430 \u0436\u0435\u043d\u0430
 '''
 
+
 # only add 4-byte unicode if 4-byte unicode is supported
 if sys.maxunicode > 65535:
     _unicode_paragraphs += '''
@@ -528,6 +539,7 @@ if sys.maxunicode > 65535:
 \U00026258 \U000267cc \U000269f2 \U000269fa \U00027a3e \U0002815d \U00028207 \U000282e2 \U00028cca \U00028ccd
 \U00028cd2 \U00029d98
 '''
+
 
 _ascii_words = re.split(r'\s+', _ascii_paragraphs.strip())
 _unicode_words = re.split(r'\s+', _unicode_paragraphs.strip())

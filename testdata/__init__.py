@@ -36,7 +36,10 @@ from .data import _names, \
     _unicode_paragraphs, \
     _ascii_words, \
     _unicode_words, \
-    _words
+    _words, \
+    _first_names_male, \
+    _first_names_female, \
+    _last_names
 
 from .path import Dirpath, Filepath, Modulepath, Contents
 from .threading import Thread
@@ -754,7 +757,7 @@ get_uniq_email = get_unique_email
 def get_email(name=''):
     '''return a random email address'''
     if not name: name = get_ascii_name()
-    name = re.sub("['-]", "", name)
+    name = re.sub(r"['-]", "", name)
 
     email_domains = [
         "yahoo.com",
@@ -787,7 +790,7 @@ def get_email(name=''):
     return '{}@{}'.format(name.lower(), random.choice(email_domains))
 
 
-def get_name(name_count=2, as_str=True):
+def get_name(name_count=2, as_str=True, is_unicode=None):
     '''
     get a random name
 
@@ -802,33 +805,114 @@ def get_name(name_count=2, as_str=True):
     if name_count <= 0:
         name_count = random.randint(1, 5)
 
+    is_unicode_bit = lambda x: random.randint(0, 100) < 20 if x is None else x
+
     # decide if we should hyphenate the last name
     names = []
     if name_count > 0:
         #names = random.sample(_names, name_count)
-        for x in range(name_count):
-            if random.randint(0, 100) < 20:
-                names.append(get_unicode_name())
-            else:
-                names.append(get_ascii_name())
+        add_last_name = name_count > 1
+        for x in range(max(1, name_count - 1)):
 
-        if name_count > 1:
-            if random.randint(0, 20) == 1:
-                names[-1] = '{}-{}'.format(names[-1], random.choice(_names))
+            if is_unicode_bit(is_unicode):
+                names.append(get_unicode_first_name())
+            else:
+                names.append(get_ascii_first_name())
+
+        if add_last_name:
+            if is_unicode_bit(is_unicode):
+                names.append(get_unicode_last_name())
+            else:
+                names.append(get_ascii_last_name())
 
     return names if not as_str else ' '.join(names)
 
 
 def get_ascii_name():
     '''return one ascii safe name'''
-    return random.choice(_names)
+    return get_name(is_unicode=False)
 
 
 def get_unicode_name():
     '''return one non-ascii safe name'''
-    name = random.choice(_unicode_names)
-    return name
+    return get_name(is_unicode=True)
 get_uni_name = get_unicode_name
+
+
+def get_first_name(gender="", is_unicode=None):
+    genders = ["m", "f"]
+    if gender:
+        gender = str(gender).lower()[0]
+        gender = "m" if gender == "1" else "f"
+        gender = "m" if gender == "t" else "f"
+        if gender not in genders:
+            raise ValueError("Unsupported gender, try [m, f, male, female] instead")
+    else:
+        gender = random.choice(genders)
+
+    if is_unicode is None:
+        is_unicode = random.randint(0, 100) < 20
+
+    if is_unicode:
+        name = random.choice(_unicode_names)
+    else:
+        if gender == "m":
+            name = random.choice(_first_names_male)
+        else:
+            name = random.choice(_first_names_female)
+
+    if random.randint(0, 20) == 5:
+        name = '{}-{}'.format(name, get_first_name(gender, is_unicode))
+
+    return name.capitalize()
+get_given_name = get_first_name
+get_firstname = get_first_name
+
+
+def get_ascii_first_name(gender=""):
+    '''return one ascii safe name'''
+    return get_first_name(gender, is_unicode=False)
+get_ascii_given_name = get_ascii_first_name
+get_ascii_firstname = get_ascii_first_name
+
+
+def get_unicode_first_name(gender=""):
+    '''return one non-ascii name'''
+    return get_first_name(gender, is_unicode=True)
+get_uni_first_name = get_unicode_first_name
+get_unicode_given_name = get_unicode_first_name
+get_unicode_firstname = get_unicode_first_name
+
+
+def get_last_name(is_unicode=None):
+    if is_unicode is None:
+        is_unicode = random.randint(0, 100) < 20
+
+    if is_unicode:
+        name = random.choice(_unicode_names)
+    else:
+        name = random.choice(_last_names)
+
+    if random.randint(0, 20) == 5:
+        name = '{}-{}'.format(name, get_last_name(is_unicode))
+
+    return name.capitalize()
+get_surname = get_last_name
+
+
+def get_ascii_last_name():
+    '''return one ascii safe name'''
+    return get_last_name(is_unicode=False)
+get_ascii_lastname = get_ascii_last_name
+get_ascii_surname = get_ascii_last_name
+
+
+def get_unicode_last_name():
+    '''return one unicode name'''
+    return get_last_name(is_unicode=True)
+get_uni_last_name = get_unicode_last_name
+get_unicode_lastname = get_unicode_last_name
+get_unicode_surname = get_unicode_last_name
 
 
 def get_coordinate(v1, v2, round_to=7):

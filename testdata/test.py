@@ -52,12 +52,32 @@ class TestCase(BaseTestCase):
         raise SkipTest(*args, **kwargs)
 
     def assertUntilTrue(callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1): 
-        # TODO -- move all the __init__ functions into a func package, so they
+        # TODO -- move all the __init__.py functions into a func package, so they
         # can be imported into this and this can just call wait
         pass
 
+    def assertAscii(self, s):
+        """checks if the entire string only contains ASCII characters
+
+        https://stackoverflow.com/a/196392/5006
+        """
+        return self.assertTrue(all(ord(c) < 128 for c in s))
+    assertNotUnicode = assertAscii
+
+    def assertUnicode(self, s):
+        """Checks if the string has at least one non-ASCII character"""
+        return self.assertTrue(any(ord(c) > 128 for c in s))
+    assertNotAscii = assertUnicode
+
     @contextmanager
     def assertWithin(self, seconds):
+        """checks if the code executes within seconds
+
+        :Example:
+            with self.assertWithin(1):
+                foo() # if returns within 1 second we're good, otherwise AssertError
+        :param seconds: float, how many seconds before considered a failure
+        """
         try:
             start = time.time()
             yield self

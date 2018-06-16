@@ -614,18 +614,33 @@ class TestdataTest(TestCase):
         ])
         mp = testdata.create_package(prefix, contents=contents)
         self.assertTrue(mp.is_package())
-        return
 
+    def test_get_names(self):
+        fname = testdata.get_first_name()
+        fname = testdata.get_first_name("male")
+        fname = testdata.get_first_name("m")
+        fname = testdata.get_first_name("female")
+        fname = testdata.get_first_name("f")
+        fname = testdata.get_first_name(True)
+        fname = testdata.get_first_name(1)
+        fname = testdata.get_first_name(2)
+        fname = testdata.get_first_name(False)
 
+        fname = testdata.get_first_name(is_unicode=True)
+        self.assertUnicode(fname)
+        fname = testdata.get_first_name(is_unicode=False)
+        self.assertAscii(fname)
 
-        basedir = testdata.create_dir()
-        prefix = "foo"
-        testdata.create_dir(prefix, tmpdir=basedir)
-        contents = os.linesep.join([
-            "class Bar(object): pass",
-        ])
-        mp = testdata.create_module(prefix, contents=contents, tmpdir=basedir)
-        self.assertTrue(mp.is_package())
+        lname = testdata.get_last_name()
+        lname = testdata.get_last_name(is_unicode=True)
+        self.assertUnicode(lname)
+        lname = testdata.get_last_name(is_unicode=False)
+        self.assertAscii(lname)
+
+        name = testdata.get_name(is_unicode=True)
+        self.assertUnicode(name)
+        name = testdata.get_name(is_unicode=False)
+        self.assertAscii(name)
 
     def test_get_ascii_name(self):
         name = testdata.get_ascii_name()
@@ -644,6 +659,19 @@ class TestdataTest(TestCase):
             elif is_py3:
                 bytes(name, encoding="ascii").decode('utf-8')
 
+    def test_get_name(self):
+        name = testdata.get_name()
+        self.assertEqual(1, len(re.findall(r'\s+', name)))
+
+        name = testdata.get_name(as_str=False)
+        self.assertEqual(2, len(name))
+
+        name = testdata.get_name(name_count=0)
+        self.assertNotEqual(u"", name)
+
+        name = testdata.get_name(name_count=1)
+        self.assertNotEqual(u"", name)
+
     def test_get_email(self):
         email = testdata.get_email()
         self.assertGreater(len(email), 0)
@@ -655,16 +683,6 @@ class TestdataTest(TestCase):
 
         email = testdata.get_email("foo'bar")
         self.assertTrue(email.startswith("foobar"))
-
-    def test_get_name(self):
-        name = testdata.get_name()
-        self.assertEqual(1, len(re.findall(r'\s+', name)))
-
-        name = testdata.get_name(as_str=False)
-        self.assertEqual(2, len(name))
-
-        name = testdata.get_name(name_count=0)
-        self.assertNotEqual(u"", name)
 
     def test_get_words(self):
         v = testdata.get_words(word_count=2)
@@ -1271,4 +1289,18 @@ class ServiceTest(testdata.TestCase):
     def test_stop_service(self):
         # TODO -- figure out how to test this method
         raise self.skip_test()
+
+
+from testdata.utils import ByteString
+class UtilsTest(testdata.TestCase):
+    def test_conversion(self):
+        s = testdata.get_unicode()
+        bs = ByteString(s)
+        bs2 = ByteString(bs)
+
+        self.assertEqual(bs, bs2)
+        self.assertEqual(s, bs.unicode())
+        self.assertEqual(s, bs2.unicode())
+        self.assertEqual(s, unicode(bs2))
+        self.assertNotEqual(s, bytes(bs2))
 
