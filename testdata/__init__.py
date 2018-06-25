@@ -41,7 +41,7 @@ from .data import _names, \
     _first_names_female, \
     _last_names
 
-from .path import Dirpath, Filepath, Modulepath, Contents
+from .path import Dirpath, Filepath, Modulepath, ContentBytes, ContentString
 from .threading import Thread
 from .output import Capture
 from .server import PathServer, CookieServer, CallbackServer
@@ -50,7 +50,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.6.30'
+__version__ = '0.6.31'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -330,7 +330,7 @@ def create_cookieserver(cookies, hostname="", port=0):
     return CookieServer(cookies, hostname=hostname, port=port)
 
 
-def get_contents(fileroot, basedir=""):
+def get_contents(fileroot, basedir="", encoding=""):
     """Returns the contents of a file matching basedir/fileroot.*
 
     :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
@@ -340,7 +340,11 @@ def get_contents(fileroot, basedir=""):
         in then os.getcwd()/*/testdata will be searched for
     :returns: string, the contents of the found file
     """
-    return Contents(fileroot, basedir=basedir)
+    if encoding:
+        return ContentString(fileroot, basedir=basedir, encoding=encoding)
+    else:
+        return ContentBytes(fileroot, basedir=basedir)
+get_content = get_contents
 
 
 def create_dir(path="", tmpdir=""):

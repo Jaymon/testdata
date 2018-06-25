@@ -19,6 +19,10 @@ class Service(object):
     """If True then failures when running the command will be ignored, failure is
     usually defined as an exit code >0"""
 
+    @property
+    def path(self):
+        raise NotImplementedError()
+
     def __init__(self, name, ignore_failure=True):
         self.name = name
         self.ignore_failure = ignore_failure
@@ -56,15 +60,13 @@ class Service(object):
 
         return ret
 
-#         if self.ignore_failure:
-#             subprocess.call(cmd, **kwargs)
-# 
-#         else:
-#             subprocess.check_call(cmd, **kwargs)
-
 
 class Upstart(Service):
     """Handle starting Upstart services"""
+    @property
+    def path(self):
+        return "/etc/init/{}".format(self.name)
+
     def format_cmd(self, action, **kwargs):
         cmd = []
         if self.sudo:
@@ -95,17 +97,21 @@ class Upstart(Service):
         return "start/running" in ret
 
     def exists(self):
-        return os.path.isfile("/etc/init/{}".format(self.name))
+        return os.path.isfile(self.path)
 
 
 class InitD(Service):
     """Handle starting init.d services"""
+    @property
+    def path(self):
+        return "/etc/init.d/{}".format(self.name)
+
     def format_cmd(self, action, **kwargs):
         cmd = []
         if self.sudo:
             cmd.append("sudo")
 
-        cmd.append("/etc/init.d/{}".format(self.name))
+        cmd.append(self.path)
         cmd.append(action)
         return cmd, kwargs
 
@@ -115,5 +121,5 @@ class InitD(Service):
         return ret is None
 
     def exists(self):
-        return os.path.isfile("/etc/init.d/{}".format(self.name))
+        return os.path.isfile(self.path)
 

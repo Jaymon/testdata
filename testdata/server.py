@@ -161,7 +161,7 @@ class CallbackHandler(AnyHandler):
 #         AnyHandler.end_headers(self)
 
 
-class Server(str):
+class Server(String):
     """This is the Webserver master class, it masquerades as a string whose value
     is the url scheme://hostname:port but adds helper methods to manage the webserver
     """

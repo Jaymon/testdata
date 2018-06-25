@@ -260,7 +260,7 @@ class HTTP(object):
 
         # make a request with a different method
         c = HTTP("http://example.com")
-        c.get("/foo/bar", method="PUT")
+        c.fetch("PUT", "/foo/bar")
 
         # make a POST request
         c = HTTP("http://example.com")
@@ -274,6 +274,7 @@ class HTTP(object):
 
     def __init__(self, base_url="", *args, **kwargs):
         self.base_url = base_url
+        self.query = {}
 
         # these are the common headers that usually don't change all that much
         self.headers = {
@@ -297,6 +298,12 @@ class HTTP(object):
     def post(self, uri, body=None, **kwargs):
         """make a POST request"""
         return self.fetch('post', uri, kwargs.pop("query", None), body, **kwargs)
+
+    def __getattr__(self, key):
+        def callback(*args, **kwargs):
+            return self.fetch(key, *args, **kwargs)
+        return callback
+        #return lambda *args, **kwargs: self.fetch(key, *args, **kwargs)
 
     def fetch(self, method, uri, query=None, body=None, **kwargs):
         """

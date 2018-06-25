@@ -21,12 +21,13 @@ import logging
 
 import testdata
 from testdata.test import TestCase, SkipTest
-from testdata.path import Filepath, Dirpath, Contents
+from testdata.path import Filepath, Dirpath, ContentString, ContentBytes
 from testdata.compat import *
 from testdata.threading import Thread
 from testdata import threading
 from testdata.output import Capture
 from testdata.server import AnyServer, CookieServer, CallbackServer
+from testdata.client import HTTP
 
 
 testdata.basic_logging()
@@ -142,32 +143,41 @@ class PathTest(TestCase):
         self.assertFalse(che_d.exists())
         self.assertEqual(0, len(list(d.files())))
 
-    def test_contents(self):
+    def test_contents_decode_error(self):
+        base_d = testdata.create_dir()
+        os.chdir(base_d)
+        f = base_d.create_file("bytes.txt", testdata.get_words())
 
+        c = testdata.get_contents(f)
+        self.assertTrue(isinstance(c, ContentBytes))
+
+        c = testdata.get_contents(f, encoding="UTF-8")
+        self.assertTrue(isinstance(c, ContentString))
+
+    def test_contents(self):
         base_d = testdata.create_dir()
         os.chdir(base_d)
 
         # check scanning failure
         with self.assertRaises(IOError):
-            c = Contents("foo")
+            c = ContentString("foo", encoding="UTF-8")
 
         # check scanning success
-        foo_f = base_d.create_file("testdata/foo.txt", "bar")
-        c = Contents("foo")
+        foo_f = base_d.create_file("testdata/foo.txt", testdata.get_words())
+        c = ContentString("foo", encoding="UTF-8")
         self.assertEqual(foo_f.contents(), c)
 
         # check passed in directory
-        c = Contents("foo", base_d.child("testdata"))
+        c = ContentString("foo", base_d.child("testdata"), encoding="UTF-8")
         self.assertEqual(foo_f.contents(), c)
 
         # check direct match
-        c = Contents("foo.txt")
+        c = ContentString("foo.txt", encoding="UTF-8")
         self.assertEqual(foo_f.contents(), c)
 
         # check wrapper
-        c = testdata.get_contents("foo")
+        c = testdata.get_contents("foo", encoding="UTF-8")
         self.assertEqual(foo_f.contents(), c)
-
 
     def test_file(self):
         f = testdata.create_file("foo.txt", "this is the text")
@@ -1246,6 +1256,19 @@ class ClientTest(TestCase):
         r1 = testdata.run(mod1)
         r2 = mod1.run()
         self.assertEqual(r1, r2)
+
+    def test_alternative_method(self):
+        def do_PUT(handler):
+            return "PUT"
+
+        server = CallbackServer({
+            "PUT": do_PUT,
+        })
+        with server:
+            c = HTTP(server)
+            res = c.put(server)
+            self.assertEqual(200, res.code)
+            self.assertEqual("PUT", res.body)
 
 
 class TCTest(testdata.TestCase):

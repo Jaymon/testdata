@@ -11,33 +11,57 @@ import pkgutil
 import importlib
 import stat
 import inspect
-import glob
+#import glob
+import fnmatch
 
 from .compat import *
 from . import environ
 from .client import ModuleCommand, FileCommand
 
 
-# TODO -- this should probably return unicode instead of bytes?
-class Contents(str):
+class ContentMixin(object):
     """Find the first file matching basedir/fileroot.* and read its contents"""
-    def __new__(cls, fileroot, basedir=""):
-        d = cls._find_directory(basedir)
-        path = os.path.join(d, fileroot)
-        if not os.path.isfile(path):
-            g = os.path.join(d, "{}.*".format(fileroot))
-            paths = glob.glob(g)
-            if not paths:
-                raise IOError("Could not find a file matching {}".format(g))
-            path = paths[0]
+    @classmethod
+    def _get_params(cls, fileroot, basedir="", encoding=""):
+        path = cls._find_path(fileroot, basedir)
+        if encoding:
+            with codecs.open(path, encoding=encoding) as f:
+                contents = f.read()
 
-        with codecs.open(path, encoding='UTF-8', mode='r') as f:
-            contents = f.read()
+        else:
+            with open(path) as f:
+                contents = f.read()
 
-        instance = super(Contents, cls).__new__(cls, contents)
+        return contents, path
+
+    @classmethod
+    def _initialize(cls, instance, path):
         instance.path = Filepath(os.path.basename(path), basedir=os.path.dirname(path))
-        instance.directory = Dirpath("", basedir=d)
+        instance.directory = instance.path.directory
         return instance
+
+    @classmethod
+    def _find_path(cls, fileroot, basedir):
+        path = fileroot
+        if not os.path.isfile(fileroot):
+            d = cls._find_directory(basedir)
+            path = os.path.join(d, fileroot)
+            if not os.path.isfile(path):
+                path = ""
+                patterns = [fileroot, "{}.*".format(fileroot)]
+                for root_dir, dirs, files in os.walk(d, topdown=True):
+                    for basename in files:
+                        for pattern in patterns:
+                            if fnmatch.fnmatch(basename, pattern):
+                                path = os.path.join(root_dir, basename)
+                                break
+                        if path: break
+                    if path: break
+
+                if not path:
+                    raise IOError("Could not find a file matching {}".format(fileroot))
+
+        return path
 
     @classmethod
     def _find_directory(cls, basedir):
@@ -45,24 +69,36 @@ class Contents(str):
         if basedir:
             d = basedir
 
-        if not d:
+        else:
             d = environ.CONTENTS_DIR
 
-        if not d:
-            # scan the current working directory looking for a testdata
-            # directory
-            basename = __name__.split(".")[0]
-            for root_dir, dirs, files in os.walk(os.getcwd(), topdown=True):
-                if basename in dirs:
-                    d = os.path.join(root_dir, basename)
-                    break
+            if not d:
+                d = os.getcwd()
 
         if not d:
             raise IOError("Could not find a testdata directory")
         return d
 
 
-class Dirpath(str):
+class ContentBytes(Bytes, ContentMixin):
+    """This is returned when get_contents is called without an encoding"""
+    def __new__(cls, fileroot, basedir=""):
+        contents, path = cls._get_params(fileroot, basedir)
+        instance = super(ContentBytes, cls).__new__(cls, contents)
+        cls._initialize(instance, path)
+        return instance
+
+
+class ContentString(String, ContentMixin):
+    """This is returned when get_contents is called with an encoding"""
+    def __new__(cls, fileroot, basedir="", encoding=""):
+        contents, path = cls._get_params(fileroot, basedir, encoding)
+        instance = super(ContentString, cls).__new__(cls, contents)
+        cls._initialize(instance, path)
+        return instance
+
+
+class Dirpath(String):
     '''
     create a directory path using a tempdir as the root
 
