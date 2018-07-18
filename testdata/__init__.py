@@ -659,20 +659,25 @@ def get_posint(max_size=2**31-1):
     min_size = 1
     return random.randint(min_size, max_size)
 get_positive_int = get_posint
+get_positive_integer = get_posint
+get_posinteger = get_posint
 
 
 def get_int(min_size=1, max_size=sys.maxsize):
     return get_unique_int(min_size, max_size)
+get_integer=get_int
 
 
 def get_int32(min_size=1):
     """returns a unique 32-bit positive integer"""
     return get_unique_int(min_size, 2**31-1)
+get_integer32=get_int32
 
 
 def get_int64(min_size=1):
     """returns up to a unique 64-bit positive integer"""
     return get_unique_int(min_size, 2**63-1)
+get_integer64=get_int64
 
 
 def get_unique_int(min_size=1, max_size=sys.maxsize):
@@ -704,6 +709,8 @@ def get_unique_int(min_size=1, max_size=sys.maxsize):
         raise ValueError("no unique ints from {} to {} could be found".format(min_size, max_size))
     return i
 get_uniq_int = get_unique_int
+get_uniq_integer = get_unique_int
+get_unique_integer = get_unique_int
 
 
 def get_ascii_words(word_count=0, as_str=True):
