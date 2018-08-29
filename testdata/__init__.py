@@ -1009,6 +1009,11 @@ def patch_module(mod_name, attr_name='', patches=None, **kwargs_patches):
             #mod = imp.load_module('{}_{}'.format(m, get_ascii(8)), *imp.find_module(m, imod.__path__))
 
         else:
+            # we fudge the paths a bit to make sure current working directory is
+            # also checked
+            paths = [os.getcwd()]
+            paths.extend(sys.path)
+
             _, mod_path, _ = imp.find_module(p)
 
         return mod_path
@@ -1123,6 +1128,11 @@ def patch(mod, patches=None, **kwargs_patches):
         m = patch_module(mod, "", patches=patches, **kwargs_patches)
 
     elif inspect.ismodule(mod):
+        # TODO: right now we have an elaborate system to find out where the module is located
+        # based on its name, couldn't we just use inspect.getsourcefile instead?
+        # so we would change patch_module to handle both modpaths (eg, foo.bar)
+        # and also actual modules (eg, using inspect.getsourcefile(mod) to get
+        # the actual file)
         m = patch_module(mod.__name__, "", patches=patches, **kwargs_patches)
 
     elif inspect.isclass(mod):
