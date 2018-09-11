@@ -21,3 +21,6 @@ HOSTNAME = os.environ.get("TESTDATA_HOSTNAME", "127.0.0.1")
 #HOSTPORT = int(os.environ.get("TESTDATA_HOSTPORT", 8765))
 HOSTPORT = int(os.environ.get("TESTDATA_HOSTPORT", 0))
 
+# the default encoding for things (not fully supported)
+ENCODING = "UTF-8"
+

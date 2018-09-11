@@ -81,6 +81,14 @@ def basic_logging(**kwargs):
     kwargs.setdefault("stream", sys.stdout)
     logging.basicConfig(**kwargs)
 
+#     rlogger = logging.getLogger()
+#     if not rlogger.handlers:
+#         rlogger.setLevel(kwargs["level"])
+#         handler = logging.StreamHandler(stream=kwargs["stream"])
+#         formatter = logging.Formatter(kwargs["format"])
+#         handler.setFormatter(formatter)
+#         rlogger.addHandler(handler)
+
 
 def start_service(service_name, ignore_failure=True):
     """start a local service
@@ -301,7 +309,7 @@ def fetch(url, body=None, query=None, **kwargs):
     return ret
 
 
-def create_fileserver(file_dict, tmpdir="", hostname="", port=0):
+def create_fileserver(file_dict, tmpdir="", hostname="", port=0, encoding=""):
     """
     create a fileserver that can be used to test remote file retrieval
 
@@ -315,8 +323,8 @@ def create_fileserver(file_dict, tmpdir="", hostname="", port=0):
             "index.html": file_dict
         }
 
-    path = create_files(file_dict, tmpdir=tmpdir)
-    return PathServer(path, hostname=hostname, port=port)
+    path = create_files(file_dict, tmpdir=tmpdir, encoding=encoding)
+    return PathServer(path, hostname=hostname, port=port, encoding=encoding)
 
 
 def create_cookieserver(cookies, hostname="", port=0):
@@ -374,16 +382,18 @@ def create_file(path, contents="", tmpdir="", encoding=""):
 
     :returns: Filepath, the full file path
     '''
+    instance = Filepath.create_instance(path, contents, tmpdir, encoding)
+
     if encoding:
         instance = Filepath(path, tmpdir)
         instance.encoding = encoding
         instance.create(contents)
     else:
-        instance = Filepath.create_instance(path, contents, tmpdir)
+        instance = Filepath.create_instance(path, contents, tmpdir, encoding)
     return instance
 
 
-def create_files(file_dict, tmpdir=""):
+def create_files(file_dict, tmpdir="", encoding=""):
     """
     create a whole bunch of files all at once
 
@@ -393,15 +403,15 @@ def create_files(file_dict, tmpdir=""):
     """
     base_dir = Dirpath(basedir=tmpdir)
     for file_name, contents in file_dict.items():
-        base_dir.create_file(file_name, contents)
+        base_dir.create_file(file_name, contents, encoding)
     return base_dir
 
 
-def get_file(path="", tmpdir=""):
+def get_file(path="", tmpdir="", encoding=""):
     if not path:
         path = get_ascii()
 
-    return Filepath(path, tmpdir)
+    return Filepath(path, tmpdir, encoding)
 
 
 def create_module(module_name, contents="", tmpdir="", make_importable=True):
@@ -978,68 +988,6 @@ def get_coordinate(v1, v2, round_to=7):
 get_coord = get_coordinate
 
 
-def patch_module(mod_name, attr_name='', patches=None, **kwargs_patches):
-    if not mod_name:
-        raise ValueError("mod_name is empty")
-
-    if not patches: patches = {}
-    patches.update(kwargs_patches) # combine both dicts
-    if not patches: raise ValueError("patches dict is empty")
-
-    deferred_patches = []
-    patched_modules = {}
-
-    for name, patch in patches.items():
-        if '.' in name:
-            # when a module is imported like this, import foo.bar then it is placed
-            # as an attribute to the parent module: getattr(getattr(mod, 'foo'), 'bar')
-            # this should be useful in eventually supporting this, you can work down the sub
-            # attributes and newly import them and patch
-            raise RuntimeError("nested modules, eg, {} are not currently supported".format(name))
-
-        else:
-            deferred_patches.append((name, patch))
-
-    # http://stackoverflow.com/questions/4907054/
-    def find_mod_path(p):
-        if '.' in p:
-            p, m = p.rsplit('.', 1)
-            imod_path = find_mod_path(p)
-            mod_path = os.path.join(imod_path, m)
-            #mod = imp.load_module('{}_{}'.format(m, get_ascii(8)), *imp.find_module(m, imod.__path__))
-
-        else:
-            # we fudge the paths a bit to make sure current working directory is
-            # also checked
-            paths = [os.getcwd()]
-            paths.extend(sys.path)
-
-            _, mod_path, _ = imp.find_module(p)
-
-        return mod_path
-
-    mpath = find_mod_path(mod_name)
-    mfile = mpath
-     # figure out if we have a package or a module and set the appropriate file
-    if os.path.isdir(mpath):
-        mfile = os.path.join(mpath, '__init__.py')
-
-    else:
-        if not mfile.endswith(".py"):
-            mfile = '{}.py'.format(mpath)
-
-    m = imp.load_source('{}_{}'.format(mod_name, get_ascii(8)), mfile)
-
-    # go through and apply all the patches
-    for patch_name, patch in deferred_patches:
-        setattr(m, patch_name, patch)
-
-    if attr_name:
-        m = getattr(m, attr_name)
-
-    return m
-
-
 def patch_instance(mod, patches=None, **kwargs_patches):
     if not mod:
         raise ValueError("mod is empty")
@@ -1112,6 +1060,74 @@ def patch_class(mod, patches=None, **kwargs_patches):
     return mod_patched
 
 
+def patch_module(mod, patches=None, **kwargs_patches):
+    if not mod:
+        raise ValueError("mod is empty")
+
+    if not patches: patches = {}
+    patches.update(kwargs_patches) # combine both dicts
+    if not patches: raise ValueError("patches dict is empty")
+
+    deferred_patches = []
+    patched_modules = {}
+
+    for name, patch in patches.items():
+        if '.' in name:
+            # when a module is imported like this, import foo.bar then it is placed
+            # as an attribute to the parent module: getattr(getattr(mod, 'foo'), 'bar')
+            # this should be useful in eventually supporting this, you can work down the sub
+            # attributes and newly import them and patch
+            raise RuntimeError("nested modules, eg, {} are not currently supported".format(name))
+
+        else:
+            deferred_patches.append((name, patch))
+
+    # now we need to find the full module path so we can reload it
+    if inspect.ismodule(mod):
+        mod_name = mod.__name__
+        mpath = inspect.getsourcefile(mod)
+        mfile = mpath
+
+    else:
+        mod_name = mod
+
+        # http://stackoverflow.com/questions/4907054/
+        def find_mod_path(p):
+            if '.' in p:
+                p, m = p.rsplit('.', 1)
+                imod_path = find_mod_path(p)
+                mod_path = os.path.join(imod_path, m)
+                #mod = imp.load_module('{}_{}'.format(m, get_ascii(8)), *imp.find_module(m, imod.__path__))
+
+            else:
+                # we fudge the paths a bit to make sure current working directory is
+                # also checked
+                paths = [os.getcwd()]
+                paths.extend(sys.path)
+                _, mod_path, _ = imp.find_module(p, paths)
+
+            return mod_path
+
+        mpath = find_mod_path(mod_name)
+
+        mfile = mpath
+        # figure out if we have a package or a module and set the appropriate file
+        if os.path.isdir(mpath):
+            mfile = os.path.join(mpath, '__init__.py')
+
+        else:
+            if not mfile.endswith(".py"):
+                mfile = '{}.py'.format(mpath)
+
+    m = imp.load_source('{}_{}'.format(mod_name, get_ascii(8)), mfile)
+
+    # go through and apply all the patches
+    for patch_name, patch in deferred_patches:
+        setattr(m, patch_name, patch)
+
+    return m
+
+
 def patch(mod, patches=None, **kwargs_patches):
     '''
     import module_name and apply the patches to it
@@ -1125,15 +1141,10 @@ def patch(mod, patches=None, **kwargs_patches):
         return the module
     '''
     if isinstance(mod, basestring):
-        m = patch_module(mod, "", patches=patches, **kwargs_patches)
+        m = patch_module(mod, patches=patches, **kwargs_patches)
 
     elif inspect.ismodule(mod):
-        # TODO: right now we have an elaborate system to find out where the module is located
-        # based on its name, couldn't we just use inspect.getsourcefile instead?
-        # so we would change patch_module to handle both modpaths (eg, foo.bar)
-        # and also actual modules (eg, using inspect.getsourcefile(mod) to get
-        # the actual file)
-        m = patch_module(mod.__name__, "", patches=patches, **kwargs_patches)
+        m = patch_module(mod, patches=patches, **kwargs_patches)
 
     elif inspect.isclass(mod):
         m = patch_class(mod, patches=patches, **kwargs_patches)

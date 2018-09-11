@@ -20,6 +20,7 @@ import sys
 import logging
 
 import testdata
+from testdata import environ
 from testdata.test import TestCase, SkipTest
 from testdata.path import Filepath, Dirpath, ContentString, ContentBytes
 from testdata.compat import *
@@ -95,12 +96,12 @@ class ServerTest(TestCase):
         server = testdata.create_fileserver("foo")
         with server:
             res = testdata.fetch(server)
-            self.assertEqual("foo", res.content.decode())
+            self.assertEqual("foo", res.content)
 
         server = testdata.create_fileserver(["foo"])
         with server:
             res = testdata.fetch(server)
-            self.assertEqual("foo", res.content.decode())
+            self.assertEqual("foo", res.content)
 
     def test_serve(self):
         server = testdata.create_fileserver({
@@ -110,12 +111,12 @@ class ServerTest(TestCase):
 
         server.start()
         res = testdata.fetch(server.url("foo.txt"))
-        self.assertEqual("foo", res.content.decode())
+        self.assertEqual("foo", res.content)
         server.stop()
 
         with server:
             res = testdata.fetch(server.url("bar.txt"))
-            self.assertEqual("bar", res.content.decode())
+            self.assertEqual("bar", res.content)
 
         # !!! For some reason I couldn't create a new instance with the same port
         # and I'm not sure enough I care to fix it and nothing in this worked:
@@ -123,7 +124,27 @@ class ServerTest(TestCase):
         with testdata.create_fileserver({"che.txt": ["che"]}, port=(server.port + 1)) as s:
         #with testdata.create_fileserver({"che.txt": ["che"]}) as s:
             res = testdata.fetch(s.url("che.txt"))
-            self.assertEqual("che", res.content.decode())
+            self.assertEqual("che", res.content)
+
+    def test_server_encoding(self):
+        content = testdata.get_unicode_words()
+        server = testdata.create_fileserver({
+            "foo.txt": content,
+        })
+
+        with server:
+            res = testdata.fetch(server.url("foo.txt"))
+            self.assertEqual(environ.ENCODING.upper(), res.encoding.upper())
+            self.assertEqual(content, res.body)
+
+        server = testdata.create_fileserver({
+            "foo.txt": content,
+        }, encoding="UTF-16")
+
+        with server:
+            res = testdata.fetch(server.url("foo.txt"))
+            self.assertNotEqual("UTF-8", res.encoding.upper())
+            self.assertEqual(content, res.body)
 
 
 class PathTest(TestCase):
@@ -226,6 +247,12 @@ class PathTest(TestCase):
         f = d.create_file("foo/bar.txt")
         f2 = d.child("foo/bar.txt")
         self.assertTrue(isinstance(f2, Filepath))
+
+        f = d.child("foobar.txt")
+        self.assertTrue(isinstance(f2, Filepath))
+
+        d2 = d.child("barfoo.txt/")
+        self.assertTrue(isinstance(d2, Dirpath))
 
     def test_division(self):
         d = testdata.create_dir()
@@ -997,6 +1024,18 @@ class TestdataTest(TestCase):
         self.assertNotEqual(f.bam(), fm.bam())
         self.assertEqual(id(f), f.bam())
         self.assertEqual(id(fm), fm.bam())
+
+    def test_patch_module(self):
+        m = testdata.patch_module(environ, {"FOO": 1, "BAR": 2})
+        with self.assertRaises(AttributeError):
+            environ.FOO
+        self.assertEqual(1, m.FOO)
+
+
+        m = testdata.patch_module(environ.__name__, {"FOO": 1, "BAR": 2})
+        with self.assertRaises(AttributeError):
+            environ.FOO
+        self.assertEqual(1, m.FOO)
 
 
 class Thread2Test(TestCase):

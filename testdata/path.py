@@ -143,6 +143,10 @@ class Dirpath(String):
         return name
 
     @property
+    def basename(self):
+        return self.name
+
+    @property
     def fileroot(self):
         """see name"""
         return self.name
@@ -181,9 +185,9 @@ class Dirpath(String):
         os.umask(oldmask)
         return self
 
-    def create_file(self, relpath, contents=""):
+    def create_file(self, relpath, contents="", encoding=""):
         """create the file with path relative to this directory with contents"""
-        return Filepath.create_instance(relpath, contents, self)
+        return Filepath.create_instance(relpath, contents, self, encoding=encoding)
 
     def create_dir(self, relpath):
         """create a child directory relative to this directory"""
@@ -258,7 +262,12 @@ class Dirpath(String):
         if os.path.isfile(fullpath):
             ret = Filepath(relpath, self.basedir)
         else:
-            ret = type(self)(relpath, self.basedir)
+            # if path ends with a / or doesn't have a dot in it it is a dir,
+            # otherwise it's a file
+            if relpath.endswith("/") or not "." in relpath:
+                ret = type(self)(relpath, self.basedir)
+            else:
+                ret = Filepath(relpath, self.basedir)
 
         return ret
 
@@ -352,14 +361,18 @@ class Filepath(Dirpath):
         fileroot, ext = os.path.splitext(name)
         return ext.lstrip(".")
 
-    def __new__(cls, relpath, basedir=""):
+    def __new__(cls, relpath, basedir="", encoding=""):
         instance = super(Filepath, cls).__new__(cls, relpath, basedir)
-        instance.encoding='UTF-8'
+        if not encoding:
+            encoding = environ.ENCODING
+        instance.encoding = encoding
         return instance
 
     @classmethod
-    def create_instance(cls, relpath, contents="", basedir=""):
-        instance = cls(relpath, basedir)
+    def create_instance(cls, relpath, contents="", basedir="", encoding=""):
+        instance = cls(relpath, basedir, encoding)
+        instance.create(contents)
+
         return instance.create(contents)
 
     def exists(self):
@@ -372,8 +385,17 @@ class Filepath(Dirpath):
 
     def write(self, contents):
         """Unlike create, this will just write the contents into the file"""
+        return self.append(contents)
+
+    def replace(self, contents):
+        """replaces the current contents of file with contents"""
         with self.open("w+") as f:
-            f.truncate(0)
+            ret = f.write(self.normalize_contents(contents))
+        return ret
+
+    def append(self, contents):
+        """append the contents onto the end of the file"""
+        with self.open("a+") as f:
             ret = f.write(self.normalize_contents(contents))
         return ret
 
@@ -386,7 +408,7 @@ class Filepath(Dirpath):
         d = self.directory # just by doing this the directory will be created
         d.create()
         if contents:
-            self.write(contents)
+            self.replace(contents)
 
         else:
             if not self.exists():

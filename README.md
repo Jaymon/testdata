@@ -194,7 +194,7 @@ print d # /tmp/foo/bar
 ### create_file
 
 ```python
-create_file(path, contents=u"", tmpdir=u"")
+create_file(path, contents="", tmpdir="", encoding="")
 ```
 
 create a file with contents
@@ -210,7 +210,7 @@ print f # /tmp/foo/bar.txt
 ### create_files
 
 ```python
-create_files(file_dict, tmpdir=u"")
+create_files(file_dict, tmpdir="", encoding="")
 ```
 
 Create a whole bunch of files, the `file_dict` key is the filename, the value is the contents of the file.

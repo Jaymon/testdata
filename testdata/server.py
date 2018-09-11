@@ -31,6 +31,12 @@ class PathHandler(SimpleHTTPRequestHandler):
         fullpath = os.path.join(self.server.base_path, relpath)
         return fullpath
 
+    def send_header(self, keyword, value):
+        if keyword.lower() == "content-type":
+            value += "; charset={}".format(self.server.encoding)
+
+        SimpleHTTPRequestHandler.send_header(self, keyword, value)
+
 
 class AnyHandler(PathHandler):
     def send_head(self):
@@ -133,7 +139,7 @@ class CallbackHandler(AnyHandler):
                 if is_py2:
                     self.wfile.write(b)
                 else:
-                    self.wfile.write(bytes(b, "utf-8"))
+                    self.wfile.write(bytes(b, self.server.encoding))
 
     def __getattr__(self, k):
         if k.startswith("do_"):
@@ -150,17 +156,6 @@ class CallbackHandler(AnyHandler):
         return AnyHandler.send_header(self, keyword, value)
 
 
-
-
-# class CookieHandler(CallbackHandler):
-#     def end_headers(self):
-#         pout.v(self.headers)
-#         #c = cookie.SimpleCookie()
-#         for name, val in self.server.cookies:
-#             self.send_header("Set-Cookie", "{}={}".format(name, val))
-#         AnyHandler.end_headers(self)
-
-
 class Server(String):
     """This is the Webserver master class, it masquerades as a string whose value
     is the url scheme://hostname:port but adds helper methods to manage the webserver
@@ -174,12 +169,16 @@ class Server(String):
             ret = False
         return ret
 
-    def __new__(cls, hostname, port, handler_cls, server_cls):
+    def __new__(cls, hostname, port, handler_cls, server_cls, encoding=""):
         if not hostname: hostname = environ.HOSTNAME
         if port is None: port = environ.HOSTPORT
+        if not encoding: encoding = environ.ENCODING
+
         server = server_cls((hostname, port), handler_cls)
+        server.encoding = encoding
         netloc = "http://{}:{}".format(hostname, server.server_port)
         instance = super(Server, cls).__new__(cls, netloc)
+        instance.encoding = encoding
         instance.server = server
         instance.hostname = hostname
         instance.port = server.server_port
@@ -232,13 +231,31 @@ class Server(String):
 
 
 class AnyServer(Server):
-    def __new__(cls, hostname="", port=None, handler_cls=AnyHandler, server_cls=HTTPServer):
-        return super(AnyServer, cls).__new__(cls, hostname, port, handler_cls, server_cls)
+    def __new__(cls, hostname="", port=None, handler_cls=AnyHandler,
+                server_cls=HTTPServer, *args, **kwargs):
+        return super(AnyServer, cls).__new__(
+            cls,
+            hostname,
+            port,
+            handler_cls,
+            server_cls,
+            *args,
+            **kwargs
+        )
 
 
 class CallbackServer(AnyServer):
-    def __new__(cls, callbacks, hostname="", port=None, handler_cls=CallbackHandler, server_cls=HTTPServer):
-        instance = super(CallbackServer, cls).__new__(cls, hostname, port, handler_cls, server_cls)
+    def __new__(cls, callbacks, hostname="", port=None, handler_cls=CallbackHandler,
+                server_cls=HTTPServer, *args, **kwargs):
+        instance = super(CallbackServer, cls).__new__(
+            cls,
+            hostname,
+            port,
+            handler_cls,
+            server_cls,
+            *args,
+            **kwargs
+        )
 
         if isinstance(callbacks, Mapping):
             instance.server.callbacks = callbacks
@@ -335,8 +352,18 @@ class CookieServer(CallbackServer):
 
         return ret
 
-    def __new__(cls, cookies, hostname="", port=None, handler_cls=CallbackHandler, server_cls=HTTPServer):
-        instance = super(CookieServer, cls).__new__(cls, cls.callback, hostname, port, handler_cls, server_cls)
+    def __new__(cls, cookies, hostname="", port=None, handler_cls=CallbackHandler,
+                server_cls=HTTPServer, *args, **kwargs):
+        instance = super(CookieServer, cls).__new__(
+            cls,
+            cls.callback,
+            hostname,
+            port,
+            handler_cls,
+            server_cls,
+            *args,
+            **kwargs
+        )
 
         # we store cookies as (name, val) tuples because you could have cookies
         # with the same name but different paths and things like that so we want
@@ -360,8 +387,17 @@ class PathServer(Server):
         """returns the base path the server is serving from"""
         return self.server.path
 
-    def __new__(cls, base_path, hostname="", port=None, handler_cls=PathHandler, server_cls=HTTPServer):
-        instance = super(PathServer, cls).__new__(cls, hostname, port, handler_cls, server_cls)
+    def __new__(cls, base_path, hostname="", port=None, handler_cls=PathHandler,
+                server_cls=HTTPServer, *args, **kwargs):
+        instance = super(PathServer, cls).__new__(
+            cls,
+            hostname,
+            port,
+            handler_cls,
+            server_cls,
+            *args,
+            **kwargs
+        )
         instance.server.base_path = base_path
         return instance
 

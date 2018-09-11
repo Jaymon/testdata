@@ -9,8 +9,10 @@ import base64
 import socket
 import re
 import json
+import email.message
 
 from .compat import *
+from . import environ
 
 
 class Command(object):
@@ -197,6 +199,23 @@ class HTTPResponse(object):
     when you need a more full-featured solution
     """
     @property
+    def encoding(self):
+        encoding = environ.ENCODING
+        if "content-type" in self.headers:
+            em = email.message.Message()
+            em.add_header("content-type", self.headers["content-type"])
+            encoding = em.get_content_charset()
+            # https://stackoverflow.com/questions/29761905/default-encoding-of-http-post-request-with-json-body
+            if not encoding:
+                if self.http.is_json(self.headers):
+                    encoding = "UTF-8"
+                else:
+                    if self.headers["content-type"].startswith("text/"):
+                        encoding = "ISO-8859-1"
+
+        return encoding
+
+    @property
     def cookies(self):
         # https://stackoverflow.com/questions/25387340/is-comma-a-valid-character-in-cookie-value
         # https://stackoverflow.com/questions/21522586/python-convert-set-cookies-response-to-array-of-cookies
@@ -228,7 +247,7 @@ class HTTPResponse(object):
         if self.http.is_json(self.headers):
             body = self.json()
         else:
-            body = self._body
+            body = self._body.decode(self.encoding)
         return body
 
     def __init__(self, code, body, headers, http, response):
@@ -443,7 +462,7 @@ class HTTP(object):
             ret = json.dumps(body)
         else:
             ret = urlencode(body, doseq=True)
-        return ret if is_py2 else ret.encode("UTF-8")
+        return ret if is_py2 else ret.encode(environ.ENCODING)
 
     def is_json(self, headers):
         """return true if content_type is a json content type"""
