@@ -994,7 +994,6 @@ def patch_instance(mod, patches=None, **kwargs_patches):
 
     if not patches: patches = {}
     patches.update(kwargs_patches) # combine both dicts
-    if not patches: raise ValueError("patches dict is empty")
 
     for name, patch in patches.items():
         val = getattr(mod, name, None)
@@ -1023,7 +1022,6 @@ def patch_class(mod, patches=None, **kwargs_patches):
 
     if not patches: patches = {}
     patches.update(kwargs_patches) # combine both dicts
-    if not patches: raise ValueError("patches dict is empty")
 
     def copy_dict(mod):
         d = {}
@@ -1066,7 +1064,6 @@ def patch_module(mod, patches=None, **kwargs_patches):
 
     if not patches: patches = {}
     patches.update(kwargs_patches) # combine both dicts
-    if not patches: raise ValueError("patches dict is empty")
 
     deferred_patches = []
     patched_modules = {}
