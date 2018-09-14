@@ -3,7 +3,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import os
 import re
 import tempfile
-from distutils import dir_util
+from distutils import dir_util, file_util
 import codecs
 import shutil
 import sys
@@ -176,8 +176,13 @@ class Dirpath(String):
 
     @classmethod
     def create_instance(cls, relpath="", basedir=""):
-        instance = cls(relpath, basedir)
+        instance = cls.get_instance(relpath, basedir)
         return instance.create()
+
+    @classmethod
+    def get_instance(cls, relpath="", basedir=""):
+        instance = cls(relpath, basedir)
+        return instance
 
     def create(self):
         oldmask = os.umask(0)
@@ -189,15 +194,39 @@ class Dirpath(String):
         """create the file with path relative to this directory with contents"""
         return Filepath.create_instance(relpath, contents, self, encoding=encoding)
 
+    def get_file(self, relpath, encoding=""):
+        return Filepath.get_instance(relpath, self, encoding=encoding)
+
+    def create_files(self, file_dict, encoding=""):
+        """
+        create a whole bunch of files all at once
+
+        file_dict -- dict -- keys are the filepath relative to tmpdir, values are the
+            file contents
+        """
+        for file_name, contents in file_dict.items():
+            self.create_file(file_name, contents, encoding)
+        return self
+
     def create_dir(self, relpath):
         """create a child directory relative to this directory"""
-        return self.child(relpath).create()
+        return self.get_dir(relpath).create()
+
+    def get_dir(self, relpath):
+        """get a child directory relative to this directory"""
+        return self.child(relpath)
+
+    def create_dirs(dirs):
+        for name in dirs:
+            self.create_dir(name)
+        return self
 
     def delete(self):
         """Remove this whole directory and all subdirectories and files in it"""
         shutil.rmtree(self.path)
 
     def clear(self):
+        """Remove all the contents of this directory but leave the directory"""
         for root_dir, dirs, files in os.walk(self.path, topdown=True):
             for basename in files:
                 filepath = os.path.join(root_dir, basename)
@@ -228,10 +257,6 @@ class Dirpath(String):
 
         return basedir, relpath, path
 
-    def __iter__(self):
-        for f in self.files():
-            yield f
-
     def chmod(self, permissions):
         if isinstance(permissions, int):
             permissions = "{0:04d}".format(permissions)
@@ -243,6 +268,12 @@ class Dirpath(String):
 
         os.chmod(self.path, permissions)
 
+    def directories(self):
+        for basedir, directories, files in os.walk(self.path, topdown=True):
+            for basename in directories:
+                path = os.path.join(basedir, basename)
+                yield type(self)(path.replace(self.basedir, ""), self.basedir)
+
     def files(self):
         """iterate through all the files in this directory and subdirectories"""
         for basedir, directories, files in os.walk(self.path, topdown=True):
@@ -250,6 +281,24 @@ class Dirpath(String):
                 path = os.path.join(basedir, basename)
                 #yield Filepath(os.path.relpath(self.basedir, path), self.basedir)
                 yield Filepath(path.replace(self.basedir, ""), self.basedir)
+
+    def contents(self):
+        for basedir, directories, files in os.walk(self.path, topdown=True):
+            for basename in directories:
+                path = os.path.join(basedir, basename)
+                yield type(self)(path.replace(self.basedir, ""), self.basedir)
+
+            for basename in files:
+                path = os.path.join(basedir, basename)
+                yield Filepath(path.replace(self.basedir, ""), self.basedir)
+
+    def read(self):
+        """identical to contents()
+
+        in this form instead of read = contents so that you can override contents
+        and this will inherit the overridden functionality
+        """
+        return self.contents()
 
     def exists(self):
         """True if this directory actually exists"""
@@ -310,10 +359,38 @@ class Dirpath(String):
                     #yield Modulepath(u".".join(subbits), self.basedir)
                     yield submodule
 
+    def __iter__(self):
+        for f in self.files():
+            yield f
+
+    def __contains__(self, relpath):
+        v = self.child(relpath)
+        return v.exists()
+
     def __truediv__(self, other):
         """Synctactic sugar, allows self / "bit" to work"""
         return self.child(other)
     __div__ = __truediv__ # 2.x
+
+    #def copy_into(self, relpath="", source_path):
+    def copy_into(self, source_path):
+        relpath = ""
+        if os.path.isdir(source_path):
+            if relpath:
+                dest_path = self.create_dir(relpath)
+            else:
+                dest_path = self
+            # https://stackoverflow.com/a/15034373/5006
+            dir_util.copy_tree(source_path, dest_path, update=1)
+
+        else:
+            if not relpath:
+                relpath = os.path.basename(source_path)
+            dest_path = self.create_file(relpath)
+            file_util.copy_file(source_path, dest_path)
+
+    def put(self, source_path):
+        return self.copy_into(source_path)
 
 
 class Filepath(Dirpath):
@@ -370,10 +447,15 @@ class Filepath(Dirpath):
 
     @classmethod
     def create_instance(cls, relpath, contents="", basedir="", encoding=""):
-        instance = cls(relpath, basedir, encoding)
+        instance = cls.get_instance(relpath, basedir, encoding)
         instance.create(contents)
+        return instance
 
-        return instance.create(contents)
+    @classmethod
+    def get_instance(cls, relpath, basedir="", encoding=""):
+        """returns an instance but makes no guarrantees the file exists or its contents"""
+        instance = cls(relpath, basedir, encoding)
+        return instance
 
     def exists(self):
         """True if the file exists, False otherwise"""
@@ -445,16 +527,14 @@ class Filepath(Dirpath):
         for line in self.lines():
             yield line
 
+    def __contains__(self, s):
+        contents = self.contents()
+        return s in contents
+
     def normalize_contents(self, contents):
         if not isinstance(contents, basestring):
             contents = "\n".join(contents)
         return contents
-
-    def child(self, *bits):
-        raise NotImplementedError()
-
-    def files(self):
-        raise NotImplementedError()
 
     def run(self, arg_str="", **kwargs):
         """Treat this file like a script and execute it
@@ -464,6 +544,20 @@ class Filepath(Dirpath):
         """
         cmd = FileCommand(self)
         return cmd.run(arg_str, **kwargs)
+
+    def copy_into(self, source_path):
+        shutil.copy(source_path, self.path)
+
+    def child(self, *args, **kwargs):
+        raise NotImplementedError()
+    files = child
+    directories = child
+    get_file = child
+    get_dir = child
+    create_file = child
+    create_files = child
+    create_dir = child
+    create_dirs = child
 
 
 class Modulepath(Filepath):

@@ -29,6 +29,7 @@ from testdata import threading
 from testdata.output import Capture
 from testdata.server import AnyServer, CookieServer, CallbackServer
 from testdata.client import HTTP
+from testdata.utils import ByteString
 
 
 testdata.basic_logging()
@@ -148,6 +149,33 @@ class ServerTest(TestCase):
 
 
 class PathTest(TestCase):
+    def test_copy_into(self):
+        # directory into directory
+        source_d = testdata.create_files({
+            "foo.txt": testdata.get_words(),
+            "bar/che.txt": testdata.get_words(),
+        })
+        d = testdata.create_dir()
+        d.copy_into(source_d)
+        self.assertTrue("foo.txt" in d)
+        self.assertTrue("bar/che.txt" in d)
+
+        source_f = testdata.create_file("foo.txt", testdata.get_words())
+
+        # file into directory
+        d = testdata.create_dir()
+        d.copy_into(source_f)
+        self.assertTrue(source_f.basename in d)
+        dest_f = d.get_file(source_f.basename)
+        self.assertEqual(source_f.contents(), dest_f.contents())
+
+        # file into file
+        dest_f = testdata.create_file("foo.txt", testdata.get_words())
+        self.assertNotEqual(source_f.contents(), dest_f.contents())
+        dest_f.copy_into(source_f)
+        self.assertEqual(source_f.contents(), dest_f.contents())
+        self.assertTrue(source_f.contents() in dest_f.contents())
+
     def test_dirpath_clear(self):
         d = testdata.create_dir()
         foo_f = d.create_file("foo.txt", "foo")
@@ -541,7 +569,7 @@ class TestdataTest(TestCase):
         count = 0
         for f in path:
             for rp, v in ts.items():
-                if rp in f:
+                if rp in f.path:
                     count += 1
                     self.assertEqual(v, f.contents())
 
@@ -1353,7 +1381,6 @@ class ServiceTest(testdata.TestCase):
         raise self.skip_test()
 
 
-from testdata.utils import ByteString
 class UtilsTest(testdata.TestCase):
     def test_conversion(self):
         s = testdata.get_unicode()
@@ -1364,5 +1391,5 @@ class UtilsTest(testdata.TestCase):
         self.assertEqual(s, bs.unicode())
         self.assertEqual(s, bs2.unicode())
         self.assertEqual(s, unicode(bs2))
-        self.assertNotEqual(s, bytes(bs2))
+        # self.assertNotEqual(s, bytes(bs2)) # this prints a UnicodeWarning
 

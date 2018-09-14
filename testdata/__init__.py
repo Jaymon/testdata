@@ -30,16 +30,18 @@ import time
 from time import sleep
 
 from .compat import *
-from .data import _names, \
-    _unicode_names, \
-    _ascii_paragraphs, \
-    _unicode_paragraphs, \
-    _ascii_words, \
-    _unicode_words, \
-    _words, \
-    _first_names_male, \
-    _first_names_female, \
+from .data import (
+    _names,
+    _unicode_names,
+    _ascii_paragraphs,
+    _unicode_paragraphs,
+    _ascii_words,
+    _unicode_words,
+    _words,
+    _first_names_male,
+    _first_names_female,
     _last_names
+)
 
 from .path import Dirpath, Filepath, Modulepath, ContentBytes, ContentString
 from .threading import Thread
@@ -50,7 +52,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.6.32'
+__version__ = '0.6.33'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -402,8 +404,7 @@ def create_files(file_dict, tmpdir="", encoding=""):
     tmpdir -- Dirpath -- same as create_module() tmpdir
     """
     base_dir = Dirpath(basedir=tmpdir)
-    for file_name, contents in file_dict.items():
-        base_dir.create_file(file_name, contents, encoding)
+    base_dir.create_files(file_dict, encoding)
     return base_dir
 
 
