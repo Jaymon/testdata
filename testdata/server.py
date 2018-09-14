@@ -226,6 +226,11 @@ class Server(String):
     def stop(self):
         """stop the webserver"""
         if self.started:
+            # I have no idea what the difference between .server_shutdown() and
+            # shutdown() is but adding .server_close() got rid of the open file
+            # warning in python3
+            if not is_py2:
+                self.server.server_close()
             self.server.shutdown()
             self.thread = None
 

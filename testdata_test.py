@@ -36,6 +36,15 @@ testdata.basic_logging()
 
 
 class ServerTest(TestCase):
+    def test_close(self):
+        content = testdata.get_unicode_words()
+        server = testdata.create_fileserver({
+            "foo.txt": content
+        })
+
+        with server:
+            pass
+
     def test_callback(self):
         def do_GET(handler):
             return None
