@@ -52,7 +52,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.6.33'
+__version__ = '0.6.34'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -364,13 +364,25 @@ def create_dir(path="", tmpdir=""):
     so, if you pass in "/foo/bar" that will be combined with a tempdir, so you end 
     up with the final path: /tmp/python/dir/foo/bar
 
-    path -- string -- the temp dir path
-    tmpdir -- string -- the temp directory to use as the base
-
-    return -- Dirpath -- the full directory path
+    :param path: string, the temp dir path
+    :param tmpdir: string, the temp directory to use as the base
+    :returns: Dirpath, the full directory path
     '''
     return Dirpath.create_instance(path, tmpdir)
 create_directory = create_dir
+create_d = create_dir
+
+
+def get_dir(path):
+    """
+    return a directory path
+
+    :param path: string, the path to a real directory
+    :returns: Dirpath, the path wrapped with all the Dirpath functionality
+    """
+    return Dirpath.get_instance(path)
+get_directory = get_dir
+get_d = get_dir
 
 
 def create_file(path, contents="", tmpdir="", encoding=""):
@@ -393,6 +405,7 @@ def create_file(path, contents="", tmpdir="", encoding=""):
     else:
         instance = Filepath.create_instance(path, contents, tmpdir, encoding)
     return instance
+create_f = create_file
 
 
 def create_files(file_dict, tmpdir="", encoding=""):
@@ -406,6 +419,7 @@ def create_files(file_dict, tmpdir="", encoding=""):
     base_dir = Dirpath(basedir=tmpdir)
     base_dir.create_files(file_dict, encoding)
     return base_dir
+create_fs = create_files
 
 
 def get_file(path="", tmpdir="", encoding=""):
@@ -413,6 +427,7 @@ def get_file(path="", tmpdir="", encoding=""):
         path = get_ascii()
 
     return Filepath(path, tmpdir, encoding)
+get_f = get_file
 
 
 def create_module(module_name, contents="", tmpdir="", make_importable=True):

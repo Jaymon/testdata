@@ -14,7 +14,7 @@ To install, use Pip:
 
 Or, with Pip using Github:
 
-    pip install git+https://github.com/Jaymon/testdata#egg=testdata
+    pip install --upgrade git+https://github.com/Jaymon/testdata#egg=testdata
 
 
 ## Functionality
@@ -178,7 +178,7 @@ with server: # the with handles starting and stopping the server
 ### create_dir
 
 ```python
-create_dir(path, tmpdir=u"")
+create_dir(path, tmpdir="")
 ```
 
 create a directory hierarchy
@@ -240,7 +240,7 @@ This will return a `Filepath` instance that you can manipulate but unlike `creat
 ### create_module
 
 ```python
-create_module(module_name, contents=u"", tmpdir=u"", make_importable=True)
+create_module(module_name, contents="", tmpdir="", make_importable=True)
 ```
 
 create a module with python contents that can be imported
@@ -256,7 +256,7 @@ print f # /tmp/foo/bar.py
 ### create_modules
 
 ```python
-create_modules(module_dict, tmpdir=u"", make_importable=True)
+create_modules(module_dict, tmpdir="", make_importable=True)
 ```
 
 create a whole bunch of modules at once
@@ -296,7 +296,7 @@ get_md5(val="")
 return an md5 hash of val (if passed in) or a random val if val is empty
 
     >>> testdata.get_md5()
-    'b165765400b30772f1d9b3975ce77320'
+    'e165765400b30772f1d9b3975ce77320'
 
 
 -------------------------------------------------------------------------------
@@ -310,7 +310,7 @@ get_hash(str_size=32)
 return a random hash
 
     >>> testdata.get_hash()
-    u"jYw3HseUl8GLoMc8QejLYFogC2lUYoUu"
+    "jYw3HseUl8GLoMc8QejLYFogC2lUYoUs"
 
 
 -------------------------------------------------------------------------------
@@ -390,7 +390,7 @@ get_str(str_size=0, chars=None)
 return random characters, which can be unicode.
 
     >>> testdata.get_str()
-    u"q\x0bwZ\u79755\ud077\u027aYm\ud0d8JK\x07\U0010df418tx\x16"
+    "q\x0bwZ\u79755\ud077\u027aYm\ud0d8JK\x07\U0010df418tx\x16"
 
 -------------------------------------------------------------------------------
 
@@ -416,7 +416,7 @@ get_words(word_count=0, as_str=True)
 return a random amount of words, which can be unicode.
 
     >>> testdata.get_words()
-    u"\u043f\u043e\u043d\u044f\u0442\u044c \u043c\u043e\u0436\u043d\u043e felis, habitasse ultrices Nam \u0436\u0435\u043d\u0430"
+    "\u043f\u043e\u043d\u044f\u0442\u044c \u043c\u043e\u0436\u043d\u043e felis, habitasse ultrices Nam \u0436\u0435\u043d\u0430"
 
 -------------------------------------------------------------------------------
 
