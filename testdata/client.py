@@ -248,6 +248,10 @@ class HTTPResponse(object):
             body = self.json()
         else:
             body = self._body.decode(self.encoding)
+#             if isinstance(self._body, basestring):
+#                 body = self._body.decode(self.encoding)
+#             else:
+#                 body = self._body
         return body
 
     def __init__(self, code, body, headers, http, response):

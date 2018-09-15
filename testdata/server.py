@@ -184,6 +184,9 @@ class Server(String):
         instance.port = server.server_port
         return instance
 
+    def __del__(self):
+        self.server.server_close()
+
     def __enter__(self):
         """Allows webserver to be used with "with" keyword"""
         self.start()
@@ -218,6 +221,7 @@ class Server(String):
             except Exception as e:
                 raise
 
+        #from threading import Thread
         th = Thread(target=target)
         th.daemon = True
         th.start()
@@ -226,11 +230,6 @@ class Server(String):
     def stop(self):
         """stop the webserver"""
         if self.started:
-            # I have no idea what the difference between .server_shutdown() and
-            # shutdown() is but adding .server_close() got rid of the open file
-            # warning in python3
-            if not is_py2:
-                self.server.server_close()
             self.server.shutdown()
             self.thread = None
 
@@ -383,14 +382,11 @@ class CookieServer(CallbackServer):
 
 class PathServer(Server):
     @property
-    def directory(self):
-        """alias for self.path"""
-        return self.path
-
-    @property
     def path(self):
         """returns the base path the server is serving from"""
-        return self.server.path
+        return self.server.base_path
+    directory = path
+    base_path = path
 
     def __new__(cls, base_path, hostname="", port=None, handler_cls=PathHandler,
                 server_cls=HTTPServer, *args, **kwargs):

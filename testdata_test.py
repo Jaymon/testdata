@@ -113,7 +113,7 @@ class ServerTest(TestCase):
             res = testdata.fetch(server)
             self.assertEqual("foo", res.content)
 
-    def test_serve(self):
+    def test_serve_1(self):
         server = testdata.create_fileserver({
             "foo.txt": ["foo"],
             "bar.txt": ["bar"],
@@ -129,7 +129,7 @@ class ServerTest(TestCase):
             self.assertEqual("bar", res.content)
 
         # !!! For some reason I couldn't create a new instance with the same port
-        # and I'm not sure enough I care to fix it and nothing in this worked:
+        # and I'm not sure I care enough to fix it and nothing in this worked:
         # https://stackoverflow.com/questions/6380057/python-binding-socket-address-already-in-use
         with testdata.create_fileserver({"che.txt": ["che"]}, port=(server.port + 1)) as s:
         #with testdata.create_fileserver({"che.txt": ["che"]}) as s:
@@ -158,6 +158,15 @@ class ServerTest(TestCase):
 
 
 class PathTest(TestCase):
+    def test_existing_file_creation(self):
+        path = testdata.create_dir()
+        d2 = testdata.create_dir(path)
+        self.assertEqual(path, d2)
+
+        relpath = "/foo1/bar1/test.txt"
+        s = "happy"
+        f = testdata.create_file(relpath, s)
+
     def test_copy_into(self):
         # directory into directory
         source_d = testdata.create_files({
@@ -259,7 +268,10 @@ class PathTest(TestCase):
 
     def test_permissions(self):
         f = testdata.create_file("permissions.txt")
-        self.assertRegexpMatches(f.permissions, "0[0-7]{3}")
+        if is_py2:
+            self.assertRegexpMatches(f.permissions, r"0[0-7]{3}")
+        else:
+            self.assertRegex(f.permissions, r"0[0-7]{3}")
 
         f.chmod("0755")
         self.assertEqual("0755", f.permissions)
@@ -543,7 +555,6 @@ class TestdataTest(TestCase):
 
         self.assertEqual(words, f.contents())
 
-
     def test_create_file(self):
         ts = [
             "\\foo\\bar\\test.txt",
@@ -552,7 +563,7 @@ class TestdataTest(TestCase):
             "foo3/test.txt",
             "foo4/bar4/che4/test.txt",
         ]
-        s = u"happy"
+        s = "happy"
 
         for t in ts:
             f = testdata.create_file(t, s)
@@ -816,20 +827,23 @@ class TestdataTest(TestCase):
             raise UnicodeError('well what do you know, get_str() returned all ascii')
 
         s = testdata.get_str(24, chars=string.hexdigits.lower())
-        self.assertNotEqual(u"", s)
+        self.assertNotEqual("", s)
         self.assertEqual(24, len(s))
 
     def test_get_ascii(self):
         s = testdata.get_ascii()
-        self.assertNotEqual(u"", s)
+        self.assertNotEqual("", s)
 
         s = testdata.get_ascii(3)
         self.assertEqual(3, len(s))
 
     def test_get_url(self):
         s = testdata.get_url()
-        self.assertNotEqual(u"", s)
-        self.assertRegexpMatches(s, 'https?\://\S*')
+        self.assertNotEqual("", s)
+        if is_py2:
+            self.assertRegexpMatches(s, r'https?\://\S*')
+        else:
+            self.assertRegex(s, r'https?\://\S*')
 
     def test_get_int(self):
         i = testdata.get_int()
@@ -1075,34 +1089,77 @@ class TestdataTest(TestCase):
         self.assertEqual(1, m.FOO)
 
 
-class Thread2Test(TestCase):
-    @classmethod
-    def setUpClass(cls):
+# !!! This test no longer works (IT SHOULD BE REMOVED IN THE FUTURE) because the
+# queue is no longer global, so one thread can't fail on another thread's error
+# class Thread2Test(TestCase):
+#     @classmethod
+#     def setUpClass(cls):
+#         def run():
+#             time.sleep(0.5)
+#             raise ValueError("setUpClass")
+#         thread = Thread(target=run)
+#         thread.daemon = True
+#         thread.start()
+# 
+#     def test_raise_error_daemon_start(self):
+#         def run1():
+#             time.sleep(1)
+# 
+#         with self.assertRaises(ValueError):
+#             t1 = Thread(target=run1)
+#             t1.daemon = True
+#             t1.start()
+#             t1.join()
+
+
+class Thread3Test(TestCase):
+    def setUp(self):
+        # !!! this test can trigger a keyboard interrupt error, but I normally don't
+        # need to do that so only comment out if needed
+        self.skip_test()
+        pass
+
+    def test_lifecycle_1(self):
         def run():
-            time.sleep(0.5)
-            raise ValueError("setUpClass")
+            time.sleep(0.25)
+            raise ValueError("lifecycle 1")
+
         thread = Thread(target=run)
         thread.daemon = True
         thread.start()
 
-    def test_raise_error_daemon_start(self):
-        def run1():
-            time.sleep(1)
+        while not thread.exception:
+            pass
 
-        with self.assertRaises(ValueError):
-            t1 = Thread(target=run1)
-            t1.daemon = True
-            t1.start()
-            t1.join()
+        pout.v(thread.exception)
+        #time.sleep(1)
+
+    def test_lifecycle_2(self):
+        def run():
+            time.sleep(0.25)
+            raise ValueError("lifecycle 2")
+
+        thread = Thread(target=run)
+        thread.daemon = True
+        thread.start()
+
+#         while not thread.exception:
+#             pass
+# 
+#         pout.v(thread.exception)
+        #time.sleep(1)
 
 
 class ThreadTest(TestCase):
-    def tearDown(self):
-        # clear the queue to make sure one test doesn't inherit the error of another test
-        q = threading.exc_queue
-        while not q.empty():
-            q.get(False)
-            q.task_done()
+#     def tearDown(self):
+#         # clear the queue to make sure one test doesn't inherit the error of another test
+#         q = threading.exc_queue
+#         while not q.empty():
+#             q.get(False)
+#             q.task_done()
+
+    def test_foobar(self):
+        pass
 
     def test_success(self):
         q = queue.Queue()

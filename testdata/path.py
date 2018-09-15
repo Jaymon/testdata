@@ -237,7 +237,7 @@ class Dirpath(String):
                 shutil.rmtree(dirpath)
 
     @classmethod
-    def normalize(cls, relpath, basedir=""):
+    def normalize2(cls, relpath, basedir=""):
         '''normalize a path, accounting for things like windows dir seps'''
         if relpath and relpath[0] == '.':
             raise ValueError("you cannot start a path with ./ or ../")
@@ -254,6 +254,42 @@ class Dirpath(String):
 
         else:
             path = basedir
+
+        return basedir, relpath, path
+
+
+    @classmethod
+    def normalize(cls, relpath, basedir=""):
+        '''normalize a path, accounting for things like windows dir seps'''
+        relpath = String(relpath)
+        basedir = String(basedir)
+
+        if relpath and not basedir and re.match(r"^[\.~\\/]|(?:[a-zA-Z]\:)", relpath) and os.path.exists(relpath):
+        #if relpath and not basedir and re.match(r"^[\.~\\/]|(?:[a-zA-Z]\:)", relpath):
+            path = os.path.abspath(os.path.expanduser(relpath))
+            if os.path.isdir(path):
+                basedir = path
+                relpath = ""
+            elif os.path.isfile(path):
+                basedir = os.path.dirname(path)
+                relpath = os.path.basename(path)
+
+        else:
+            if relpath and relpath[0] == '.':
+                raise ValueError("You cannot start a path with ./ or ../")
+
+            if not basedir:
+                basedir = tempfile.mkdtemp(dir=environ.TEMPDIR)
+
+            if relpath:
+                relpath = os.path.normpath(relpath)
+                # for some reason, os.path.split() wouldn't work with the windows slash (\)
+                relpath = re.sub(r"[\\/]+", os.sep, relpath)
+                relpath = relpath.lstrip(os.sep)
+                path = os.path.join(basedir, relpath)
+
+            else:
+                path = basedir
 
         return basedir, relpath, path
 
