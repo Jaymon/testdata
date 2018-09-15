@@ -40,9 +40,12 @@ class Thread(threading.Thread):
     property
 
     https://stackoverflow.com/questions/2829329/catch-a-threads-exception-in-the-caller-thread-in-python
+    https://stackoverflow.com/questions/323972/is-there-any-way-to-kill-a-thread-in-python
+    https://stackoverflow.com/questions/2564137/python-how-to-terminate-a-thread-when-main-program-ends
 
     search:
         python3 raise error on MainThread from child thread
+        how does python finish and clean up a thread that stops
     """
     def __init__(self, *args, **kwargs):
         super(Thread, self).__init__(*args, **kwargs)
