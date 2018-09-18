@@ -757,6 +757,10 @@ class TestdataTest(TestCase):
         name = testdata.get_name(name_count=1)
         self.assertNotEqual(u"", name)
 
+    def test_get_unique_email(self):
+        email = testdata.get_unique_email()
+        self.assertFalse(" " in email)
+
     def test_get_email(self):
         email = testdata.get_email()
         self.assertGreater(len(email), 0)

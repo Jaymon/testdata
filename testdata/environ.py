@@ -18,9 +18,14 @@ CONTENTS_DIR = os.environ.get("TESTDATA_CONTENTS_DIR", "")
 
 # The server hostname and port information
 HOSTNAME = os.environ.get("TESTDATA_HOSTNAME", "127.0.0.1")
-#HOSTPORT = int(os.environ.get("TESTDATA_HOSTPORT", 8765))
 HOSTPORT = int(os.environ.get("TESTDATA_HOSTPORT", 0))
 
-# the default encoding for things (not fully supported)
-ENCODING = "UTF-8"
+# the default encoding for things (not fully supported/used throughout the
+# codebase), added 9-2018
+ENCODING = os.environ.get("TESTDATA_ENCODING", "UTF-8")
+
+# the cap for maximum unique values, this is just here to keep from leaking
+# memory, the unique float and int functions will trim the list after this many
+# unique values
+MAX_UNIQUE = int(os.environ.get("TESTDATA_MAX_UNIQUE", 1000000))
 

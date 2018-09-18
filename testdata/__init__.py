@@ -11,13 +11,13 @@ you can get all the unicode chars and their names: ftp://ftp.unicode.org/
 from __future__ import unicode_literals, division, print_function, absolute_import
 import re
 import random
+from random import randint, choice # expose common random functions so testdata.function works
 import string
 import sys
 import tempfile
 import os
 import codecs
 import datetime
-from random import randint # make it possible to do testdata.randint so 2 imports aren't needed
 from collections import deque, Sequence
 import types
 import imp
@@ -43,6 +43,7 @@ from .data import (
     _last_names
 )
 
+from . import environ
 from .path import Dirpath, Filepath, Modulepath, ContentBytes, ContentString
 from .threading import Thread
 from .output import Capture
@@ -52,7 +53,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.6.34'
+__version__ = '0.6.35'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -647,8 +648,36 @@ def get_uuid():
 
 
 def get_float(min_size=None, max_size=None):
+    """return a random float
+
+    sames as the random method but automatically sets min and max
+
+    :param min_size: float, the minimum float size you want
+    :param max_size: float, the maximum float size you want
+    :returns: float, a random value between min_size and max_size
+    """
+    float_info = sys.float_info
+    if min_size is None:
+        min_size = float_info.min
+    if max_size is None:
+        max_size = float_info.max
+    return random.uniform(min_size, max_size)
+
+
+def get_posfloat(max_size=None):
+    """Similar to get_float but the random float will always be positive
+
+    :param max_size: float, the maximum float size
+    :returns: float, a random float between 0.0 and max_size
+    """
+    return get_float(0.0, max_size)
+get_positive_float = get_posfloat
+get_positivefloat = get_posfloat
+
+
+def get_unique_float(min_size=None, max_size=None):
     '''
-    get a random float
+    get a random unique float
 
     no different than random.uniform() except it automatically can set range, and
     guarrantees that no 2 floats are the same
@@ -657,23 +686,18 @@ def get_float(min_size=None, max_size=None):
     '''
     global _previous_floats
 
-    float_info = sys.float_info
-    if min_size is None:
-        min_size = float_info.min
-    if max_size is None:
-        max_size = float_info.max
-
     i = 0;
     while True:
-        i = random.uniform(min_size, max_size)
+        i = get_float(min_size, max_size)
         if i not in _previous_floats:
             _previous_floats.add(i)
             # we cap the list at 100000 unique values
-            if len(_previous_floats) > 100000:
+            if len(_previous_floats) > environ.MAX_UNIQUE:
                 _previous_floats.pop()
             break
 
     return i
+get_uniq_float = get_unique_float
 
 
 def get_posint(max_size=2**31-1):
@@ -690,25 +714,25 @@ get_posinteger = get_posint
 
 
 def get_int(min_size=1, max_size=sys.maxsize):
-    return get_unique_int(min_size, max_size)
+    return random.randint(min_size, max_size)
 get_integer=get_int
 
 
 def get_int32(min_size=1):
-    """returns a unique 32-bit positive integer"""
-    return get_unique_int(min_size, 2**31-1)
+    """returns a 32-bit positive integer"""
+    return random.randint(min_size, 2**31-1)
 get_integer32=get_int32
 
 
 def get_int64(min_size=1):
-    """returns up to a unique 64-bit positive integer"""
-    return get_unique_int(min_size, 2**63-1)
+    """returns up to a 64-bit positive integer"""
+    return random.randint(min_size, 2**63-1)
 get_integer64=get_int64
 
 
 def get_unique_int(min_size=1, max_size=sys.maxsize):
     '''
-    get a random integer
+    get a random unique integer
 
     no different than random.randint except that it guarrantees no int will be
     the same, and also you don't have to set a range, it will default to all max
@@ -727,7 +751,7 @@ def get_unique_int(min_size=1, max_size=sys.maxsize):
             found = True
             _previous_ints.add(i)
             # we cap the list at 100000 unique values
-            if len(_previous_ints) > 100000:
+            if len(_previous_ints) > environ.MAX_UNIQUE:
                 _previous_ints.pop()
             break
 
@@ -784,8 +808,16 @@ def get_word(words=None):
     return get_words(1, as_str=True, words=words)
 
 
+def get_username(name=""):
+    """Returns just a non-space ascii name, this is a very basic username generator"""
+    if not name:
+        name = get_ascii_first_name() if yes() else get_ascii_last_name()
+    name = re.sub(r"['-]", "", name)
+    return name
+
+
 def get_unique_email(name=''):
-    if not name: name = get_ascii_name()
+    name = get_username(name)
     timestamp = "{:.6f}".format(time.time()).replace(".", "")
     return get_email(name + timestamp)
 get_uniq_email = get_unique_email
@@ -793,9 +825,7 @@ get_uniq_email = get_unique_email
 
 def get_email(name=''):
     '''return a random email address'''
-    if not name: name = get_ascii_name()
-    name = re.sub(r"['-]", "", name)
-
+    name = get_username(name)
     email_domains = [
         "yahoo.com",
         "hotmail.com",
@@ -1266,14 +1296,15 @@ def get_between_datetime(start, stop=None):
 get_between_dt = get_between_datetime
 
 
-# used in the get_int() method to make sure it never returns the same int twice
+# used in the get_unique_int() function to make sure it never returns the same int twice
 # this is a possible memory leak if you are using this script in a very long running
 # process using get_int(), since this list will get bigger and bigger and never
-# be flushed, but seriously, you should just use random.randint() in any long running
-# scripts. In order to minimize the memory leak we cap the list at 100k unique values
+# be flushed, but seriously, you should just use get_int() or random.randint() in any
+# long running scripts. In order to minimize the memory leak we cap the list at
+# environ.MAX_UNIQUE unique values
 _previous_ints = set()
 
-# similar to get_int()
+# similar to _previous_ints, used in get_unique_float() function
 _previous_floats = set()
 
 
