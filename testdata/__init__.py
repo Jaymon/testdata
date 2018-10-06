@@ -606,10 +606,19 @@ def get_ascii(str_size=0):
     '''
     chars=string.ascii_letters + string.digits
     return get_str(str_size=str_size, chars=chars)
+get_ascii_str = get_ascii
+get_ascii_string = get_ascii
+get_alphanum = get_ascii
+get_alphanum_str = get_ascii
+get_alphanum_string = get_ascii
+get_alphanumeric = get_ascii
+get_alphanumeric_str = get_ascii
+get_alphanumeric_string = get_ascii
 
 
 def get_hash(str_size=32):
-    """Returns a random hash, if you want an md5 use get_md5()"""
+    """Returns a random hash, if you want an md5 use get_md5(), if you want an
+    uuid use get_uuid()"""
     return get_ascii(str_size)
 
 
