@@ -692,6 +692,28 @@ class TestdataTest(TestCase):
         mp = r.modpath("{}.foo".format(prefix))
         self.assertTrue(mp.is_package())
 
+    def test_create_modules_4(self):
+        """I discovered a bug while fixing some stuff in pyt where create_modules
+        seems to create a structure like prefix/prefix/modname.py instead of 
+        prefix/modname.py
+        """
+        basedir = testdata.create_dir()
+        prefix = "testdata_cm4"
+        r = testdata.create_modules({
+            "foo": [
+                "class Foo(object): pass",
+            ],
+            "bar": [
+                "class Bar(object): pass",
+            ],
+        }, basedir, prefix=prefix)
+
+        p = os.path.join(basedir, prefix)
+        self.assertTrue(os.path.isdir(p))
+
+        p2 = os.path.join(p, prefix)
+        self.assertFalse(os.path.isdir(p2))
+
     def test_create_package(self):
         prefix = "foo"
         contents = os.linesep.join([
