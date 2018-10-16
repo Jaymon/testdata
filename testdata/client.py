@@ -71,15 +71,25 @@ class Command(object):
         sys.stdout.flush()
 
     def create_cmd(self, arg_str):
-        if isinstance(self.command, basestring):
-            if arg_str:
-                cmd = self.command + " " + arg_str
+        if self.command:
+            if isinstance(self.command, basestring):
+                cmd = self.command
+                if arg_str:
+                    if isinstance(arg_str, basestring):
+                        cmd += " " + arg_str
+                    else:
+                        cmd += " ".join(arg_str)
+
             else:
                 cmd = self.command
+                if arg_str:
+                    if isinstance(arg_str, basestring):
+                        cmd.append(arg_str)
+                    else:
+                        cmd.extend(arg_str)
+
         else:
-            cmd = self.command
-            if arg_str:
-                cmd.append(arg_str)
+            cmd = arg_str
 
         return cmd
 
@@ -159,21 +169,80 @@ class Command(object):
 
 class ModuleCommand(Command):
     """This sets the client up so you can just pass the module name and have everything
-    just work"""
+    just work
+
+    :Example:
+        #You can setup this command 2 ways
+
+        # 1 - pass in the module name
+        c = ModuleCommand("module_name")
+
+        # 2 - have the parent set it
+        class MyCommand(ModuleCommand):
+            name = "module_name"
+        c = MyCommand()
+    """
     cmd_prefix = "{} -m".format(sys.executable)
     """this is what will be used to invoke captain from the command line when run()
     is called"""
 
+    name = ""
+    """This is the module name you want to run"""
+
+    def __init__(self, name="", cwd="", environ=None):
+        if name:
+            self.name = name
+
+        if not self.name:
+            raise ValueError("No name specified")
+
+        super(ModuleCommand, self).__init__(None, cwd=cwd, environ=environ)
+
     def create_cmd(self, arg_str):
         cmd = super(ModuleCommand, self).create_cmd(arg_str)
-        if not isinstance(cmd, basestring):
-            cmd = " ".join(cmd)
-        return "{} {}".format(self.cmd_prefix, cmd)
+        if isinstance(cmd, basestring):
+            ret = "{} {} {}".format(self.cmd_prefix, self.name, cmd)
+
+        else:
+            ret = re.split(r"\s+", self.cmd_prefix)
+            ret.append(self.name)
+            ret.extend(cmd)
+
+        return ret
 
 
 class FileCommand(ModuleCommand):
-    """This will add the .py to a script so you don't have to"""
+    """This will add the .py to a script so you don't have to
+
+    an example might be best to understand how the command gets put together
+
+    Let's say you wanted to run this path:
+
+        /foo/bar/program.py
+
+    You could configure this class like this:
+
+        class ProgamCommand(FileCommand):
+            script_prefix = "/foo/bar"
+            name = "program"
+
+    Then when you need to run program.py, you only need to do:
+
+        p = ProgramCommand()
+        p.run() # runs "python /foo/bar/program.py"
+
+    But you also could run it:
+
+        p = FileCommand("/foo/bar/program.py")
+
+    or:
+        class ProgamCommand(FileCommand):
+            script_prefix = "/foo/bar"
+
+        p = ProgramCommand("program")
+    """
     cmd_prefix = sys.executable
+    """If you have a space in the executable path that might be really bad"""
 
     script_prefix = ""
     """this will be prepended to the passed in script on initialization"""
@@ -182,7 +251,13 @@ class FileCommand(ModuleCommand):
     """this will be appended to the passed in script on initialization"""
 
     def __init__(self, fileroot, cwd="", environ=None):
-        path = fileroot
+        if fileroot:
+            self.name = fileroot
+
+        if not self.name:
+            raise ValueError("no name found")
+
+        path = self.name
         if self.script_prefix and not fileroot.startswith(self.script_prefix):
             path = os.path.join(self.script_prefix.rstrip("/"), fileroot)
 
@@ -190,7 +265,6 @@ class FileCommand(ModuleCommand):
             path += self.script_postfix
 
         super(FileCommand, self).__init__(path, cwd=cwd, environ=environ)
-
 
 
 class HTTPResponse(object):

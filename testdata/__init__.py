@@ -53,7 +53,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.6.36'
+__version__ = '0.6.37'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
