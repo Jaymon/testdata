@@ -749,6 +749,13 @@ class TestdataTest(TestCase):
         name = testdata.get_name(is_unicode=False)
         self.assertAscii(name)
 
+        for x in range(100):
+            fname = testdata.get_first_name()
+            self.assertFalse(re.search(r"\s+", fname))
+
+            fname = testdata.get_ascii_first_name()
+            self.assertFalse(re.search(r"\s+", fname))
+
     def test_get_ascii_name(self):
         name = testdata.get_ascii_name()
         self.assertGreater(len(name), 0)
