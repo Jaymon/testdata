@@ -505,7 +505,7 @@ class Filepath(Dirpath):
             return codecs.open(self.path, encoding=self.encoding, mode=mode)
 
         else:
-            return open(self.path)
+            return open(self.path, mode=mode)
 
     def write(self, contents):
         """Unlike create, this will just write the contents into the file"""
