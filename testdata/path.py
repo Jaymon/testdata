@@ -499,8 +499,11 @@ class Filepath(Dirpath):
         """True if the file exists, False otherwise"""
         return os.path.isfile(self.path)
 
-    def open(self, mode="r"):
+    def open(self, mode=""):
         """open the file"""
+        if not mode:
+            mode = "r" if self.encoding else "br"
+
         if self.encoding:
             return codecs.open(self.path, encoding=self.encoding, mode=mode)
 
@@ -513,13 +516,15 @@ class Filepath(Dirpath):
 
     def replace(self, contents):
         """replaces the current contents of file with contents"""
-        with self.open("w+") as f:
+        mode = "w+" if self.encoding else "bw+"
+        with self.open(mode) as f:
             ret = f.write(self.normalize_contents(contents))
         return ret
 
     def append(self, contents):
         """append the contents onto the end of the file"""
-        with self.open("a+") as f:
+        mode = "a+" if self.encoding else "ba+"
+        with self.open(mode) as f:
             ret = f.write(self.normalize_contents(contents))
         return ret
 
