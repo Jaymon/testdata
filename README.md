@@ -14,7 +14,7 @@ To install, use Pip:
 
 Or, with Pip using Github:
 
-    pip install --upgrade git+https://github.com/Jaymon/testdata#egg=testdata
+    pip install --upgrade "git+https://github.com/Jaymon/testdata#egg=testdata"
 
 
 ## Functionality
