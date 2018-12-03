@@ -476,7 +476,9 @@ class Filepath(Dirpath):
 
     def __new__(cls, relpath, basedir="", encoding=""):
         instance = super(Filepath, cls).__new__(cls, relpath, basedir)
-        if not encoding:
+        # if encoding is None then it is assumed this will be a bytes file, if
+        # encoding is an empty string then it will be default encoded
+        if encoding is not None and not encoding:
             encoding = environ.ENCODING
         instance.encoding = encoding
         return instance
