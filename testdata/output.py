@@ -111,11 +111,14 @@ class Capture(Base):
 
     @contextmanager
     def __call__(self, passthrough=None):
-        if passthrough is None:
-            passthrough = environ.PASSTHROUGH
-        self.start(passthrough)
-        yield self
-        self.stop()
+        try:
+            if passthrough is None:
+                passthrough = environ.PASSTHROUGH
+            self.start(passthrough)
+            yield self
+
+        finally:
+            self.stop()
 
     def capture_sys(self):
         """just switch out sys.stdout and sys.stderr which is exactly what python
