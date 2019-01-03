@@ -28,7 +28,7 @@ from testdata.threading import Thread
 from testdata import threading
 from testdata.output import Capture
 from testdata.server import AnyServer, CookieServer, CallbackServer
-from testdata.client import HTTP
+from testdata.client import HTTP, Command
 from testdata.utils import ByteString
 
 
@@ -166,6 +166,24 @@ class PathTest(TestCase):
         relpath = "/foo1/bar1/test.txt"
         s = "happy"
         f = testdata.create_file(relpath, s)
+
+    def test_copy_to(self):
+        """https://github.com/Jaymon/testdata/issues/30"""
+        source_d = testdata.create_files({
+            "foo.txt": testdata.get_words(),
+            "bar/che.txt": testdata.get_words(),
+        })
+        dest_d = testdata.create_dir()
+
+        source_d.copy_to(dest_d)
+        self.assertTrue("foo.txt" in dest_d)
+        self.assertTrue("bar/che.txt" in dest_d)
+
+        source_f = testdata.create_file("foo.txt", testdata.get_words())
+        dest_f = testdata.get_file()
+        self.assertFalse(dest_f.exists())
+        source_f.copy_to(dest_f)
+        self.assertEqual(source_f.contents(), dest_f.contents())
 
     def test_copy_into(self):
         # directory into directory
@@ -374,6 +392,17 @@ class PathTest(TestCase):
 
 
 class TestdataTest(TestCase):
+    def test_environment(self):
+        self.assertFalse("TDT_ENVIRON_VAL" in os.environ)
+        with testdata.environment(TDT_ENVIRON_VAL="foobar"):
+            self.assertEqual("foobar", os.environ["TDT_ENVIRON_VAL"])
+        self.assertFalse("TDT_ENVIRON_VAL" in os.environ)
+
+        self.assertFalse(hasattr(testdata, "TDT_ENVIRON_VAL"))
+        with testdata.environment(testdata, TDT_ENVIRON_VAL="foobar"):
+            self.assertEqual("foobar", testdata.TDT_ENVIRON_VAL)
+        self.assertFalse(hasattr(testdata, "TDT_ENVIRON_VAL"))
+
     def test_wait(self):
         start = time.time()
         def callback():
@@ -1400,6 +1429,12 @@ class ClientTest(TestCase):
 
         with self.assertRaises(RuntimeError):
             r = testdata.run(path1)
+
+    def test_int_environ(self):
+        """https://github.com/Jaymon/testdata/issues/37"""
+        c = Command("echo 1")
+        c.environ["FOOINT"] = 0
+        r1 = c.run() # if it doesn't error out then it was a success
 
     def test_run_basic(self):
         r1 = testdata.run("echo 1")

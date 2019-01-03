@@ -28,6 +28,7 @@ import hashlib
 import logging
 import time
 from time import sleep
+from contextlib import contextmanager
 
 from .compat import *
 from .data import (
@@ -53,7 +54,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.6.38'
+__version__ = '0.7.0'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -79,10 +80,19 @@ def basic_logging(**kwargs):
 
     :param **kwargs: key/val, these will be passed into logger.basicConfig method
     """
+    levels = kwargs.pop("levels", [])
+
+    # configure root logger
     kwargs.setdefault("format", "[%(levelname).1s] %(message)s")
     kwargs.setdefault("level", logging.DEBUG)
     kwargs.setdefault("stream", sys.stdout)
     logging.basicConfig(**kwargs)
+
+    # configure certain loggers
+    # https://github.com/Jaymon/testdata/issues/34
+    for logger_name, logger_level in levels:
+        l = logging.getLogger(logger_name)
+        l.setLevel(getattr(logging, logger_level))
 
 #     rlogger = logging.getLogger()
 #     if not rlogger.handlers:
@@ -91,6 +101,65 @@ def basic_logging(**kwargs):
 #         formatter = logging.Formatter(kwargs["format"])
 #         handler.setFormatter(formatter)
 #         rlogger.addHandler(handler)
+
+
+@contextmanager
+def environment(thing=None, **kwargs):
+    """Context manager to change the os.environ to something else for the life of
+    the with statement
+
+    :Example:
+        with testdata.environ("FOO"="bar"):
+            print(os.environ["FOO"]) # bar
+
+        print(os.environ["FOO"]) # keyError
+
+    :param **kwargs: key is the environment variable name and value is the value
+    """
+    if thing is None:
+        thing = os.environ
+
+    def has_key(thing, k):
+        if isinstance(thing, Mapping):
+            ret = k in thing
+        else:
+            ret = hasattr(thing, k)
+        return ret
+
+    def set_key(thing, k, v):
+        if isinstance(thing, Mapping):
+            thing[k] = v
+        else:
+            setattr(thing, k, v)
+
+    def get_key(thing, k):
+        if isinstance(thing, Mapping):
+            ret = thing[k]
+        else:
+            ret = getattr(thing, k)
+
+    def del_key(thing, k):
+        if isinstance(thing, Mapping):
+            thing.pop(k)
+        else:
+            delattr(thing, k)
+
+    originals = {}
+    try:
+        for k, v in kwargs.items():
+            if has_key(thing, k):
+                originals[k] = get_key(thing, k)
+
+            set_key(thing, k, String(v))
+
+        yield originals
+
+    finally:
+        for k, v in kwargs.items():
+            del_key(thing, k)
+            if k in originals:
+                set_key(thing, k, originals[k])
+modify = environment
 
 
 def start_service(service_name, ignore_failure=True):

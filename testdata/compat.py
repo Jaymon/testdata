@@ -34,6 +34,7 @@ if is_py2:
     import urlparse
     from urllib import urlencode
     from urllib2 import Request, urlopen, URLError, HTTPError
+    from collections import Mapping
 
 elif is_py3:
     basestring = (str, bytes)
@@ -49,6 +50,7 @@ elif is_py3:
     from urllib.request import Request, urlopen
     from urllib.error import URLError, HTTPError
     from urllib.parse import urlencode
+    from collections.abc import Mapping
 
     # ripped from six https://bitbucket.org/gutworth/six
     def reraise(tp, value, tb=None):

@@ -408,8 +408,8 @@ class Dirpath(String):
         return self.child(other)
     __div__ = __truediv__ # 2.x
 
-    #def copy_into(self, relpath="", source_path):
     def copy_into(self, source_path):
+        """Copy the contents of source_path into self"""
         relpath = ""
         if os.path.isdir(source_path):
             if relpath:
@@ -426,7 +426,21 @@ class Dirpath(String):
             file_util.copy_file(source_path, dest_path)
 
     def put(self, source_path):
+        """This method exists to make sure children pick up this method also, we
+        can't do put = copy_into because then put will only point to self.copy_into
+        instead of child's copy_into"""
         return self.copy_into(source_path)
+    copy_from = put
+
+    def copy_to(self, dest_path):
+        """copy self to dest_path"""
+        source_path = self
+        # https://stackoverflow.com/a/15034373/5006
+        dir_util.copy_tree(source_path, dest_path, update=1)
+
+    def place(self, dest_path):
+        """see note on self.put()"""
+        return self.copy_to(dest_path)
 
 
 class Filepath(Dirpath):
@@ -595,6 +609,9 @@ class Filepath(Dirpath):
     def copy_into(self, source_path):
         shutil.copy(source_path, self.path)
 
+    def copy_to(self, dest_path):
+        r = shutil.copy(self.path, dest_path)
+
     def child(self, *args, **kwargs):
         raise NotImplementedError()
     files = child
@@ -755,6 +772,29 @@ class Modulepath(Filepath):
             sys.path.insert(0, self.basedir) 
 
         return self
+
+    def normalize_contents(self, contents):
+        contents = super(Modulepath, self).normalize_contents(contents)
+        add_encoding = not contents.lstrip().startswith("# -*- coding: utf-8 -*-")
+        if "from __future__ import " not in contents:
+            lines = [
+                "from __future__ import (",
+                "    unicode_literals,",
+                "    division,",
+                "    print_function,",
+                "    absolute_import",
+                ")",
+                "",
+            ]
+            contents = "\n".join(lines) + contents
+
+        if add_encoding:
+            contents = "# -*- coding: utf-8 -*-\n" + contents.lstrip()
+
+        if not contents.endswith("\n"):
+            contents += "\n"
+
+        return contents
 
     def is_package(self):
         """returns True if this module is a package (directory with __init__.py file

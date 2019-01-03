@@ -175,6 +175,27 @@ with server: # the with handles starting and stopping the server
 
 -------------------------------------------------------------------------------
 
+### environment
+
+Change your environment with this context manager, if you don't pass in an object as the first value it will default to `os.environ`
+
+```python
+with testdata.enviroment(FOO=1):
+    print(os.environ["FOO"]) # 1
+print(os.environ["FOO"]) # raises KeyError
+
+# you can also modify objects:
+
+d = {}
+
+with testdata.enviroment(d, FOO=1):
+    print(d["FOO"]) # 1
+print(d["FOO"]) # raises KeyError
+```
+
+
+-------------------------------------------------------------------------------
+
 ### create_dir
 
 ```python

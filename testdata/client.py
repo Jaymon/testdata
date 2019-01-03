@@ -35,11 +35,10 @@ class Command(object):
     @property
     def environ(self):
         environ = getattr(self, "_environ", None)
-        if environ: return environ
+        if not environ:
+            environ = dict(os.environ)
 
         pythonpath = self.cwd
-
-        environ = dict(os.environ)
         if "PYTHONPATH" in environ:
             environ["PYTHONPATH"] += os.pathsep + pythonpath
         else:
@@ -47,6 +46,11 @@ class Command(object):
 
         if os.getcwd() not in environ["PYTHONPATH"]:
             environ["PYTHONPATH"] += os.pathsep + os.getcwd()
+
+        # make sure each value is a string
+        for k in environ.keys():
+            if not isinstance(environ[k], basestring):
+                environ[k] = String(environ[k])
 
         self._environ = environ
         return environ
@@ -106,8 +110,12 @@ class Command(object):
     def execute(self, cmd, **kwargs):
         """runs the passed in arguments and returns an iterator on the output of
         running command"""
+        expected_ret_code = 0
+        for k in ["code", "ret_code", "returncode", "expected_ret_code"]:
+            if k in kwargs:
+                expected_ret_code = kwargs.pop(k)
+                break
 
-        expected_ret_code = kwargs.pop('code', 0)
         # any kwargs with all capital letters should be considered environment
         # variables
         environ = self.environ
@@ -147,6 +155,7 @@ class Command(object):
 #                     yield line
 
             process.wait()
+            ret_code = process.returncode
             if process.returncode != expected_ret_code:
                 raise RuntimeError("{} returned {}, expected {}".format(
                     cmd,
@@ -155,6 +164,7 @@ class Command(object):
                 ))
 
         except subprocess.CalledProcessError as e:
+            ret_code = e.returncode
             if e.returncode != expected_ret_code:
                 raise RuntimeError("{} returned {}, expected {}".format(
                     cmd,
