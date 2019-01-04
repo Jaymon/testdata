@@ -54,7 +54,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.7.0'
+__version__ = '0.7.1'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -116,8 +116,10 @@ def environment(thing=None, **kwargs):
 
     :param **kwargs: key is the environment variable name and value is the value
     """
+    normalize_value = lambda v: v
     if thing is None:
         thing = os.environ
+        normalize_value = lambda v: String(v)
 
     def has_key(thing, k):
         if isinstance(thing, Mapping):
@@ -137,6 +139,7 @@ def environment(thing=None, **kwargs):
             ret = thing[k]
         else:
             ret = getattr(thing, k)
+        return ret
 
     def del_key(thing, k):
         if isinstance(thing, Mapping):
@@ -150,16 +153,19 @@ def environment(thing=None, **kwargs):
             if has_key(thing, k):
                 originals[k] = get_key(thing, k)
 
-            set_key(thing, k, String(v))
+            set_key(thing, k, normalize_value(v))
 
         yield originals
 
     finally:
         for k, v in kwargs.items():
-            del_key(thing, k)
             if k in originals:
                 set_key(thing, k, originals[k])
+            else:
+                del_key(thing, k)
 modify = environment
+change = environment
+configure = environment
 
 
 def start_service(service_name, ignore_failure=True):

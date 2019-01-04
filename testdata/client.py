@@ -13,6 +13,7 @@ import email.message
 
 from .compat import *
 from . import environ
+from .utils import String
 
 
 class Command(object):
@@ -102,16 +103,29 @@ class Command(object):
         quiet = kwargs.pop("quiet", self.quiet)
         self.buf = deque(maxlen=self.bufsize)
         for line in self.execute(cmd, **kwargs):
-            self.buf.append(line.rstrip())
-            if not quiet:
-                self.flush(line)
-        return "\n".join(self.buf)
+            if isinstance(line, int):
+                self.returncode = line
+            else:
+                self.buf.append(line.rstrip())
+                if not quiet:
+                    self.flush(line)
+
+        # we wrap the output in a String so we can set returncode
+        ret = String("\n".join(self.buf))
+        ret.returncode = self.returncode
+        return ret
 
     def execute(self, cmd, **kwargs):
         """runs the passed in arguments and returns an iterator on the output of
-        running command"""
+        running command, this is an internal method, best to use run()
+
+        :param cmd: string, the full command ran through create_cmd()
+        :param **kwargs: These will be passed to subprocess
+        :returns: generator, each line of output the cmd produces but the last value
+            returned will be the return code
+        """
         expected_ret_code = 0
-        for k in ["code", "ret_code", "returncode", "expected_ret_code"]:
+        for k in ["code", "ret_code", "returncode", "expected_ret_code", "expected_returncode"]:
             if k in kwargs:
                 expected_ret_code = kwargs.pop(k)
                 break
@@ -175,6 +189,8 @@ class Command(object):
         finally:
             if process:
                 process.stdout.close()
+
+            yield ret_code
 
 
 class ModuleCommand(Command):

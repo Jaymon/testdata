@@ -403,6 +403,16 @@ class TestdataTest(TestCase):
             self.assertEqual("foobar", testdata.TDT_ENVIRON_VAL)
         self.assertFalse(hasattr(testdata, "TDT_ENVIRON_VAL"))
 
+        class Foo(object):
+            bar = 1
+            che = 2
+
+        f = Foo()
+        with testdata.environment(f, bar=3):
+            self.assertEqual(3, f.bar)
+        self.assertEqual(1, f.bar)
+        self.assertEqual(2, f.che)
+
     def test_wait(self):
         start = time.time()
         def callback():
@@ -1429,6 +1439,15 @@ class ClientTest(TestCase):
 
         with self.assertRaises(RuntimeError):
             r = testdata.run(path1)
+
+    def test_return_code_2(self):
+        c = Command("echo 1")
+        r = c.run()
+        self.assertEqual(0, r.returncode)
+
+        c = Command("false")
+        r = c.run(code=1)
+        self.assertEqual(1, r.returncode)
 
     def test_int_environ(self):
         """https://github.com/Jaymon/testdata/issues/37"""
