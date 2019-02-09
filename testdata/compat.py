@@ -36,6 +36,7 @@ if is_py2:
     from urllib2 import Request, urlopen, URLError, HTTPError
     from collections import Mapping
 
+
 elif is_py3:
     basestring = (str, bytes)
     unicode = str
@@ -67,5 +68,4 @@ elif is_py3:
 
 String = unicode if is_py2 else str
 Bytes = str if is_py2 else unicode
-
 

@@ -54,7 +54,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.7.1'
+__version__ = '0.7.2'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -660,6 +660,7 @@ def get_str(str_size=0, chars=None):
     s = ''.join(sg)
     return s
 get_unicode = get_str
+get_string = get_str
 
 
 def get_hex(str_size=0):

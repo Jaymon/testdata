@@ -4,6 +4,8 @@ import os
 from collections import Mapping
 import json
 import logging
+from wsgiref.simple_server import WSGIServer as WSGIHTTPServer, WSGIRequestHandler
+import runpy
 
 from .compat import *
 from .threading import Thread
@@ -400,5 +402,27 @@ class PathServer(Server):
             **kwargs
         )
         instance.server.base_path = base_path
+        return instance
+
+
+class WSGIServer(Server):
+    """Starts a wsgi server using a wsgifile, the wsgifile is a python file that
+    has an application property"""
+    def __new__(cls, wsgifile, hostname="", port=None, handler_cls=WSGIRequestHandler,
+                server_cls=WSGIHTTPServer, *args, **kwargs):
+        instance = super(WSGIServer, cls).__new__(
+            cls,
+            hostname=hostname,
+            port=port,
+            handler_cls=handler_cls,
+            server_cls=server_cls,
+            *args,
+            **kwargs
+        )
+
+        config = runpy.run_path(wsgifile)
+        instance.server.set_app(config["application"])
+        instance.config = config
+        instance.wsgifile = wsgifile
         return instance
 
