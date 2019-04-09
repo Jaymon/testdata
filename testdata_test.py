@@ -1424,6 +1424,21 @@ class CaptureTest(TestCase):
 
 
 class ClientTest(TestCase):
+    def test_async(self):
+        start = time.time()
+
+        c = Command("sleep 1.0")
+        c.run_async()
+
+        mid = time.time()
+
+        r = c.join()
+        stop = time.time()
+
+        self.assertTrue((stop - start) > 0.5)
+        self.assertTrue((mid - start) < 0.5)
+        self.assertEqual(0, r.returncode)
+
     def test_unicode_output(self):
         mod1 = testdata.create_module("foo.bar.__main__", [
             "import testdata",

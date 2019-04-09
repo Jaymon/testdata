@@ -3,7 +3,6 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import os
 import subprocess
 import sys
-import threading
 from collections import deque
 import base64
 import socket
@@ -14,6 +13,7 @@ import email.message
 from .compat import *
 from . import environ
 from .utils import String
+from .threading import Thread
 
 
 class Command(object):
@@ -32,6 +32,35 @@ class Command(object):
 
     bufsize = 1000
     """how many lines to buffer of output, set to 0 to suppress all output"""
+
+    thread_class = Thread
+    """the threading class to use if run_async() is called instead of run()"""
+
+    @property
+    def buf(self):
+        _buf = getattr(self, "_buf", None)
+        if hasattr(self, "async_thread"):
+            ret = deque(maxlen=self.bufsize)
+            while not _buf.empty():
+                try:
+                    line = _buf.get()
+
+                except queue.Empty:
+                    break
+
+                else:
+                    _buf.task_done()
+                    if isinstance(line, int):
+                        self.returncode = line
+                    else:
+                        ret.append(line)
+
+            return ret
+
+        else:
+            ret = _buf
+
+        return ret
 
     @property
     def environ(self):
@@ -98,20 +127,57 @@ class Command(object):
 
         return cmd
 
+    def join(self):
+        try:
+            self.async_thread.join()
+        except AttributeError:
+            raise ValueError("You have not started an async call with run_async")
+
+        # we wrap the output in a String so we can set returncode
+        ret = String("\n".join(self.buf))
+        if hasattr(self, "returncode"):
+            ret.returncode = self.returncode
+
+        return ret
+
+    def run_async(self, arg_str="", **kwargs):
+        q = queue.Queue(maxsize=self.bufsize)
+        def target():
+            cmd = self.create_cmd(arg_str)
+            quiet = kwargs.pop("quiet", self.quiet)
+            for line in self.execute(cmd, **kwargs):
+                while True:
+                    try:
+                        q.put(line, timeout=1)
+
+                    except queue.Full:
+                        q.get_nowait()
+
+                    else:
+                        if not quiet:
+                            if not isinstance(line, int):
+                                self.flush(line)
+                        break
+
+        self._buf = q
+        self.async_thread = self.thread_class(target=target)
+        self.async_thread.daemon = True
+        self.async_thread.start()
+
     def run(self, arg_str="", **kwargs):
         cmd = self.create_cmd(arg_str)
         quiet = kwargs.pop("quiet", self.quiet)
-        self.buf = deque(maxlen=self.bufsize)
+        self._buf = deque(maxlen=self.bufsize)
         for line in self.execute(cmd, **kwargs):
             if isinstance(line, int):
                 self.returncode = line
             else:
-                self.buf.append(line.rstrip())
+                self._buf.append(line.rstrip())
                 if not quiet:
                     self.flush(line)
 
         # we wrap the output in a String so we can set returncode
-        ret = String("\n".join(self.buf))
+        ret = String("\n".join(self._buf))
         ret.returncode = self.returncode
         return ret
 
