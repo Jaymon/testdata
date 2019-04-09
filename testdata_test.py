@@ -1439,6 +1439,42 @@ class ClientTest(TestCase):
         self.assertTrue((mid - start) < 0.5)
         self.assertEqual(0, r.returncode)
 
+        s = testdata.get_words()
+        c = Command("echo {}".format(s))
+        c.run_async()
+        r = c.join()
+        self.assertEqual(s, r.strip())
+
+    def test_quit(self):
+        start = time.time()
+        c = Command("sleep 5.0")
+        c.run_async()
+        time.sleep(0.1)
+        c.quit()
+        c.join()
+        stop = time.time()
+        self.assertTrue((stop - start) < 4.0)
+
+    def test_kill(self):
+        start = time.time()
+        c = Command("sleep 5.0")
+        c.run_async()
+        time.sleep(0.1)
+        c.kill()
+        c.join()
+        stop = time.time()
+        self.assertTrue((stop - start) < 4.0)
+
+    def test_terminate(self):
+        start = time.time()
+        c = Command("sleep 5.0")
+        c.run_async()
+        time.sleep(0.1)
+        c.terminate()
+        c.join()
+        stop = time.time()
+        self.assertTrue((stop - start) < 4.0)
+
     def test_unicode_output(self):
         mod1 = testdata.create_module("foo.bar.__main__", [
             "import testdata",

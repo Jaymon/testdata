@@ -9,6 +9,7 @@ import socket
 import re
 import json
 import email.message
+import signal
 
 from .compat import *
 from . import environ
@@ -38,29 +39,24 @@ class Command(object):
 
     @property
     def buf(self):
-        _buf = getattr(self, "_buf", None)
+        _buf = getattr(self, "_buf", deque(maxlen=self.bufsize))
         if hasattr(self, "async_thread"):
-            ret = deque(maxlen=self.bufsize)
-            while not _buf.empty():
+            q = getattr(self, "_queue")
+            while not q.empty():
                 try:
-                    line = _buf.get()
+                    line = q.get()
 
                 except queue.Empty:
                     break
 
                 else:
-                    _buf.task_done()
+                    q.task_done()
                     if isinstance(line, int):
                         self.returncode = line
                     else:
-                        ret.append(line)
+                        _buf.append(line)
 
-            return ret
-
-        else:
-            ret = _buf
-
-        return ret
+        return _buf
 
     @property
     def environ(self):
@@ -127,6 +123,27 @@ class Command(object):
 
         return cmd
 
+    def quit(self):
+        """same as .terminate but uses signals"""
+        for process in self.processes.values():
+            process.send_signal(signal.SIGTERM)
+
+        return self.join()
+
+    def kill(self):
+        """kill -9 the script running asyncronously"""
+        for process in self.processes.values():
+            process.kill()
+
+        return self.join()
+
+    def terminate(self):
+        """terminate the script running asyncronously"""
+        for process in self.processes.values():
+            process.terminate()
+
+        return self.join()
+
     def join(self):
         try:
             self.async_thread.join()
@@ -142,6 +159,7 @@ class Command(object):
 
     def run_async(self, arg_str="", **kwargs):
         q = queue.Queue(maxsize=self.bufsize)
+        self.processes = {}
         def target():
             cmd = self.create_cmd(arg_str)
             quiet = kwargs.pop("quiet", self.quiet)
@@ -159,7 +177,7 @@ class Command(object):
                                 self.flush(line)
                         break
 
-        self._buf = q
+        self._queue = q
         self.async_thread = self.thread_class(target=target)
         self.async_thread.daemon = True
         self.async_thread.start()
@@ -167,6 +185,7 @@ class Command(object):
     def run(self, arg_str="", **kwargs):
         cmd = self.create_cmd(arg_str)
         quiet = kwargs.pop("quiet", self.quiet)
+        self.processes = {}
         self._buf = deque(maxlen=self.bufsize)
         for line in self.execute(cmd, **kwargs):
             if isinstance(line, int):
@@ -212,12 +231,14 @@ class Command(object):
         kwargs["cwd"] = self.cwd
         kwargs["env"] = environ
 
+        ret_code = 0
         process = None
         try:
             process = subprocess.Popen(
                 cmd,
                 **kwargs
             )
+            self.processes[process.pid] = process
 
             # another round of links
             # http://stackoverflow.com/a/17413045/5006 (what I used)
@@ -226,22 +247,15 @@ class Command(object):
                 line = line.decode("utf-8")
                 yield line
 
-#             if is_py2:
-#                 for line in iter(process.stdout.readline, ""):
-#                     yield line
-#             else:
-#                 for line in iter(process.stdout.readline, b""):
-#                     line = line.decode("utf-8")
-#                     yield line
-
             process.wait()
             ret_code = process.returncode
             if process.returncode != expected_ret_code:
-                raise RuntimeError("{} returned {}, expected {}".format(
-                    cmd,
-                    process.returncode,
-                    expected_ret_code
-                ))
+                if process.returncode not in [-signal.SIGTERM, -signal.SIGKILL]:
+                    raise RuntimeError("{} returned {}, expected {}".format(
+                        cmd,
+                        process.returncode,
+                        expected_ret_code
+                    ))
 
         except subprocess.CalledProcessError as e:
             ret_code = e.returncode
@@ -255,6 +269,7 @@ class Command(object):
         finally:
             if process:
                 process.stdout.close()
+                process = None
 
             yield ret_code
 
