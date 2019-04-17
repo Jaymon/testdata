@@ -24,7 +24,7 @@ from testdata import environ
 from testdata.test import TestCase, SkipTest
 from testdata.path import Filepath, Dirpath, ContentString, ContentBytes
 from testdata.compat import *
-from testdata.threading import Thread
+from testdata.threading import Thread, Deque
 from testdata import threading
 from testdata.output import Capture
 from testdata.server import AnyServer, CookieServer, CallbackServer
@@ -1317,6 +1317,24 @@ class ThreadTest(TestCase):
             t2 = testdata.Thread(target=c2_send)
             t2.start()
             t2.join()
+
+
+class DequeTest(TestCase):
+    def test_lifecycle(self):
+        d = Deque(2)
+        self.assertEqual(0, len(d))
+
+        d.append(1)
+        self.assertEqual(1, len(d))
+
+        d.append(2)
+        self.assertEqual(2, len(d))
+
+        d.append(3)
+        self.assertEqual(2, len(d))
+
+        self.assertEqual(2, d[0])
+        self.assertEqual(3, d[1])
 
 
 class CaptureTest(TestCase):

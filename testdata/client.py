@@ -10,11 +10,12 @@ import re
 import json
 import email.message
 import signal
+import time
 
 from .compat import *
 from . import environ
 from .utils import String
-from .threading import Thread
+from .threading import Thread, Deque
 
 
 class Command(object):
@@ -38,25 +39,16 @@ class Command(object):
     """the threading class to use if run_async() is called instead of run()"""
 
     @property
+    def returncode(self):
+        return self.process.returncode
+
+    @property
+    def cmd(self):
+        return self.process.cmd
+
+    @property
     def buf(self):
-        _buf = getattr(self, "_buf", deque(maxlen=self.bufsize))
-        if hasattr(self, "async_thread"):
-            q = getattr(self, "_queue")
-            while not q.empty():
-                try:
-                    line = q.get()
-
-                except queue.Empty:
-                    break
-
-                else:
-                    q.task_done()
-                    if isinstance(line, int):
-                        self.returncode = line
-                    else:
-                        _buf.append(line)
-
-        return _buf
+        return self.process.deque
 
     @property
     def environ(self):
@@ -100,6 +92,9 @@ class Command(object):
         sys.stdout.write(line)
         sys.stdout.flush()
 
+    def is_running(self):
+        return self.process.poll() is None
+
     def create_cmd(self, arg_str):
         if self.command:
             if isinstance(self.command, basestring):
@@ -123,96 +118,18 @@ class Command(object):
 
         return cmd
 
-    def quit(self):
-        """same as .terminate but uses signals"""
-        for process in self.processes.values():
-            process.send_signal(signal.SIGTERM)
-
-        return self.join()
-
-    def kill(self):
-        """kill -9 the script running asyncronously"""
-        for process in self.processes.values():
-            process.kill()
-
-        return self.join()
-
-    def terminate(self):
-        """terminate the script running asyncronously"""
-        for process in self.processes.values():
-            process.terminate()
-
-        return self.join()
-
-    def join(self):
-        try:
-            self.async_thread.join()
-        except AttributeError:
-            raise ValueError("You have not started an async call with run_async")
-
-        # we wrap the output in a String so we can set returncode
-        ret = String("\n".join(self.buf))
-        if hasattr(self, "returncode"):
-            ret.returncode = self.returncode
-
-        return ret
-
-    def run_async(self, arg_str="", **kwargs):
-        q = queue.Queue(maxsize=self.bufsize)
-        self.processes = {}
-        def target():
-            cmd = self.create_cmd(arg_str)
-            quiet = kwargs.pop("quiet", self.quiet)
-            for line in self.execute(cmd, **kwargs):
-                while True:
-                    try:
-                        q.put(line, timeout=1)
-
-                    except queue.Full:
-                        q.get_nowait()
-
-                    else:
-                        if not quiet:
-                            if not isinstance(line, int):
-                                self.flush(line)
-                        break
-
-        self._queue = q
-        self.async_thread = self.thread_class(target=target)
-        self.async_thread.daemon = True
-        self.async_thread.start()
-
-    def run(self, arg_str="", **kwargs):
-        cmd = self.create_cmd(arg_str)
-        quiet = kwargs.pop("quiet", self.quiet)
-        self.processes = {}
-        self._buf = deque(maxlen=self.bufsize)
-        for line in self.execute(cmd, **kwargs):
-            if isinstance(line, int):
-                self.returncode = line
-            else:
-                self._buf.append(line.rstrip())
-                if not quiet:
-                    self.flush(line)
-
-        # we wrap the output in a String so we can set returncode
-        ret = String("\n".join(self._buf))
-        ret.returncode = self.returncode
-        return ret
-
-    def execute(self, cmd, **kwargs):
-        """runs the passed in arguments and returns an iterator on the output of
-        running command, this is an internal method, best to use run()
-
-        :param cmd: string, the full command ran through create_cmd()
-        :param **kwargs: These will be passed to subprocess
-        :returns: generator, each line of output the cmd produces but the last value
-            returned will be the return code
+    def create_process(self, arg_str, **kwargs):
         """
-        expected_ret_code = 0
+        https://docs.python.org/3/library/subprocess.html
+        """
+        cmd = self.create_cmd(arg_str)
+
+        options = {}
+        options["quiet"] = quiet = kwargs.pop("quiet", self.quiet)
+        options["expected_returncode"] = 0
         for k in ["code", "ret_code", "returncode", "expected_ret_code", "expected_returncode"]:
             if k in kwargs:
-                expected_ret_code = kwargs.pop(k)
+                options["expected_returncode"] = kwargs.pop(k)
                 break
 
         # any kwargs with all capital letters should be considered environment
@@ -231,47 +148,146 @@ class Command(object):
         kwargs["cwd"] = self.cwd
         kwargs["env"] = environ
 
-        ret_code = 0
-        process = None
         try:
             process = subprocess.Popen(
                 cmd,
                 **kwargs
             )
-            self.processes[process.pid] = process
 
+        except subprocess.CalledProcessError as e:
+            process.returncode = e.returncode
+
+        finally:
+            process.options = options
+            process.cmd = cmd
+            process.deque = Deque(maxlen=self.bufsize)
+
+        self.process = process
+        return process
+
+    def __iter__(self):
+        process = self.process
+        try:
             # another round of links
             # http://stackoverflow.com/a/17413045/5006 (what I used)
             # http://stackoverflow.com/questions/2715847/
             for line in iter(process.stdout.readline, b""):
                 line = line.decode("utf-8")
+                process.deque.append(line.rstrip())
+                if not process.options.get("quiet", False):
+                    self.flush(line)
                 yield line
-
-            process.wait()
-            ret_code = process.returncode
-            if process.returncode != expected_ret_code:
-                if process.returncode not in [-signal.SIGTERM, -signal.SIGKILL]:
-                    raise RuntimeError("{} returned {}, expected {}".format(
-                        cmd,
-                        process.returncode,
-                        expected_ret_code
-                    ))
-
-        except subprocess.CalledProcessError as e:
-            ret_code = e.returncode
-            if e.returncode != expected_ret_code:
-                raise RuntimeError("{} returned {}, expected {}".format(
-                    cmd,
-                    e.returncode,
-                    expected_ret_code
-                ))
 
         finally:
             if process:
                 process.stdout.close()
-                process = None
 
-            yield ret_code
+    def quit(self, timeout=1):
+        """same as .terminate but uses signals"""
+        return self.finish("send_signal", timeout=timeout, args=(signal.SIGTERM,))
+        #self.process.send_signal(signal.SIGTERM)
+        #return self.wait(timeout)
+
+    def kill(self, timeout=1):
+        """kill -9 the script running asyncronously"""
+        return self.finish("kill", timeout=timeout)
+        #self.process.kill()
+        #return self.wait(timeout)
+
+    def terminate(self, timeout=1):
+        """terminate the script running asyncronously"""
+        return self.finish("terminate", timeout=timeout)
+        #self.process.terminate()
+        #return self.wait(timeout)
+
+    def murder(self, timeout=1):
+        subprocess.run(["pkill", "-f", self.cmd], check=False)
+        return self.wait(timeout)
+
+    def finish(self, method, timeout=1, maxcount=5, args=None, kwargs=None):
+        ret = ""
+
+        args = args or ()
+        kwargs = kwargs or {}
+
+        while self.is_running():
+            getattr(self.process, method)(*args, **kwargs)
+            ret = self.wait(timeout=timeout)
+            if ret.returncode is None:
+                count += 1
+                if count >= maxcount:
+                    ret = self.murder()
+
+        return ret
+
+    def wait(self, timeout=None):
+        ret = ""
+        if is_py2:
+            if timeout:
+                start = time.time()
+                stop = start
+                while self.is_running() and stop - start < timeout:
+                    time.sleep(0.1)
+                    stop = time.time()
+
+            else:
+                self.process.wait()
+
+            ret = String("\n".join(self.buf))
+
+        else:
+            try:
+                self.process.wait(timeout=timeout)
+
+            except subprocess.TimeoutExpired:
+                pass
+
+            else:
+                ret = String("\n".join(self.buf))
+
+
+        ret.returncode = self.returncode
+        return ret
+    join = wait
+
+    def run_async(self, arg_str="", **kwargs):
+        self.process = self.create_process(arg_str, **kwargs)
+
+        def target():
+            for line in self:
+                pass
+
+        t = self.thread_class(target=target)
+        t.daemon = True
+        t.start()
+        self.async_thread = t
+
+    def run(self, arg_str="", **kwargs):
+        """runs the passed in arguments
+
+        :param arg_str: string, the argument flags that will be passed to the command
+        :param **kwargs: These will be passed to subprocess or consumed
+        :returns: string, the string of the output and will have .returncode attribute
+        """
+        process = self.create_process(arg_str, **kwargs)
+
+        for line in self: # consume all the output from the program
+            pass
+
+        process.wait()
+
+        expected_ret_code = process.options.get("expected_returncode", 0)
+        if process.returncode != expected_ret_code:
+            raise RuntimeError("{} returned {}, expected {}".format(
+                self.process.cmd,
+                process.returncode,
+                expected_ret_code
+            ))
+
+        # we wrap the output in a String so we can set returncode
+        ret = String("\n".join(self.buf))
+        ret.returncode = process.returncode
+        return ret
 
 
 class ModuleCommand(Command):
@@ -357,7 +373,7 @@ class FileCommand(ModuleCommand):
     script_postfix = ".py"
     """this will be appended to the passed in script on initialization"""
 
-    def __init__(self, fileroot, cwd="", environ=None):
+    def __init__(self, fileroot="", cwd="", environ=None):
         if fileroot:
             self.name = fileroot
 
