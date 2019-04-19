@@ -11,6 +11,7 @@ import json
 import email.message
 import signal
 import time
+import logging
 
 from .compat import *
 from . import environ
@@ -87,10 +88,20 @@ class Command(object):
         if environ:
             self.environ.update(environ)
 
+        logger = logging.getLogger("{}.Client".format(__name__))
+        if len(logger.handlers) == 0:
+            logger.setLevel(logging.INFO)
+            log_handler = logging.StreamHandler(stream=sys.stdout)
+            log_handler.setFormatter(logging.Formatter('%(message)s'))
+            logger.addHandler(log_handler)
+            logger.propagate = False
+        self.logger = logger
+
     def flush(self, line):
         """flush the line to stdout"""
-        sys.stdout.write(line)
-        sys.stdout.flush()
+        self.logger.info("{:0>5}: {}".format(self.process.pid, line.rstrip()))
+        #sys.stdout.write(line)
+        #sys.stdout.flush()
 
     def is_running(self):
         return self.process.poll() is None
