@@ -54,7 +54,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.7.6'
+__version__ = '0.7.7'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -537,7 +537,7 @@ def create_modules(module_dict, tmpdir="", make_importable=True, prefix=""):
     if prefix:
         ks = list(module_dict.keys()) # we cast to list to make sure ks doesn't grow
         for k in ks:
-            module_dict["{}.{}".format(prefix, k)] = module_dict.pop(k)
+            module_dict[".".join(filter(None, [prefix, k]))] = module_dict.pop(k)
 
     for module_name, contents in module_dict.items():
         Modulepath.create_instance(module_name, contents, module_base_dir, make_importable)
