@@ -54,7 +54,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.7.7'
+__version__ = '0.7.8'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -461,7 +461,7 @@ get_directory = get_dir
 get_d = get_dir
 
 
-def create_file(path, contents="", tmpdir="", encoding=""):
+def create_file(path="", contents="", tmpdir="", encoding=""):
     '''
     create a file and return the full path to that file
 
@@ -472,6 +472,9 @@ def create_file(path, contents="", tmpdir="", encoding=""):
 
     :returns: Filepath, the full file path
     '''
+    if not path:
+        path = get_module_name(prefix="cf")
+
     instance = Filepath.create_instance(path, contents, tmpdir, encoding)
 
     if encoding:
@@ -506,7 +509,27 @@ def get_file(path="", tmpdir="", encoding=""):
 get_f = get_file
 
 
-def create_module(module_name, contents="", tmpdir="", make_importable=True):
+def get_module_name(bits=1, prefix=""):
+    """Returns a module name or module path
+
+    :param bits: how many parts you want in your module path (1 is foo, 2 is foo.bar, etc)
+    :param prefix: if you want the last bit to be prefixed with something
+    :returns: the modulepath
+    """
+    parts = []
+    bits = max(bits, 1)
+
+    for x in range(bits):
+        parts.append(get_str(str_size=8, chars=string.ascii_letters).lower())
+
+    if prefix:
+        parts[-1] = "{}{}".format(prefix, parts[-1])
+
+    return ".".join(parts)
+get_package_name=get_module_name
+
+
+def create_module(module_name="", contents="", tmpdir="", make_importable=True):
     '''
     create a python module folder structure so that the module can be imported
 
@@ -517,6 +540,8 @@ def create_module(module_name, contents="", tmpdir="", make_importable=True):
 
     return -- Module -- the module file path
     '''
+    if not module_name:
+        module_name = get_module_name(prefix="cm")
     return Modulepath.create_instance(module_name, contents, tmpdir, make_importable)
 
 
@@ -546,7 +571,7 @@ def create_modules(module_dict, tmpdir="", make_importable=True, prefix=""):
     return module_base_dir
 
 
-def create_package(module_name, contents="", tmpdir="", make_importable=True):
+def create_package(module_name="", contents="", tmpdir="", make_importable=True):
     '''
     create a python package folder structure so that the package can be imported
 
@@ -560,6 +585,9 @@ def create_package(module_name, contents="", tmpdir="", make_importable=True):
 
     return -- Module -- the module file path
     '''
+    if not module_name:
+        module_name = get_module_name(prefix="cp")
+
     return Modulepath.create_instance(
         module_name,
         contents,

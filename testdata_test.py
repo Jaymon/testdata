@@ -392,6 +392,16 @@ class PathTest(TestCase):
 
 
 class TestdataTest(TestCase):
+    def test_get_module_name(self):
+        for x in range(100):
+            mn = testdata.get_module_name(bits=testdata.random.randint(1, 3))
+            for bit in mn.split("."):
+                self.assertNotRegex(bit, r"^[0-9]")
+                self.assertTrue(mn.islower())
+
+        mn = testdata.get_module_name(prefix="get_module_name")
+        self.assertTrue(mn.startswith("get_module_name"))
+
     def test_environment(self):
         self.assertFalse("TDT_ENVIRON_VAL" in os.environ)
         with testdata.environment(TDT_ENVIRON_VAL="foobar"):
@@ -1457,7 +1467,7 @@ class ClientTest(TestCase):
         self.assertTrue((mid - start) < 0.5)
         self.assertEqual(0, r.returncode)
 
-        s = testdata.get_words()
+        s = testdata.get_ascii()
         c = Command("echo {}".format(s))
         c.run_async()
         r = c.join()
