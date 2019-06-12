@@ -509,11 +509,25 @@ def get_file(path="", tmpdir="", encoding=""):
 get_f = get_file
 
 
-def get_module_name(bits=1, prefix=""):
+def get_filename(ext="", prefix=""):
+    """return a file name
+
+    :param ext: the extension you want the file to have
+    :param prefix: this will be the first part of the file's name
+    :returns: the random filename
+    """
+    if ext and not ext.startswith("."):
+        ext = "." + ext
+    return get_module_name(prefix=prefix, postfix=ext)
+get_file_name = get_filename
+
+
+def get_module_name(bits=1, prefix="", postfix=""):
     """Returns a module name or module path
 
     :param bits: how many parts you want in your module path (1 is foo, 2 is foo.bar, etc)
     :param prefix: if you want the last bit to be prefixed with something
+    :param postfix: if you want the last bit to be posfixed with something (eg, ".py")
     :returns: the modulepath
     """
     parts = []
@@ -525,8 +539,11 @@ def get_module_name(bits=1, prefix=""):
     if prefix:
         parts[-1] = "{}{}".format(prefix, parts[-1])
 
+    if postfix:
+        parts[-1] = "{}{}".format(parts[-1], postfix)
+
     return ".".join(parts)
-get_package_name=get_module_name
+get_package_name = get_module_name
 
 
 def create_module(module_name="", contents="", tmpdir="", make_importable=True):
