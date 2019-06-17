@@ -1472,6 +1472,13 @@ class CaptureTest(TestCase):
 
 
 class ClientTest(TestCase):
+    def test_run_environ(self):
+        env = dict(os.environ)
+        contents = "some value"
+        env["TEST_RUN_ENVIRON"] = contents
+        r = testdata.run("echo $TEST_RUN_ENVIRON", environ=env)
+        self.assertEqual(contents, r)
+
     def test_async(self):
         start = time.time()
 

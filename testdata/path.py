@@ -586,13 +586,14 @@ class Filepath(Dirpath):
             contents = "\n".join(contents)
         return contents
 
-    def run(self, arg_str="", **kwargs):
+    def run(self, arg_str="", cwd="", environ=None, **kwargs):
         """Treat this file like a script and execute it
 
         :param arg_str: string, flags you want to pass into the execution of the script
         :returns: string, the output of running the file/script
         """
-        cmd = FileCommand(self)
+        cwd = cwd if cwd else self.basedir
+        cmd = FileCommand(self, cwd=cwd, environ=environ)
         return cmd.run(arg_str, **kwargs)
 
     def copy_into(self, source_path):
@@ -790,15 +791,16 @@ class Modulepath(Filepath):
         in it)"""
         return self.relpath.endswith("__init__.py")
 
-    def run(self, arg_str="", **kwargs):
+    def run(self, arg_str="", cwd="", environ=None, **kwargs):
         """Run this module on the command line
 
         :param arg_str: string, flags you want to pass into the execution of this module
         :returns: string, the output of running the file/script
         """
         mod = self
+        cwd = cwd if cwd else mod.basedir
         if self.endswith("__main__") or self.endswith("__init__"):
             mod = self.parent
-        cmd = ModuleCommand(mod, cwd=mod.basedir)
+        cmd = ModuleCommand(mod, cwd=cwd, environ=environ)
         return cmd.run(arg_str, **kwargs)
 

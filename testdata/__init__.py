@@ -54,7 +54,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.7.9'
+__version__ = '0.7.10'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -325,7 +325,7 @@ def get_bool():
     return random.choice([True, False])
 
 
-def run(cmd, arg_str="", **kwargs):
+def run(cmd, arg_str="", cwd="", environ=None, **kwargs):
     """Run a command on the command line
 
     :param cmd: mixed, the command you want to run
@@ -334,13 +334,13 @@ def run(cmd, arg_str="", **kwargs):
     :returns: string, the output from the command
     """
     if isinstance(cmd, Modulepath):
-        ret = cmd.run(arg_str, **kwargs)
+        ret = cmd.run(arg_str, cwd=cwd, environ=environ, **kwargs)
 
     elif isinstance(cmd, Filepath):
-        ret = cmd.run(arg_str, **kwargs)
+        ret = cmd.run(arg_str, cwd=cwd, environ=environ, **kwargs)
 
     else:
-        cmd = Command(cmd)
+        cmd = Command(cmd, cwd=cwd, environ=environ)
         ret = cmd.run(arg_str, **kwargs)
 
     return ret

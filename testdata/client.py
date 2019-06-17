@@ -133,6 +133,7 @@ class Command(object):
         """
         https://docs.python.org/3/library/subprocess.html
         """
+        process = None
         cmd = self.create_cmd(arg_str)
 
         options = {}
@@ -169,9 +170,10 @@ class Command(object):
             process.returncode = e.returncode
 
         finally:
-            process.options = options
-            process.cmd = cmd
-            process.deque = Deque(maxlen=self.bufsize)
+            if process:
+                process.options = options
+                process.cmd = cmd
+                process.deque = Deque(maxlen=self.bufsize)
 
         self.process = process
         return process
