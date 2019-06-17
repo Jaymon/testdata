@@ -13,10 +13,12 @@ import stat
 import inspect
 #import glob
 import fnmatch
+import hashlib
 
 from .compat import *
 from . import environ
 from .client import ModuleCommand, FileCommand
+from .utils import ByteString, String
 
 
 class ContentMixin(object):
@@ -237,32 +239,10 @@ class Dirpath(String):
                 shutil.rmtree(dirpath)
 
     @classmethod
-    def normalize2(cls, relpath, basedir=""):
-        '''normalize a path, accounting for things like windows dir seps'''
-        if relpath and relpath[0] == '.':
-            raise ValueError("you cannot start a path with ./ or ../")
-
-        if not basedir:
-            basedir = tempfile.mkdtemp(dir=environ.TEMPDIR)
-
-        if relpath:
-            relpath = os.path.normpath(relpath)
-            # for some reason, os.path.split() wouldn't work with the windows slash (\)
-            relpath = re.sub(r"[\\/]+", os.sep, relpath)
-            relpath = relpath.lstrip(os.sep)
-            path = os.path.join(basedir, relpath)
-
-        else:
-            path = basedir
-
-        return basedir, relpath, path
-
-
-    @classmethod
     def normalize(cls, relpath, basedir=""):
         '''normalize a path, accounting for things like windows dir seps'''
-        relpath = String(relpath)
-        basedir = String(basedir)
+        relpath = String(relpath) if relpath else ""
+        basedir = String(basedir) if basedir else ""
 
         if relpath and not basedir and re.match(r"^[\.~\\/]|(?:[a-zA-Z]\:)", relpath) and os.path.exists(relpath):
         #if relpath and not basedir and re.match(r"^[\.~\\/]|(?:[a-zA-Z]\:)", relpath):
@@ -578,6 +558,15 @@ class Filepath(Dirpath):
     def delete(self):
         """remove the file"""
         os.unlink(self.path)
+
+    def checksum(self):
+        """return md5 hash of a file"""
+        h = hashlib.md5()
+        # http://stackoverflow.com/a/21565932/5006
+        with self.open() as fp:
+            h.update(ByteString(fp.read()))
+        return h.hexdigest()
+    def hash(self): return self.checksum()
 
     def contents(self):
         """Return the body of the file"""

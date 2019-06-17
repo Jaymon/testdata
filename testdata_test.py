@@ -158,6 +158,18 @@ class ServerTest(TestCase):
 
 
 class PathTest(TestCase):
+    def test_checksum(self):
+        contents = "foo bar che"
+        path1 = testdata.create_file(contents=contents)
+        h1 = path1.checksum()
+        self.assertNotEqual("", h1)
+
+        path2 = testdata.create_file(contents=contents)
+        h2 = path2.checksum()
+        self.assertNotEqual("", h2)
+
+        self.assertEqual(h1, h2)
+
     def test_existing_file_creation(self):
         path = testdata.create_dir()
         d2 = testdata.create_dir(path)
@@ -392,6 +404,14 @@ class PathTest(TestCase):
 
 
 class TestdataTest(TestCase):
+    def test_get_interpreter(self):
+        r = testdata.get_interpreter()
+        self.assertTrue(r.exists())
+        self.assertNotEqual("", r.major)
+        self.assertNotEqual("", r.minor)
+        self.assertNotEqual("", r.patch)
+        self.assertNotEqual("", r.version)
+
     def test_get_module_name(self):
         for x in range(100):
             mn = testdata.get_module_name(bits=testdata.random.randint(1, 3))

@@ -54,7 +54,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import TestCase
 
 
-__version__ = '0.7.8'
+__version__ = '0.7.9'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -1425,6 +1425,53 @@ def get_between_datetime(start, stop=None):
     return start + datetime.timedelta(**kwargs)
 get_between_dt = get_between_datetime
 
+
+def get_interpreter():
+    """Return the best python interpreter
+
+    :returns: a Filepath
+    """
+
+    exe = sys.executable
+    version_info = sys.version_info
+
+    if re.search(r"\d+\.\d+", exe):
+        ret = exe
+
+    elif re.search(r"\d+", exe):
+        ret = "{}.{}".format(exe, version_info[1])
+        f = Filepath.get_instance(ret)
+        if not f.exists():
+            ret = exe
+
+    else:
+        # try major.minor
+        version = ".".join(map(String, version_info[0:2]))
+        ret = "{}{}".format(exe, version)
+        f = Filepath.get_instance(ret)
+
+        if not f.exists():
+            # try major
+            ret = "{}.{}".format(exe, version_info[1])
+            f = Filepath.get_instance(ret)
+            if not f.exists():
+                # just return the found interpreter
+                ret = exe
+
+    f = Filepath.get_instance(ret)
+
+    # https://semver.org/
+    f.major = version_info[0]
+    f.minor = version_info[1]
+    f.patch = version_info[2]
+    f.release = version_info[3]
+    f.version = "{}.{}.{}".format(f.major, f.minor, f.patch)
+
+    return f
+get_exe = get_interpreter
+get_exec = get_interpreter
+get_executable = get_interpreter
+get_python = get_interpreter
 
 # used in the get_unique_int() function to make sure it never returns the same int twice
 # this is a possible memory leak if you are using this script in a very long running
