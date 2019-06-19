@@ -23,25 +23,20 @@ expect_failure = expectedFailure
 class TestCase(BaseTestCase):
     @staticmethod
     def skip(reason=""):
-        return skip(reason)
+        raise SkipTest(reason)
 
     @staticmethod
     def skipIf(condition, reason=""):
-        return skipIf(condition, reason)
+        if condition:
+            raise SkipTest(reason)
     skip_if = skipIf
 
     @staticmethod
     def skipUnless(condition, reason=""):
-        return skipUnless(condition, reason)
+        if not condition:
+            raise SkipTest(reason)
     skip_unless = skipUnless
     skipUnless = skipUnless
-
-    @staticmethod
-    def expectedFailure():
-        return expectedFailure
-        #return expectedFailure(*args, **kwargs)
-    expected_failure = expectedFailure
-    expect_failure = expectedFailure
 
     @classmethod
     def skip_test(cls, *args, **kwargs):
@@ -49,6 +44,11 @@ class TestCase(BaseTestCase):
         sadly, there is a self.skipTest but you can't use it from a method like
         setUp(), which is just a shame
         """
+        raise SkipTest(*args, **kwargs)
+
+    @classmethod
+    def skipTest(cls, *args, **kwargs):
+        """This overrides the default skipTest method to work in things like setUpClass()"""
         raise SkipTest(*args, **kwargs)
 
     def assertUntilTrue(callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1): 

@@ -1597,7 +1597,7 @@ class ClientTest(TestCase):
             self.assertEqual("PUT", res.body)
 
 
-class TCTest(testdata.TestCase):
+class TC1Test(testdata.TestCase):
     def test_assert_within(self):
         with self.assertRaises(AssertionError):
             with self.assertWithin(0.25):
@@ -1607,19 +1607,19 @@ class TCTest(testdata.TestCase):
         self.assertRegex("foo", r"^foo$")
         self.assertNotRegex("bar", r"^foo$")
 
-    @testdata.TestCase.expectedFailure()
+    @testdata.expectedFailure
     def test_failure_1(self):
         raise RuntimeError()
 
-    @testdata.TestCase.expected_failure()
+    @testdata.expected_failure
     def test_failure_2(self):
         raise RuntimeError()
 
-    @testdata.TestCase.expect_failure()
+    @testdata.expect_failure
     def test_failure_3(self):
         raise RuntimeError()
 
-    @testdata.TestCase.skipUnless(False)
+    @testdata.skipUnless(False, "this is the required reason")
     def test_skip_1(self):
         self.assertTrue(True)
 
@@ -1627,7 +1627,31 @@ class TCTest(testdata.TestCase):
         self.skip()
 
     def test_skip_3(self):
-        self.skip_test()
+        self.skipTest()
+
+    def test_skip_unless(self):
+        self.skipUnless(False)
+
+    def test_skip_if(self):
+        self.skipIf(False)
+
+
+class TC2Test(testdata.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.skip_test()
+
+    def test_this_test_should_never_run(self):
+        raise RuntimeError()
+
+
+class TC3Test(testdata.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.skipTest()
+
+    def test_this_test_should_never_run(self):
+        raise RuntimeError()
 
 
 class ServiceTest(testdata.TestCase):

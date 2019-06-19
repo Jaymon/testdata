@@ -41,7 +41,7 @@ from .data import (
     _words,
     _first_names_male,
     _first_names_female,
-    _last_names
+    _last_names,
 )
 
 from . import environ
@@ -51,10 +51,19 @@ from .output import Capture
 from .server import PathServer, CookieServer, CallbackServer
 from .service import Upstart, InitD
 from .client import Command, ModuleCommand, FileCommand, HTTP
-from .test import TestCase
+from .test import (
+    TestCase,
+    skip,
+    skipIf,
+    skipUnless,
+    expectedFailure,
+    skip_if,
+    skip_unless,
+    expected_failure,
+    expect_failure,
+)
 
-
-__version__ = '0.7.10'
+__version__ = '1.0.0'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
