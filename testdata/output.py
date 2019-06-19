@@ -12,6 +12,7 @@ from heapq import heappush as hpush, heappop as hpop, merge as hmerge
 import time
 
 from . import environ
+from .utils import ByteString, String
 
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,9 @@ class Base(object):
         if size:
             ret = ret[0:size]
         return ret
+
+    def __iter__(self):
+        raise NotImplementedError("base classes should implement this to support read()")
 
     def __contains__(self, val):
         """support "VAL" in self"""
@@ -51,13 +55,38 @@ class Base(object):
 
     def __bytes__(self):
         """Return b"" string of self's contents"""
-        return self.read().encode(sys.getdefaultencoding()) #"utf-8")
+        return ByteString(self.read(), encoding=sys.getdefaultencoding())
+        #return self.read().encode(sys.getdefaultencoding()) #"utf-8")
 
     def __unicode__(self):
         """Return "" string of self's contents"""
-        return self.read()
+        return String(self.read())
 
     __str__ = __bytes__ if is_py2 else __unicode__
+
+    def __eq__(self, other):
+        """Defines behavior for the equality operator, ==."""
+        return self.read() == other
+
+    def __ne__(self, other):
+        """Defines behavior for the inequality operator, !=."""
+        return self.read() != other
+
+    def __lt__(self, other):
+        """Defines behavior for the less-than operator, <."""
+        return self.read() < other
+
+    def __gt__(self, other):
+        """Defines behavior for the greater-than operator, >."""
+        return self.read() > other
+
+    def __le__(self, other):
+        """Defines behavior for the less-than-or-equal-to operator, <=."""
+        return self.read() <= other
+
+    def __ge__(self, other):
+        """Defines behavior for the greater-than-or-equal-to operator, >=."""
+        return self.read() >= other
 
 
 class Stream(Base):
@@ -89,8 +118,11 @@ class Stream(Base):
 
 
 class Capture(Base):
-    """Capture stdout and stderr into internal buffers"""
-    def __init__(self):
+    """Capture stdout and stderr into internal buffers
+
+    NOTE -- this only captures stdout and stderr streams, even in loggers
+    """
+    def __init__(self, stdout=True, stderr=True, loggers=True):
         self.stdout = None
         self.stderr = None
         # I could use the sys ones but docs suggest not to
@@ -103,6 +135,10 @@ class Capture(Base):
             "stderr": [],
         }
         self.capturing = False
+
+        self.capture_stdout = stdout
+        self.capture_stderr = stderr
+        self.capture_loggers = loggers
 
     def __iter__(self):
         bits=hmerge(self.stdout.heap, self.stderr.heap)
@@ -130,11 +166,13 @@ class Capture(Base):
         mod_stdout = self.modified["stdout"]
         mod_stderr = self.modified["stderr"]
 
-        mod_stdout.append(("sys", sys, "stdout"))
-        setattr(sys, "stdout", self.stdout)
+        if self.capture_stdout:
+            mod_stdout.append(("sys", sys, "stdout"))
+            setattr(sys, "stdout", self.stdout)
 
-        mod_stderr.append(("sys", sys, "stderr"))
-        setattr(sys, "stderr", self.stderr)
+        if self.capture_stderr:
+            mod_stderr.append(("sys", sys, "stderr"))
+            setattr(sys, "stderr", self.stderr)
 
     def capture_modules(self):
         mod_stdout = self.modified["stdout"]
@@ -147,25 +185,30 @@ class Capture(Base):
                     if member_name.startswith("__"): continue
 
                     if member is self.sys_stdout:
-                        logger.info("Capturing stdout module member: {}.{}".format(
-                            module_name,
-                            member_name
-                        ))
-                        mod_stdout.append((module_name, module, member_name))
-                        setattr(module, member_name, self.stdout)
+                        if self.capture_stdout:
+                            logger.debug("Capturing stdout module member: {}.{}".format(
+                                module_name,
+                                member_name
+                            ))
+                            mod_stdout.append((module_name, module, member_name))
+                            setattr(module, member_name, self.stdout)
 
                     elif member is self.sys_stderr:
-                        logger.info("Capturing stderr module member: {}.{}".format(
-                            module_name,
-                            member_name
-                        ))
-                        mod_stderr.append((module_name, module, member_name))
-                        setattr(module, member_name, self.stderr)
+                        if self.capture_stderr:
+                            logger.debug("Capturing stderr module member: {}.{}".format(
+                                module_name,
+                                member_name
+                            ))
+                            mod_stderr.append((module_name, module, member_name))
+                            setattr(module, member_name, self.stderr)
 
             except ImportError:
                 pass
 
     def capture_logging(self):
+        if not self.capture_loggers:
+            return
+
         mod_stdout = self.modified["stdout"]
         mod_stderr = self.modified["stderr"]
         loggers = list(logging.Logger.manager.loggerDict.items())
@@ -175,14 +218,14 @@ class Capture(Base):
                 members = inspect.getmembers(handler)
                 for member_name, member in members:
                     if member is self.sys_stdout:
-                        logger.info("Capturing stdout logger: {}".format(
+                        logger.debug("Capturing stdout logger: {}".format(
                             logger_name,
                         ))
                         mod_stdout.append((logger_name, handler, member_name))
                         setattr(handler, member_name, self.stdout)
 
                     elif member is self.sys_stderr:
-                        logger.info("Capturing stderr logger: {}".format(
+                        logger.debug("Capturing stderr logger: {}".format(
                             logger_name,
                         ))
                         mod_stderr.append((logger_name, handler, member_name))
@@ -192,7 +235,7 @@ class Capture(Base):
         for stream_name, captures in self.modified.items():
             stream = getattr(self, "sys_{}".format(stream_name))
             for name, obj, member_name in captures:
-                logger.info("Releasing {} stream: {}".format(
+                logger.debug("Releasing {} stream: {}".format(
                     stream_name,
                     name,
                 ))

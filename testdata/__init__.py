@@ -221,7 +221,7 @@ def stop_service(service_name, ignore_failure=True):
     return s
 
 
-def capture(*args, **kwargs):
+def capture(stdout=True, stderr=True, loggers=True, *args, **kwargs):
     """Capture stdout and stderr so you can inspect it
 
     this is handy for tests when you are trying to figure out if logging or whatnot
@@ -236,7 +236,7 @@ def capture(*args, **kwargs):
         if "foo" in c:
             print("foo was captured")
     """
-    c = Capture()
+    c = Capture(stdout=stdout, stderr=stderr, loggers=loggers)
     return c(*args, **kwargs)
 
 

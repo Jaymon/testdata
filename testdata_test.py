@@ -1368,6 +1368,28 @@ class DequeTest(TestCase):
 
 
 class CaptureTest(TestCase):
+    def test_filter(self):
+        capture = Capture(stdout=False, loggers=False)
+        with capture():
+            print("stdout")
+            print('stderr', file=sys.stderr)
+
+        self.assertTrue("stderr\n" == capture)
+
+        capture = Capture(stderr=False, loggers=False)
+        with capture():
+            print("stdout")
+            print('stderr', file=sys.stderr)
+
+        self.assertTrue("stdout\n" == capture)
+
+        capture = Capture(stdout=False, stderr=False, loggers=False)
+        with capture():
+            print("stdout")
+            print('stderr', file=sys.stderr)
+
+        self.assertTrue("" == capture)
+
     def test_stream_methods(self):
         with testdata.capture() as c:
             print("foo\nbar\nbaz")
@@ -1390,14 +1412,22 @@ class CaptureTest(TestCase):
         self.assertTrue("foo\nbar" in capture)
 
     def test_capture_mixed(self):
-        capture = Capture()
+        capture = Capture(loggers=False)
         with capture():
             print("foo stdout")
             print('bar stderr', file=sys.stderr)
             print("baz stdout")
             print('che stderr', file=sys.stderr)
 
-        self.assertTrue("foo stdout\nbar stderr\nbaz stdout\nche stderr" in capture)
+        output = "foo stdout\nbar stderr\nbaz stdout\nche stderr\n"
+        self.assertTrue(output in capture)
+        self.assertTrue(output == capture)
+        self.assertFalse(output < capture)
+        self.assertFalse(output > capture)
+        self.assertFalse(output != capture)
+        self.assertTrue(output <= capture)
+        self.assertTrue(output >= capture)
+        self.assertTrue(capture)
 
     def test_function(self):
         with testdata.capture() as c:
