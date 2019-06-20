@@ -123,6 +123,12 @@ class Capture(Base):
     NOTE -- this only captures stdout and stderr streams, even in loggers
     """
     def __init__(self, stdout=True, stderr=True, loggers=True):
+        """create a capture instance
+
+        :param stdout: capture stdout streams
+        :param stderr: capture stderr streams
+        :param loggers: capture stdout and stderr streams of loggers
+        """
         self.stdout = None
         self.stderr = None
         # I could use the sys ones but docs suggest not to

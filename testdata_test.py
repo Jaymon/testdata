@@ -1628,6 +1628,25 @@ class ClientTest(TestCase):
 
 
 class TC1Test(testdata.TestCase):
+    def test_assert_logs(self):
+
+        name = "test_assert_logs"
+        logger = logging.getLogger(name)
+
+        with self.assertLogs(name):
+            logger.info("boom1")
+
+        with self.assertRaises(AssertionError):
+            with self.assertLogs(name, logging.INFO):
+                logger.debug("boom2")
+
+        with self.assertLogs(name, logging.INFO) as cm:
+            logger.error("boom3")
+
+        with self.assertRaises(AssertionError):
+            with self.assertLogs(name, logging.INFO):
+                pass
+
     def test_assert_within(self):
         with self.assertRaises(AssertionError):
             with self.assertWithin(0.25):

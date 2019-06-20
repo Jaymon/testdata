@@ -235,6 +235,11 @@ def capture(stdout=True, stderr=True, loggers=True, *args, **kwargs):
             print("foo")
         if "foo" in c:
             print("foo was captured")
+
+    :param stdout: capture stdout streams
+    :param stderr: capture stderr streams
+    :param loggers: capture stdout and stderr streams of loggers
+    :returns: output.Capture instance
     """
     c = Capture(stdout=stdout, stderr=stderr, loggers=loggers)
     return c(*args, **kwargs)
