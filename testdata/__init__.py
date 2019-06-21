@@ -524,7 +524,7 @@ get_f = get_file
 
 
 def get_filename(ext="", prefix=""):
-    """return a file name
+    """return just a valid file name
 
     :param ext: the extension you want the file to have
     :param prefix: this will be the first part of the file's name
@@ -536,8 +536,23 @@ def get_filename(ext="", prefix=""):
 get_file_name = get_filename
 
 
+def get_source_filepath(v):
+    """Returns the full filepath of a given python object
+
+    :param v: mixed, a python object to find the source file for
+    :returns: Filepath
+    """
+    try:
+        ret = inspect.getsourcefile(v)
+    except TypeError:
+        ret = inspect.getsourcefile(v.__class__)
+    return Filepath(ret)
+get_source_file = get_source_filepath
+get_source_path = get_source_filepath
+
+
 def get_module_name(bits=1, prefix="", postfix=""):
-    """Returns a module name or module path
+    """Returns just a valid module name or module path
 
     :param bits: how many parts you want in your module path (1 is foo, 2 is foo.bar, etc)
     :param prefix: if you want the last bit to be prefixed with something
