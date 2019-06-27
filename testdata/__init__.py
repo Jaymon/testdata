@@ -54,6 +54,7 @@ from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import (
     TestCase,
     skip,
+    SkipTest,
     skipIf,
     skipUnless,
     expectedFailure,
