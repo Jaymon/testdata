@@ -64,7 +64,8 @@ from .test import (
     expect_failure,
 )
 
-__version__ = '1.0.0'
+
+__version__ = '1.0.1'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)

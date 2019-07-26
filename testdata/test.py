@@ -75,7 +75,6 @@ if is_py2:
             else:
                 self.level = logging.INFO
 
-            pout.v(logger_name, self.level)
             self.msg = None
 
         def __enter__(self):
