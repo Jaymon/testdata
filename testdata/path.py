@@ -21,85 +21,6 @@ from .client import ModuleCommand, FileCommand
 from .utils import ByteString, String
 
 
-class ContentMixin(object):
-    """Find the first file matching basedir/fileroot.* and read its contents"""
-    @classmethod
-    def _get_params(cls, fileroot, basedir="", encoding=""):
-        path = cls._find_path(fileroot, basedir)
-        if encoding:
-            with codecs.open(path, encoding=encoding) as f:
-                contents = f.read()
-
-        else:
-            with open(path) as f:
-                contents = f.read()
-
-        return contents, path
-
-    @classmethod
-    def _initialize(cls, instance, path):
-        instance.path = Filepath(os.path.basename(path), basedir=os.path.dirname(path))
-        instance.directory = instance.path.directory
-        return instance
-
-    @classmethod
-    def _find_path(cls, fileroot, basedir):
-        path = fileroot
-        if not os.path.isfile(fileroot):
-            d = cls._find_directory(basedir)
-            path = os.path.join(d, fileroot)
-            if not os.path.isfile(path):
-                path = ""
-                patterns = [fileroot, "{}.*".format(fileroot)]
-                for root_dir, dirs, files in os.walk(d, topdown=True):
-                    for basename in files:
-                        for pattern in patterns:
-                            if fnmatch.fnmatch(basename, pattern):
-                                path = os.path.join(root_dir, basename)
-                                break
-                        if path: break
-                    if path: break
-
-                if not path:
-                    raise IOError("Could not find a file matching {}".format(fileroot))
-
-        return path
-
-    @classmethod
-    def _find_directory(cls, basedir):
-        d = ""
-        if basedir:
-            d = basedir
-
-        else:
-            d = environ.CONTENTS_DIR
-
-            if not d:
-                d = os.getcwd()
-
-        if not d:
-            raise IOError("Could not find a testdata directory")
-        return d
-
-
-class ContentBytes(Bytes, ContentMixin):
-    """This is returned when get_contents is called without an encoding"""
-    def __new__(cls, fileroot, basedir=""):
-        contents, path = cls._get_params(fileroot, basedir)
-        instance = super(ContentBytes, cls).__new__(cls, contents)
-        cls._initialize(instance, path)
-        return instance
-
-
-class ContentString(String, ContentMixin):
-    """This is returned when get_contents is called with an encoding"""
-    def __new__(cls, fileroot, basedir="", encoding=""):
-        contents, path = cls._get_params(fileroot, basedir, encoding)
-        instance = super(ContentString, cls).__new__(cls, contents)
-        cls._initialize(instance, path)
-        return instance
-
-
 class Dirpath(String):
     '''
     create a directory path using a tempdir as the root
@@ -218,7 +139,7 @@ class Dirpath(String):
         """get a child directory relative to this directory"""
         return self.child(relpath)
 
-    def create_dirs(dirs):
+    def create_dirs(self, dirs):
         for name in dirs:
             self.create_dir(name)
         return self
@@ -322,7 +243,7 @@ class Dirpath(String):
 
     def child(self, *bits):
         """Return a child instance (Filepath or Dirpath) relative to this directory"""
-        relpath = os.path.join(self.relpath, *bits)
+        relpath = os.path.join(self.relpath, *filter(None, bits))
         fullpath = os.path.join(self.basedir, relpath)
         if os.path.isfile(fullpath):
             ret = Filepath(relpath, self.basedir)
@@ -803,4 +724,91 @@ class Modulepath(Filepath):
             mod = self.parent
         cmd = ModuleCommand(mod, cwd=cwd, environ=environ)
         return cmd.run(arg_str, **kwargs)
+
+
+class ContentMixin(object):
+    """Find the first file matching basedir/fileroot.* and read its contents"""
+    @classmethod
+    def _get_params(cls, fileroot, basedir="", encoding=""):
+        path = cls._find_path(fileroot, basedir)
+        if encoding:
+            with codecs.open(path, encoding=encoding) as f:
+                contents = f.read()
+
+        else:
+            with open(path) as f:
+                contents = f.read()
+
+        return contents, path
+
+    @classmethod
+    def _initialize(cls, instance, path):
+        instance.path = Filepath(os.path.basename(path), basedir=os.path.dirname(path))
+        instance.directory = instance.path.directory
+        return instance
+
+    @classmethod
+    def _find_path(cls, fileroot, basedir):
+        path = fileroot
+        if not os.path.isfile(fileroot):
+            d = cls._find_directory(basedir)
+            path = os.path.join(d, fileroot)
+            if not os.path.isfile(path):
+                path = ""
+                patterns = [fileroot, "{}.*".format(fileroot)]
+                for root_dir, dirs, files in os.walk(d, topdown=True):
+                    for basename in files:
+                        for pattern in patterns:
+                            if fnmatch.fnmatch(basename, pattern):
+                                path = os.path.join(root_dir, basename)
+                                break
+                        if path: break
+                    if path: break
+
+                if not path:
+                    raise IOError("Could not find a file matching {}".format(fileroot))
+
+        return path
+
+    @classmethod
+    def _find_directory(cls, basedir):
+        d = ""
+        if basedir:
+            d = basedir
+
+        else:
+            d = environ.CONTENTS_DIR
+
+            if not d:
+                d = os.getcwd()
+
+        if not d:
+            raise IOError("Could not find a testdata directory")
+        return d
+
+
+class ContentBytes(Bytes, ContentMixin):
+    """This is returned when get_contents is called without an encoding"""
+    def __new__(cls, fileroot, basedir=""):
+        contents, path = cls._get_params(fileroot, basedir)
+        instance = super(ContentBytes, cls).__new__(cls, contents)
+        cls._initialize(instance, path)
+        return instance
+
+
+class ContentString(String, ContentMixin):
+    """This is returned when get_contents is called with an encoding"""
+    def __new__(cls, fileroot, basedir="", encoding=""):
+        contents, path = cls._get_params(fileroot, basedir, encoding)
+        instance = super(ContentString, cls).__new__(cls, contents)
+        cls._initialize(instance, path)
+        return instance
+
+
+class ContentFilepath(Filepath, ContentMixin):
+    """Return the filepath of a file in the contents directory"""
+    def __new__(cls, fileroot, basedir="", encoding=""):
+        path = cls._find_path(fileroot, basedir)
+        return super(ContentFilepath, cls).__new__(cls, path, encoding=encoding)
+
 

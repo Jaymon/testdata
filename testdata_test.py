@@ -22,7 +22,14 @@ import logging
 import testdata
 from testdata import environ
 from testdata.test import TestCase, SkipTest
-from testdata.path import Filepath, Dirpath, ContentString, ContentBytes
+from testdata.path import (
+    Dirpath,
+    Filepath,
+    Modulepath,
+    ContentBytes,
+    ContentString,
+    ContentFilepath
+)
 from testdata.compat import *
 from testdata.threading import Thread, Deque
 from testdata import threading
@@ -253,6 +260,7 @@ class PathTest(TestCase):
 
     def test_contents(self):
         base_d = testdata.create_dir()
+        cwd = os.getcwd()
         os.chdir(base_d)
 
         # check scanning failure
@@ -273,8 +281,14 @@ class PathTest(TestCase):
         self.assertEqual(foo_f.contents(), c)
 
         # check wrapper
-        c = testdata.get_contents("foo", encoding="UTF-8")
+        c = testdata.get_content_body("foo", encoding="UTF-8")
         self.assertEqual(foo_f.contents(), c)
+
+        f = testdata.get_content_file("foo")
+        self.assertEqual(f.path, c.path)
+        self.assertEqual(f, c.path)
+
+        os.chdir(cwd)
 
     def test_file(self):
         f = testdata.create_file("foo.txt", "this is the text")
@@ -607,6 +621,22 @@ class TestdataTest(TestCase):
 
         with self.assertRaises(ValueError):
             testdata.create_dir("./foo/bar")
+
+    def test_create_dirs(self):
+        ts = [
+            "\\foo\\bar",
+            "/foo1/bar1",
+            "/foo2/bar2/",
+            "foo3/bar3",
+            "foo4/bar4/",
+            "",
+            None
+        ]
+        d = testdata.create_dirs(ts)
+
+        for t in ts:
+            td = d.child(t)
+            self.assertTrue(os.path.isdir(d))
 
     def test_get_file(self):
         f = testdata.get_file()

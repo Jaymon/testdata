@@ -45,7 +45,14 @@ from .data import (
 )
 
 from . import environ
-from .path import Dirpath, Filepath, Modulepath, ContentBytes, ContentString
+from .path import (
+    Dirpath,
+    Filepath,
+    Modulepath,
+    ContentBytes,
+    ContentString,
+    ContentFilepath
+)
 from .threading import Thread
 from .output import Capture
 from .server import PathServer, CookieServer, CallbackServer
@@ -65,7 +72,7 @@ from .test import (
 )
 
 
-__version__ = '1.0.1'
+__version__ = '1.1.0'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -432,7 +439,13 @@ def create_cookieserver(cookies, hostname="", port=0):
     return CookieServer(cookies, hostname=hostname, port=port)
 
 
-def get_contents(fileroot, basedir="", encoding=""):
+def get_content_file(fileroot, basedir="", encoding=""):
+    return ContentFilepath(fileroot, basedir=basedir, encoding=encoding)
+get_content_path = get_content_file
+get_path = get_content_file
+
+
+def get_content_body(fileroot, basedir="", encoding=""):
     """Returns the contents of a file matching basedir/fileroot.*
 
     :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
@@ -446,7 +459,8 @@ def get_contents(fileroot, basedir="", encoding=""):
         return ContentString(fileroot, basedir=basedir, encoding=encoding)
     else:
         return ContentBytes(fileroot, basedir=basedir)
-get_content = get_contents
+get_contents = get_content_body
+get_content_contents = get_content_body
 
 
 def create_dir(path="", tmpdir=""):
@@ -463,6 +477,21 @@ def create_dir(path="", tmpdir=""):
     return Dirpath.create_instance(path, tmpdir)
 create_directory = create_dir
 create_d = create_dir
+
+
+def create_dirs(dirs, tmpdir=""):
+    """
+    create a whole bunch of directories all at once
+
+    :param dirs: list, the directories to create relative to tmpdir
+    :param tmpdir: string, the base directory
+    :returns: Dirpath instance pointing to the base directory all of dirs were
+        created in
+    """
+    base_dir = Dirpath(basedir=tmpdir)
+    base_dir.create_dirs(dirs)
+    return base_dir
+create_ds = create_dirs
 
 
 def get_dir(path):
