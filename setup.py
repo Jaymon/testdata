@@ -26,6 +26,7 @@ setup(
     url='http://github.com/Jaymon/{}'.format(name),
     #py_modules=[name],
     packages=find_packages(),
+    package_data={name: ['data/*']},
     license="MIT",
     #tests_require=[],
     classifiers=[ # https://pypi.python.org/pypi?:action=list_classifiers

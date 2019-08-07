@@ -29,6 +29,7 @@ import logging
 import time
 from time import sleep
 from contextlib import contextmanager
+import pkgutil
 
 from .compat import *
 from .data import (
@@ -72,7 +73,7 @@ from .test import (
 )
 
 
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -443,6 +444,7 @@ def get_content_file(fileroot, basedir="", encoding=""):
     return ContentFilepath(fileroot, basedir=basedir, encoding=encoding)
 get_content_path = get_content_file
 get_path = get_content_file
+get_data_path = get_content_file
 
 
 def get_content_body(fileroot, basedir="", encoding=""):
@@ -461,6 +463,8 @@ def get_content_body(fileroot, basedir="", encoding=""):
         return ContentBytes(fileroot, basedir=basedir)
 get_contents = get_content_body
 get_content_contents = get_content_body
+get_content_data = get_content_body
+get_data = get_content_body
 
 
 def create_dir(path="", tmpdir=""):
@@ -544,6 +548,76 @@ def create_files(file_dict, tmpdir="", encoding=""):
     base_dir.create_files(file_dict, encoding)
     return base_dir
 create_fs = create_files
+
+
+def create_image(image_type="", path="", tmpdir=""):
+    """Creates an image using the images founc in the data/ directory
+
+    :param image_type: string, the type of image you want, one of jpg, png, gif, agif, ico
+    :param path: string, the path or basename (eg, foo/bar.jpg or che) of the image
+    :param tmpdir: Dirpath, same as create_module() tmpdir
+    :returns: Filepath, the path to the image file
+    """
+    images = [
+        (set(["jpg", "jpeg"]), ".jpg", "static.jpg"),
+        (set(["png"]), ".png", "static.png"),
+        (set(["gif"]), ".gif", "static.gif"),
+        (set(["agif", "animated_gif"]), ".gif", "animated.gif"),
+        (set(["ico", "favicon", "ico"]), ".ico", "favicon.ico"),
+    ]
+
+    if image_type:
+        image_type = image_type.lower()
+        for itypes, ext, image in images:
+            if image_type in itypes:
+                break
+
+    else:
+        image_type, ext, image = random.choice(images)
+
+    # https://docs.python.org/2/library/pkgutil.html#pkgutil.get_data
+    contents = pkgutil.get_data(__name__.split(".")[0], "data/{}".format(image))
+
+    if path and not path.lower().endswith(ext):
+        path += ext
+    else:
+        path = get_filename(ext=ext)
+
+    return create_file(
+        path=path,
+        contents=contents,
+        tmpdir=tmpdir,
+        encoding=None
+    )
+
+
+def create_jpg(path="", tmpdir=""):
+    """create a jpeg image"""
+    return create_image(image_type="jpg", path=path, tmpdir=tmpdir)
+create_jpeg=create_jpg
+
+
+def create_png(path="", tmpdir=""):
+    """create a png image"""
+    return create_image(image_type="png", path=path, tmpdir=tmpdir)
+
+
+def create_gif(path="", tmpdir=""):
+    """create a static gif image"""
+    return create_image(image_type="gif", path=path, tmpdir=tmpdir)
+
+
+def create_animated_gif(path="", tmpdir=""):
+    """create an animated gif image"""
+    return create_image(image_type="agif", path=path, tmpdir=tmpdir)
+create_agif=create_animated_gif
+
+
+def create_ico(path="", tmpdir=""):
+    """create an icon image"""
+    return create_image(image_type="ico", path=path, tmpdir=tmpdir)
+create_icon=create_ico
+create_favicon=create_ico
 
 
 def get_file(path="", tmpdir="", encoding=""):

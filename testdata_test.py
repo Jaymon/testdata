@@ -694,6 +694,26 @@ class TestdataTest(TestCase):
 
         self.assertLess(0, count)
 
+    def test_create_image(self):
+        d = testdata.create_directory()
+        jpg = testdata.create_jpg(tmpdir=d)
+        self.assertTrue(jpg.endswith(".jpg"))
+
+        png = testdata.create_png(tmpdir=d)
+        self.assertTrue(png.endswith(".png"))
+
+        gif = testdata.create_gif(tmpdir=d)
+        self.assertTrue(gif.endswith(".gif"))
+
+        agif = testdata.create_animated_gif(tmpdir=d)
+        self.assertTrue(agif.endswith(".gif"))
+
+        ico = testdata.create_ico(tmpdir=d)
+        self.assertTrue(ico.endswith(".ico"))
+
+        jpg = testdata.create_jpg("foo", tmpdir=d)
+        self.assertTrue(jpg.endswith("foo.jpg"))
+
     def test_create_module(self):
         ts = [
             (
