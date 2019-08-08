@@ -73,7 +73,7 @@ from .test import (
 )
 
 
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -578,8 +578,9 @@ def create_image(image_type="", path="", tmpdir=""):
     # https://docs.python.org/2/library/pkgutil.html#pkgutil.get_data
     contents = pkgutil.get_data(__name__.split(".")[0], "data/{}".format(image))
 
-    if path and not path.lower().endswith(ext):
-        path += ext
+    if path:
+        if not path.lower().endswith(ext):
+            path += ext
     else:
         path = get_filename(ext=ext)
 

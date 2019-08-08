@@ -714,6 +714,10 @@ class TestdataTest(TestCase):
         jpg = testdata.create_jpg("foo", tmpdir=d)
         self.assertTrue(jpg.endswith("foo.jpg"))
 
+        jpg = testdata.create_jpg("bar.jpg", tmpdir=d)
+        pout.v(jpg)
+        self.assertTrue(jpg.endswith("bar.jpg"))
+
     def test_create_module(self):
         ts = [
             (
