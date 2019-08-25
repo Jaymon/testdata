@@ -6,7 +6,7 @@ import logging
 from collections import deque
 import copy
 
-from .compat import queue, _thread, reraise
+from .compat import queue, _thread, reraise, is_py2
 
 
 logger = logging.getLogger(__name__)
@@ -158,6 +158,8 @@ class Thread(threading.Thread):
     If you want to see what exception was raised you can get that through the .exception
     property
 
+    https://github.com/python/cpython/blob/3.7/Lib/threading.py#L744
+
     https://stackoverflow.com/questions/2829329/catch-a-threads-exception-in-the-caller-thread-in-python
     https://stackoverflow.com/questions/323972/is-there-any-way-to-kill-a-thread-in-python
     https://stackoverflow.com/questions/2564137/python-how-to-terminate-a-thread-when-main-program-ends
@@ -239,6 +241,13 @@ class Thread(threading.Thread):
             pass
 
         finally:
+            if not is_py2:
+                # this is here to address this issue:
+                # https://github.com/Jaymon/testdata/issues/53
+                lock = getattr(self, "_tstate_lock", None)
+                if lock:
+                    lock.release()
+
             thread_e_info = self.exc_info
             if thread_e_info:
                 thread_e, thread_exc_info = thread_e_info

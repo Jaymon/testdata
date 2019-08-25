@@ -720,8 +720,6 @@ class TestdataTest(TestCase):
     def test_create_png(self):
         import pout
         png_bw = testdata.create_png(width=1000, height=500)
-        pout.b()
-        pout.v(png_bw.directory)
         png_red = testdata.create_png(tmpdir=png_bw.directory, width=1000, height=500, color=[255,0,0])
         self.assertTrue(png_red.exists())
         self.assertTrue(png_bw.exists())
@@ -1322,9 +1320,6 @@ class ThreadTest(TestCase):
 #             q.get(False)
 #             q.task_done()
 
-    def test_foobar(self):
-        pass
-
     def test_success(self):
         q = queue.Queue()
         def run():
@@ -1403,11 +1398,13 @@ class ThreadTest(TestCase):
         c2 = C2()
 
         def c2_send():
-            c2.blah(foo_bar)
+            c2.blah(foo_bar) # foo_bar doesn't exist so NameError should be raised
 
         with self.assertRaises(NameError):
             t2 = testdata.Thread(target=c2_send)
             t2.start()
+            #pout.h()
+            #time.sleep(0.5)
             t2.join()
 
 

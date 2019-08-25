@@ -37,7 +37,7 @@ def make_png(width, height, color=None):
     def B1(value):
         return chr(value) if is_py2 else value
 
-    # file header
+    # PNG file header
     png = b"\x89" + "PNG\r\n\x1A\n".encode('ascii')
 
     # IHDR block
@@ -63,40 +63,24 @@ def make_png(width, height, color=None):
     if color:
         # NOTE -- you could make the images smaller by creating a
         # palette (colortype 2) with one color and then just using the
-        # index like the b&w image does, but that's way more work
+        # index like the b&w image does, but that's way more work because we
+        # would need to add a PLTE block with the palette information
         c = []
         for co in color:
             c.append(B1(co))
-            #c.append(chr(co) if is_py2 else co)
-        #c += bytearray([255]) # alpha
         c.append(B1(255)) # alpha
-
-#         for co in color:
-#             c += ByteString(chr(co))
-#             #c += bytearray([chr(co)])
-#         #c += bytearray([255]) # alpha
-#         c += ByteString(chr(255))
-        #c = bytes(c)
     else:
-        #c = b"\0" # default black pixel
-        #c = [chr(0) if is_py2 else 0]
-        c = [B1(0)]
+        c = [B1(0)] # default black pixel
 
-
+    # populate the actual image data
     for y in range(height):
-        #raw.append(chr(0) if is_py2 else 0) # no filter for this scanline
         raw.append(B1(0)) # no filter for this scanline
         for x in range(width):
             raw.extend(c)
 
-#     for y in range(height):
-#         raw += b"\0" # no filter for this scanline
-#         for x in range(width):
-#             raw += c
-
     compressor = zlib.compressobj()
     compressed = compressor.compress(bytes(raw) if is_py2 else raw)
-    compressed += compressor.flush() #!!
+    compressed += compressor.flush()
     block = "IDAT".encode('ascii') + compressed
     png += I4(len(compressed)) + block + I4(zlib.crc32(block))
 
