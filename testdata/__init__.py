@@ -71,6 +71,7 @@ from .test import (
     expected_failure,
     expect_failure,
 )
+from .image import make_png
 
 
 __version__ = '1.1.2'
@@ -598,9 +599,25 @@ def create_jpg(path="", tmpdir=""):
 create_jpeg=create_jpg
 
 
-def create_png(path="", tmpdir=""):
+def create_png(path="", tmpdir="", width=0, height=0, color=None):
     """create a png image"""
-    return create_image(image_type="png", path=path, tmpdir=tmpdir)
+    if width and height:
+        ext = ".png"
+        if path:
+            if not path.lower().endswith(ext):
+                path += ext
+        else:
+            path = get_filename(ext=ext)
+
+        return create_file(
+            path=path,
+            contents=make_png(width, height, color=color),
+            tmpdir=tmpdir,
+            encoding=None
+        )
+
+    else:
+        return create_image(image_type="png", path=path, tmpdir=tmpdir)
 
 
 def create_gif(path="", tmpdir=""):

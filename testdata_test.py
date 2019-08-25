@@ -715,8 +715,16 @@ class TestdataTest(TestCase):
         self.assertTrue(jpg.endswith("foo.jpg"))
 
         jpg = testdata.create_jpg("bar.jpg", tmpdir=d)
-        pout.v(jpg)
         self.assertTrue(jpg.endswith("bar.jpg"))
+
+    def test_create_png(self):
+        import pout
+        png_bw = testdata.create_png(width=1000, height=500)
+        pout.b()
+        pout.v(png_bw.directory)
+        png_red = testdata.create_png(tmpdir=png_bw.directory, width=1000, height=500, color=[255,0,0])
+        self.assertTrue(png_red.exists())
+        self.assertTrue(png_bw.exists())
 
     def test_create_module(self):
         ts = [
