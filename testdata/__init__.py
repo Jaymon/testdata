@@ -32,6 +32,7 @@ from contextlib import contextmanager
 import pkgutil
 
 from .compat import *
+from .utils import String, ByteString
 from .data import (
     _names,
     _unicode_names,
@@ -74,7 +75,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.1.3'
+__version__ = '1.1.4'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -982,6 +983,27 @@ def get_unique_float(min_size=None, max_size=None):
 get_uniq_float = get_unique_float
 
 
+def get_digits(count):
+    """return a string value that contains count digits
+
+    :param count: int, how many digits you want, so if you pass in 4, you would get
+        4 digits
+    :returns: string, this returns a string because the digits might start with
+        zero
+    """
+    min_size = int("1" + ("0" * (count - 1)))
+    max_size = int("9" * count)
+
+    if yes():
+        ret = String(get_int(min_size, max_size))
+    else:
+        ret = get_int(0, min_size)
+        ret = "{{:0>{}}}".format(count).format(get_int(0, min_size))
+    return ret
+get_digit = get_digits
+get_count_digits = get_digits
+
+
 def get_posint(max_size=2**31-1):
     """
     just return a positive 32-bit integer, this is basically a wrapper around
@@ -993,6 +1015,7 @@ def get_posint(max_size=2**31-1):
 get_positive_int = get_posint
 get_positive_integer = get_posint
 get_posinteger = get_posint
+get_pint = get_posint
 
 
 def get_int(min_size=1, max_size=sys.maxsize):

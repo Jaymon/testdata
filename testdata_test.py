@@ -1007,6 +1007,12 @@ class TestdataTest(TestCase):
         else:
             self.assertRegex(s, r'https?\://\S*')
 
+    def test_get_digits(self):
+        for x in range(testdata.get_posint(5)):
+            for count in range(1, testdata.get_int(2, 10)):
+                d = testdata.get_digits(count)
+                self.assertEqual(count, len(d))
+
     def test_get_int(self):
         i = testdata.get_int()
         self.assertGreater(i, 0)
