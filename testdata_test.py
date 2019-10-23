@@ -36,7 +36,7 @@ from testdata import threading
 from testdata.output import Capture
 from testdata.server import AnyServer, CookieServer, CallbackServer
 from testdata.client import HTTP, Command
-from testdata.utils import ByteString
+from testdata.utils import ByteString, String
 
 
 testdata.basic_logging()
@@ -165,6 +165,16 @@ class ServerTest(TestCase):
 
 
 class PathTest(TestCase):
+    def test_head_tail(self):
+        count = 10
+        p = testdata.create_file(contents=testdata.get_lines(21))
+        hlines = p.head(count)
+        self.assertEqual(count, len(hlines))
+
+        tlines = p.tail(count)
+        self.assertEqual(count, len(tlines))
+        self.assertNotEqual("\n".join(hlines), "\n".join(tlines))
+
     def test_checksum(self):
         contents = "foo bar che"
         path1 = testdata.create_file(contents=contents)
@@ -932,10 +942,10 @@ class TestdataTest(TestCase):
         self.assertTrue(email.startswith("foobar"))
 
     def test_get_words(self):
-        v = testdata.get_words(word_count=2)
+        v = testdata.get_words(count=2)
         self.assertEqual(1, len(re.findall(r'\s+', v)))
 
-        v = testdata.get_words(word_count=2, as_str=False)
+        v = testdata.get_words(count=2, as_str=False)
         self.assertEqual(2, len(v))
 
         v = testdata.get_words(as_str=False)
@@ -960,6 +970,13 @@ class TestdataTest(TestCase):
                 v.decode('utf-8')
             elif is_py3:
                 bytes(v, encoding="ascii").decode('utf-8')
+
+    def test_get_lines(self):
+        ls = testdata.get_lines(10)
+        self.assertTrue(isinstance(ls, basestring))
+
+        ls = testdata.get_lines(11, as_str=False)
+        self.assertTrue(isinstance(ls, list))
 
     def test_get_birthday(self):
         v = testdata.get_birthday()
@@ -1789,4 +1806,9 @@ class UtilsTest(testdata.TestCase):
         self.assertEqual(s, bs2.unicode())
         self.assertEqual(s, unicode(bs2))
         # self.assertNotEqual(s, bytes(bs2)) # this prints a UnicodeWarning
+
+    def test_string_int(self):
+        i = testdata.get_int(0, 1000)
+        s = String(i)
+        self.assertEqual(str(i), String(i))
 

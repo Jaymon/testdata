@@ -14,6 +14,8 @@ import inspect
 #import glob
 import fnmatch
 import hashlib
+from collections import deque
+
 
 from .compat import *
 from . import environ
@@ -471,6 +473,35 @@ class Filepath(Dirpath):
     def lc(self):
         """return line count"""
         return len(list(self.lines()))
+    linecount = lc
+
+    def head(self, count):
+        """
+        get the first count lines of self.path
+
+        :param count: int, how many lines you want from the start of the file
+        :returns: list, the lines in a similar format to .lines()
+        """
+        if count == 0:
+            ret = self.lines()
+        else:
+            ret = [l[1] for l in enumerate(self.lines()) if l[0] < count]
+        return ret
+
+    def tail(self, count):
+        """
+        get the last count lines of self.path
+
+        https://stackoverflow.com/a/280083/5006
+
+        :param count: int, how many lines you want from the end of the file
+        :returns: list, the lines in a similar format to .lines()
+        """
+        if count == 0:
+            ret = self.lines()
+        else:
+            ret = deque(self.lines(), maxlen=count)
+        return ret
 
     def clear(self):
         """get rid of the contents from the file but leave the file"""

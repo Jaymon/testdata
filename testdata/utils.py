@@ -31,7 +31,7 @@ class ByteString(bytes):
 
 class String(unicode):
     def __new__(cls, val, encoding="UTF-8"):
-        if not isinstance(val, unicode):
+        if not isinstance(val, (unicode, int)):
             val = ByteString(val, encoding).unicode()
         instance = super(String, cls).__new__(cls, val)
         instance.encoding = encoding

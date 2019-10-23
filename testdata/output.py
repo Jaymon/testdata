@@ -260,3 +260,4 @@ class Capture(Base):
         self.capturing = False
         self.release()
 
+

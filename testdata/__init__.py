@@ -75,7 +75,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.1.4'
+__version__ = '1.1.5'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -262,15 +262,14 @@ def yes(specifier=0):
     Decide if we should perform this action, this is just a simple way to do something
     I do in tests every now and again
 
-    example -- simple yes or no question
-
+    :Example:
+        # EXAMPLE -- simple yes or no question
         if testdata.yes():
             # do this
         else:
             # don't do it
 
-    example -- multiple choice
-
+        # EXAMPLE -- multiple choice
         choice = testdata.yes(3)
         if choice == 1:
             # do the first thing
@@ -279,21 +278,25 @@ def yes(specifier=0):
         else:
             # do the third thing
 
-    example -- do something 75% of the time
-
+        # EXAMPLE -- do something 75% of the time
         if testdata.yes(0.75):
             # do it the majority of the time
         else:
             # but every once in a while don't do it
 
     https://github.com/Jaymon/testdata/issues/8
+
+    :param specifier: int|float, if int, return a value between 1 and specifier.
+        if float, return 1 approximately specifier percent of the time, return 0
+        100% - specifier percent of the time
+    :returns: integer, usually 1 (True) or 0 (False)
     """
     if specifier:
         if isinstance(specifier, int):
             choice = random.randint(1, specifier)
 
         else:
-            if specifier > 1.0:
+            if specifier < 1.0:
                 specifier *= 100.0
 
             specifier = int(specifier)
@@ -991,14 +994,8 @@ def get_digits(count):
     :returns: string, this returns a string because the digits might start with
         zero
     """
-    min_size = int("1" + ("0" * (count - 1)))
     max_size = int("9" * count)
-
-    if yes():
-        ret = String(get_int(min_size, max_size))
-    else:
-        ret = get_int(0, min_size)
-        ret = "{{:0>{}}}".format(count).format(get_int(0, min_size))
+    ret = "{{:0>{}}}".format(count).format(get_int(0, max_size))
     return ret
 get_digit = get_digits
 get_count_digits = get_digits
@@ -1068,16 +1065,16 @@ get_uniq_integer = get_unique_int
 get_unique_integer = get_unique_int
 
 
-def get_ascii_words(word_count=0, as_str=True):
-    return get_words(word_count, as_str, words=_ascii_words)
+def get_ascii_words(count=0, as_str=True):
+    return get_words(count, as_str, words=_ascii_words)
 
 
 def get_ascii_word():
     return get_words(1, as_str=True, words=_ascii_words)
 
 
-def get_unicode_words(word_count=0, as_str=True):
-    return get_words(word_count, as_str, words=_unicode_words)
+def get_unicode_words(count=0, as_str=True):
+    return get_words(count, as_str, words=_unicode_words)
 get_uni_words = get_unicode_words
 
 
@@ -1086,31 +1083,53 @@ def get_unicode_word():
 get_uni_word = get_unicode_word
 
 
+def get_words(count=0, as_str=True, words=None):
+    '''get some amount of random words
 
-def get_words(word_count=0, as_str=True, words=None):
+    :param count: integer, how many words you want, 0 means a random amount (at most 20)
+    :param as_str: boolean, True to return as string, false to return as list of words
+    :param words: list, a list of words to choose from, defaults to unicode + ascii words
+    :returns: unicode|list, your requested words
     '''
-    get some amount of random words
-
-    word_count -- integer -- how many words you want, 0 means a random amount (at most 20)
-    as_str -- boolean -- True to return as string, false to return as list of words
-    words -- list -- a list of words to choose from, defaults to unicode + ascii words
-
-    return -- unicode|list -- your requested words
-    '''
-
-    # since we specified we didn't care, randomly choose how many surnames there should be
-    if word_count == 0:
-        word_count = random.randint(1, 20)
+    # since we specified we didn't care, randomly choose how many words there should be
+    if count == 0:
+        count = random.randint(1, 20)
 
     if not words:
         words = _words
 
-    ret_words = random.sample(words, word_count)
+    ret_words = random.sample(words, count)
     return ret_words if not as_str else ' '.join(ret_words)
 
 
 def get_word(words=None):
     return get_words(1, as_str=True, words=words)
+
+
+def get_lines(count=0, as_str=True, words=None):
+    if count == 0:
+        count = random.randint(1, 20)
+
+    if not words:
+        words = _words
+
+    ret_lines = []
+    for i in range(count):
+        if yes(0.75):
+            ret_lines.append(get_words(as_str=True, words=words))
+        else:
+            ret_lines.append("\n")
+
+    return ret_lines if not as_str else "\n".join(ret_lines)
+
+
+def get_ascii_lines(count=0, as_str=True):
+    return get_lines(count, as_str, words=_ascii_words)
+
+
+def get_unicode_lines(count=0, as_str=True):
+    return get_lines(count, as_str, words=_unicode_words)
+get_uni_lines = get_unicode_lines
 
 
 def get_username(name=""):
