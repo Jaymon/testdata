@@ -75,7 +75,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.1.5'
+__version__ = '1.1.6'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -650,17 +650,60 @@ def get_file(path="", tmpdir="", encoding=""):
 get_f = get_file
 
 
-def get_filename(ext="", prefix=""):
+def get_filename(ext="", prefix="", name=""):
     """return just a valid file name
 
-    :param ext: the extension you want the file to have
-    :param prefix: this will be the first part of the file's name
-    :returns: the random filename
+    :param ext: string, the extension you want the file to have
+    :param prefix: string, this will be the first part of the file's name
+    :param name: string, the name you want to use (prefix will be added to the front
+        of the name and ext will be added to the end of the name)
+    :returns: string, the random filename
     """
-    if ext and not ext.startswith("."):
-        ext = "." + ext
-    return get_module_name(prefix=prefix, postfix=ext)
+    if ext:
+        if not ext.startswith("."):
+            ext = "." + ext
+
+        if name:
+            if name.endswith(ext):
+                ext = ""
+
+    return get_module_name(prefix=prefix, postfix=ext, name=name)
 get_file_name = get_filename
+
+
+def get_module_name(bits=1, prefix="", postfix="", name=""):
+    """Returns just a valid module name or module path
+
+    :param bits: int, how many parts you want in your module path (1 is foo, 2 is foo.bar, etc)
+    :param prefix: string, if you want the last bit to be prefixed with something
+    :param postfix: string, if you want the last bit to be posfixed with something (eg, ".py")
+    :param name: string, the name you want to use for the last bit
+        (prefix will be added to the front of the name and postfix will be added to
+         the end of the name)
+    :returns: string, the modulepath
+    """
+    parts = []
+    bits = max(bits, 1)
+
+    for x in range(bits):
+        parts.append(get_str(str_size=8, chars=string.ascii_letters).lower())
+
+    if name:
+        parts[-1] = name
+
+    if prefix:
+        parts[-1] = "{}{}".format(prefix, parts[-1])
+
+    if postfix:
+        parts[-1] = "{}{}".format(parts[-1], postfix)
+
+    return ".".join(parts)
+get_package_name = get_module_name
+get_modulename = get_module_name
+get_modname = get_module_name
+get_modpath = get_module_name
+get_modulepath = get_module_name
+get_module_path = get_module_name
 
 
 def get_source_filepath(v):
@@ -676,30 +719,6 @@ def get_source_filepath(v):
     return Filepath(ret)
 get_source_file = get_source_filepath
 get_source_path = get_source_filepath
-
-
-def get_module_name(bits=1, prefix="", postfix=""):
-    """Returns just a valid module name or module path
-
-    :param bits: how many parts you want in your module path (1 is foo, 2 is foo.bar, etc)
-    :param prefix: if you want the last bit to be prefixed with something
-    :param postfix: if you want the last bit to be posfixed with something (eg, ".py")
-    :returns: the modulepath
-    """
-    parts = []
-    bits = max(bits, 1)
-
-    for x in range(bits):
-        parts.append(get_str(str_size=8, chars=string.ascii_letters).lower())
-
-    if prefix:
-        parts[-1] = "{}{}".format(prefix, parts[-1])
-
-    if postfix:
-        parts[-1] = "{}{}".format(parts[-1], postfix)
-
-    return ".".join(parts)
-get_package_name = get_module_name
 
 
 def create_module(module_name="", contents="", tmpdir="", make_importable=True):

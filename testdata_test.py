@@ -428,6 +428,23 @@ class PathTest(TestCase):
 
 
 class TestdataTest(TestCase):
+    def test_get_filename(self):
+        n = testdata.get_filename(ext="py", name="foo")
+        self.assertEqual("foo.py", n)
+
+        n = testdata.get_filename(ext="py", name="foo.py")
+        self.assertEqual("foo.py", n)
+
+        n = testdata.get_filename(ext="py", prefix="bar", name="foo.py")
+        self.assertEqual("barfoo.py", n)
+
+    def test_get_module_name(self):
+        mp = testdata.get_module_name(bits=5, name="foo")
+        self.assertTrue(mp.endswith(".foo"))
+
+        mp = testdata.get_module_name(bits=5, prefix="bar", name="foo")
+        self.assertTrue(mp.endswith(".barfoo"))
+
     def test_get_interpreter(self):
         r = testdata.get_interpreter()
         self.assertTrue(r.exists())
