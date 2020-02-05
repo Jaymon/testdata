@@ -465,6 +465,19 @@ class MockTest(TestCase):
         with self.assertRaisesRegex(RuntimeError, "bar\s+is\s+bad"):
             instance.bar()
 
+    def test_mock_bool(self):
+        instance = testdata.mock(foo=True)
+        self.assertTrue(instance.foo)
+        self.assertTrue(instance.foo())
+
+    def test__is_type(self):
+        m = testdata.mock()
+
+        self.assertTrue(m._is_type(True, bool))
+        self.assertTrue(m._is_type(False, bool))
+        self.assertTrue(m._is_type(bool, bool))
+        self.assertFalse(m._is_type(str, bool))
+
 
 class TestdataTest(TestCase):
     def test_get_filename(self):

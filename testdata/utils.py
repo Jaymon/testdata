@@ -79,6 +79,7 @@ class Mock(object):
 
     def __getattribute__(self, key):
         if hasattr(type(self), key):
+            # this makes sure methods defined on this class get through this call
             return super(Mock, self).__getattribute__(key)
 
         try:
@@ -100,36 +101,77 @@ class Mock(object):
                     loc = "\n".join(frame[4])
                     if ".{}(".format(key) in loc or ".{}".format(key) not in loc:
 
-                        class MockAttr(type(v)):
+                        class_type = type(v) if self._is_type(v, bool) == 0 else object 
+
+                        class MockAttr(class_type):
                             def __new__(cls, *args, **kwargs):
-                                return super(MockAttr, cls).__new__(cls, *args, **kwargs)
+                                try:
+                                    return super(MockAttr, cls).__new__(cls, *args, **kwargs)
+                                except TypeError:
+                                    return super(MockAttr, cls).__new__(cls)
 
                             def __call__(self, *args, **kwargs):
                                 return v
+
+                            def __bool__(self):
+                                return bool(v)
+                            __nonzero__ = __bool__
 
                         return MockAttr(v)
 
         return v
 
     def _raise_if_error(self, v):
-        do_raise = False
+        is_type = self._is_type(v, Exception)
+        if is_type == 1:
+            raise v
+
+        elif is_type == 2:
+            raise v()
+
+#         do_raise = False
+#         try:
+#             do_raise = isinstance(v, Exception)
+# 
+#         except TypeError:
+#             pass
+# 
+#         else:
+#             if do_raise:
+#                 raise v
+# 
+#         try:
+#             do_raise = issubclass(v, Exception)
+# 
+#         except TypeError:
+#             pass
+# 
+#         else:
+#             if do_raise:
+#                 raise v()
+
+    def _is_type(self, v, class_types):
+        ret = 0
         try:
-            do_raise = isinstance(v, Exception)
+            if isinstance(v, class_types):
+                ret = 1
 
         except TypeError:
             pass
 
-        else:
-            if do_raise:
-                raise v
+        if ret == 0:
+            try:
+                if issubclass(v, class_types):
+                    ret = 2
 
-        try:
-            do_raise = issubclass(v, Exception)
+            except TypeError:
+                pass
 
-        except TypeError:
-            pass
+        return ret
 
-        else:
-            if do_raise:
-                raise v()
+
+
+
+
+
 
