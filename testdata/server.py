@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 import os
-from collections import Mapping
 import json
 import logging
 from wsgiref.simple_server import WSGIServer as WSGIHTTPServer, WSGIRequestHandler

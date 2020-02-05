@@ -18,9 +18,10 @@ import tempfile
 import os
 import codecs
 import datetime
-from collections import deque, Sequence
+from collections import deque
 import types
-import imp
+#import imp
+#import importlib
 import inspect
 import copy
 import uuid
@@ -75,7 +76,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.2.1'
+__version__ = '1.3.0'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -1475,7 +1476,7 @@ def patch_module(mod, patches=None, **kwargs_patches):
             # as an attribute to the parent module: getattr(getattr(mod, 'foo'), 'bar')
             # this should be useful in eventually supporting this, you can work down the sub
             # attributes and newly import them and patch
-            raise RuntimeError("nested modules, eg, {} are not currently supported".format(name))
+            raise RuntimeError("nested modules like {} are not currently supported".format(name))
 
         else:
             deferred_patches.append((name, patch))
@@ -1502,7 +1503,13 @@ def patch_module(mod, patches=None, **kwargs_patches):
                 # also checked
                 paths = [os.getcwd()]
                 paths.extend(sys.path)
-                _, mod_path, _ = imp.find_module(p, paths)
+                # imp is deprecated in python 3, see:
+                # https://stackoverflow.com/questions/35288021/what-is-the-equivalent-of-imp-find-module-in-importlib
+                if is_py2:
+                    _, mod_path, _ = imp.find_module(p, paths)
+                else:
+                    spec = importlib.machinery.PathFinder().find_spec(p, paths)
+                    mod_path = spec.submodule_search_locations[0]
 
             return mod_path
 
@@ -1517,7 +1524,17 @@ def patch_module(mod, patches=None, **kwargs_patches):
             if not mfile.endswith(".py"):
                 mfile = '{}.py'.format(mpath)
 
-    m = imp.load_source('{}_{}'.format(mod_name, get_ascii(8)), mfile)
+    mname = '{}_{}'.format(mod_name, get_ascii(8))
+    if is_py2:
+        m = imp.load_source(mname, mfile)
+    else:
+        # ugh, this is deprecated in 3.4 (though it isn't throwing a warning
+        m = importlib.machinery.SourceFileLoader(mname, mfile).load_module()
+        # https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
+
+#         loader = importlib.machinery.SourceFileLoader(mname, mfile)
+#         loaded = types.ModuleType(loader.name)
+#         m = loader.exec_module(loaded)
 
     # go through and apply all the patches
     for patch_name, patch in deferred_patches:

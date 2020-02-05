@@ -34,7 +34,8 @@ if is_py2:
     import urlparse
     from urllib import urlencode
     from urllib2 import Request, urlopen, URLError, HTTPError
-    from collections import Mapping
+    from collections import Mapping, Sequence
+    import imp
 
 
 elif is_py3:
@@ -51,7 +52,8 @@ elif is_py3:
     from urllib.request import Request, urlopen
     from urllib.error import URLError, HTTPError
     from urllib.parse import urlencode
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
+    import importlib
 
     # ripped from six https://bitbucket.org/gutworth/six
     def reraise(tp, value, tb=None):
