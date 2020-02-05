@@ -9,7 +9,7 @@ from codecs import open
 
 name = "testdata"
 kwargs = {
-    "name": name
+    "name": name,
     "description": 'Easily generate random unicode test data among other things',
     "author": 'Jay Marcyes',
     "author_email": 'jay@marcyes.com',
