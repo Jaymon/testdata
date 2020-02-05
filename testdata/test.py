@@ -193,21 +193,21 @@ class TestCase(BaseTestCase):
 
             https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertRegex
             """
-            self.assertRegexpMatches(s, r)
+            return self.assertRegexpMatches(s, r)
 
         def assertNotRegex(self, s, r):
             """brings py3 assert to py2
 
             https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertNotRegex
             """
-            self.assertNotRegexpMatches(s, r)
+            return self.assertNotRegexpMatches(s, r)
 
-        def assertRaisesRegex(self, exception, regex, callable, *args, **kwds):
+        def assertRaisesRegex(self, exception, regex, *args, **kwds):
             """brings py3 assert to py2
 
             https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertRaisesRegex
             """
-            self.assertRaisesRegexp(exception, regex, callable, *args, **kwds)
+            return self.assertRaisesRegexp(exception, regex, *args, **kwds)
 
         def assertLogs(self, logger=None, level=None):
             """This just makes sure something gets logged, and raises an exception

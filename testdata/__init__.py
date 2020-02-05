@@ -32,7 +32,7 @@ from contextlib import contextmanager
 import pkgutil
 
 from .compat import *
-from .utils import String, ByteString
+from .utils import String, ByteString, Mock
 from .data import (
     _names,
     _unicode_names,
@@ -75,7 +75,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.1.6'
+__version__ = '1.2.0'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -669,6 +669,8 @@ def get_filename(ext="", prefix="", name=""):
 
     return get_module_name(prefix=prefix, postfix=ext, name=name)
 get_file_name = get_filename
+filename = get_filename
+file_name = get_filename
 
 
 def get_module_name(bits=1, prefix="", postfix="", name=""):
@@ -704,6 +706,16 @@ get_modname = get_module_name
 get_modpath = get_module_name
 get_modulepath = get_module_name
 get_module_path = get_module_name
+modulename = get_module_name
+module_name = get_module_name
+
+
+def get_classname(name=""):
+    n = get_filename(name=name)
+    return n.title()
+get_class_name = get_classname
+classname = get_classname
+class_name = get_classname
 
 
 def get_source_filepath(v):
@@ -1539,6 +1551,35 @@ def patch(mod, patches=None, **kwargs_patches):
         m = patch_instance(mod, patches=patches, **kwargs_patches) 
 
     return m
+
+
+def mock_class(name="", **props_and_methods):
+    """create a class with the given method and properties
+
+    :param name: string, the name of the class, default is just a random classname
+    :param **props_and_methods: dict, keys will be attributes on the object
+    :returns: type, the object
+    """
+    classname = get_classname(name=name)
+    return type(ByteString(classname), (object,), props_and_methods)
+
+
+def mock_instance(name="", **props_and_methods):
+    """This is the same as mock_class but returns an instance of that class
+
+    see mock_class() docs"""
+    return mock_class(name, **props_and_methods)()
+
+
+def mock(**props_and_methods):
+    """Create a mocked object that tries to be really magical
+
+    This is different than mock_instance because it creates an object that uses a lot
+    of magic to try and be a jack of all trades
+
+    :returns: Mock instance
+    """
+    return Mock(**props_and_methods)
 
 
 def get_birthday(as_str=False, start_age=18, stop_age=100):

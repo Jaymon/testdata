@@ -7,29 +7,16 @@ import os
 from codecs import open
 
 
-name = 'testdata'
-with open(os.path.join(name, "__init__.py")) as f:
-    version = re.search("^__version__\s*=\s*[\'\"]([^\'\"]+)", f.read(), flags=re.I | re.M).group(1)
-
-long_description = ""
-if os.path.isfile('README.rst'):
-    with open('README.rst', encoding='utf-8') as f:
-        long_description = f.read()
-
-setup(
-    name=name,
-    version=version,
-    description='Easily generate random unicode test data among other things',
-    long_description=long_description,
-    author='Jay Marcyes',
-    author_email='jay@marcyes.com',
-    url='http://github.com/Jaymon/{}'.format(name),
-    #py_modules=[name],
-    packages=find_packages(),
-    package_data={name: ['data/*']},
-    license="MIT",
-    #tests_require=[],
-    classifiers=[ # https://pypi.python.org/pypi?:action=list_classifiers
+name = "testdata"
+kwargs = {
+    "name": name
+    "description": 'Easily generate random unicode test data among other things',
+    "author": 'Jay Marcyes',
+    "author_email": 'jay@marcyes.com',
+    "url": 'http://github.com/Jaymon/{}'.format(name),
+    "package_data": {name: ['data/*']},
+    "license": "MIT",
+    "classifiers": [ # https://pypi.python.org/pypi?:action=list_classifiers
         'Development Status :: 4 - Beta',
         'Environment :: Plugins',
         'Intended Audience :: Developers',
@@ -41,6 +28,29 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
-    test_suite = "{}_test".format(name),
-)
+    "test_suite": "{}_test".format(name),
+}
+
+def read(path):
+    if os.path.isfile(path):
+        with open(path, encoding='utf-8') as f:
+            return f.read()
+    return ""
+
+
+vpath = os.path.join(name, "__init__.py")
+if os.path.isfile(vpath):
+    kwargs["packages"] = find_packages()
+else:
+    vpath = "{}.py".format(name)
+    kwargs["py_modules"] = [name]
+kwargs["version"] = re.search(r"^__version__\s*=\s*[\'\"]([^\'\"]+)", read(vpath), flags=re.I | re.M).group(1)
+
+
+# https://pypi.org/help/#description-content-type
+kwargs["long_description"] = read('README.md')
+kwargs["long_description_content_type"] = "text/markdown"
+
+
+setup(**kwargs)
 

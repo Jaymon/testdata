@@ -427,6 +427,45 @@ class PathTest(TestCase):
             self.assertTrue(modpath in mps)
 
 
+class MockTest(TestCase):
+#     def test_mock_instance(self):
+#         instance = testdata.mock_instance(foo=1, bar=lambda *a, **kw: 5)
+#         pout.v(instance.foo)
+#         pout.v(instance.bar())
+
+    def test_mock_instance(self):
+        instance = testdata.mock(foo="1", bar=2, che=lambda *a, **k: 3)
+        self.assertEqual("1", instance.foo)
+        self.assertEqual("1", instance.foo())
+        self.assertTrue(isinstance(instance.bar, int))
+        self.assertTrue(isinstance(instance.bar(), int))
+
+    def test_mock_dict(self):
+        d = testdata.mock(foo="1", bar=2)
+        self.assertEqual("1", d["foo"])
+        self.assertEqual("1", d["che"]["baz"]["foo"])
+
+    def test_mock_depth(self):
+        """make sure we can mock one object and have it look like many objects"""
+        instance = testdata.mock(foo=1)
+        self.assertEqual(1, instance.bar.che.foo)
+
+    def test_mock_error(self):
+        instance = testdata.mock(foo=AttributeError, bar=RuntimeError("bar is bad"))
+
+        with self.assertRaises(AttributeError):
+            instance.foo()
+
+        with self.assertRaises(AttributeError):
+            instance.foo
+
+        with self.assertRaisesRegex(RuntimeError, "bar\s+is\s+bad"):
+            instance.bar
+
+        with self.assertRaisesRegex(RuntimeError, "bar\s+is\s+bad"):
+            instance.bar()
+
+
 class TestdataTest(TestCase):
     def test_get_filename(self):
         n = testdata.get_filename(ext="py", name="foo")
