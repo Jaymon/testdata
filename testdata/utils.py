@@ -101,6 +101,7 @@ class Mock(object):
                     loc = "\n".join(frame[4])
                     if ".{}(".format(key) in loc or ".{}".format(key) not in loc:
 
+                        # https://stackoverflow.com/questions/2172189/why-i-cant-extend-bool-in-python
                         class_type = type(v) if self._is_type(v, bool) == 0 else object 
 
                         class MockAttr(class_type):
