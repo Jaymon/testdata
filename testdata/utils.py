@@ -9,13 +9,19 @@ from .compat import *
 
 class ByteString(bytes):
     def __new__(cls, val, encoding="UTF-8"):
+        if isinstance(val, type(None)): return None
+
         if not encoding:
             # ??? use chardet to figure out what encoding val is?
             # https://stackoverflow.com/questions/196345/how-to-check-if-a-string-in-python-is-in-ascii/6988354#6988354
             encoding = sys.getdefaultencoding()
 
-        if isinstance(val, unicode):
-            val = val.encode(encoding)
+        if not isinstance(val, (bytes, bytearray)):
+            if is_py2:
+                val = unicode(val)
+            else:
+                val = str(val)
+            val = bytearray(val, encoding)
 
         instance = super(ByteString, cls).__new__(cls, val)
         instance.encoding = encoding

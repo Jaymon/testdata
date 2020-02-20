@@ -547,8 +547,8 @@ class Filepath(Dirpath):
 
     def normalize_contents(self, contents):
         if not isinstance(contents, basestring):
-            contents = "\n".join(String(contents))
-        return String(contents)
+            contents = "\n".join(contents)
+        return contents
 
     def run(self, arg_str="", cwd="", environ=None, **kwargs):
         """Treat this file like a script and execute it
@@ -807,10 +807,10 @@ class CSVpath(Filepath):
 #         #return super(CSVpath, self).append(data.decode(self.encoding))
 
     def create(self, rows, **kwargs):
-        """This will create not only the file, but the directory also and place
-        contents into the file
+        """create a csv file using the given rows
 
-        :param contents: string, what you want the file to contain
+        :param rows: list, a list of row dicts
+        :param **kwargs: dict, keywords to pass to DictWriter init
         """
         kwargs.setdefault("fieldnames", list(rows[0].keys()))
         kwargs.setdefault("dialect", csv.excel)
@@ -825,21 +825,32 @@ class CSVpath(Filepath):
         writer.writeheader()
 
         for row in rows:
-            row = {ByteString(k): ByteString(v) for k, v in row.items()}
+            row = {ByteString(r[0]): ByteString(r[1]) for r in row.items()}
             writer.writerow(row)
 
         data = queue.getvalue()
+        if is_py2:
+            data = data.decode(self.encoding)
         return super(CSVpath, self).create(data)
-        #return super(CSVpath, self).create(data.decode(self.encoding))
 
     def lines(self):
-        """this is different than python built-in lines() method in that it strips
-        the line endings from the end of the string"""
-        with open(self.path, mode="rb") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                row = {String(k): String(v) for k, v in row.items()}
-                yield row
+        """yields rows of the csv file
+
+        :returns: dict, a row from the csv with the columns mapped to the headers
+        """
+        if is_py2:
+            with open(self.path, mode="rb") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    row = {String(k): String(v) for k, v in row.items()}
+                    yield row
+
+        else:
+            with self.open() as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    yield row
+
 
 
 class ContentMixin(object):

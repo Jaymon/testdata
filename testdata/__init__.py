@@ -77,7 +77,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.3.0'
+__version__ = '1.3.1'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -563,139 +563,6 @@ def get_file(path="", tmpdir="", encoding=""):
 
     return Filepath(path, tmpdir, encoding)
 get_f = get_file
-
-
-# def create_csv(columns, count=0, path="", tmpdir="", encoding="", **kwargs):
-# 
-#     import csv
-# 
-#     if not count:
-#         count = random.randint(1, 200)
-# 
-#     if not path:
-#         path = get_filename(ext="csv")
-# 
-#     #filepath = get_file(path=path, tmpdir=tmpdir, encoding=encoding)
-#     filepath = get_file(path=path, tmpdir=tmpdir)
-# 
-#     fieldnames = []
-#     if isinstance(columns, dict):
-#         fieldnames = list(columns.keys())
-#     kwargs.setdefault("fieldnames", fieldnames)
-# 
-#     kwargs.setdefault("dialect", csv.excel)
-#     kwargs.setdefault("restval", "")
-#     kwargs.setdefault("extrasaction", "ignore")
-#     kwargs.setdefault("quoting", csv.QUOTE_MINIMAL)
-# 
-#     with filepath.open("wb+") as f:
-#         # https://docs.python.org/3/library/csv.html#csv.DictWriter
-#         writer = csv.DictWriter(f, **kwargs)
-#         writer.writeheader()
-# 
-#         for i in range(count):
-#             d = {}
-#             for field_name, callback in columns.items():
-#                 d[ByteString(field_name)] = ByteString(callback())
-# 
-#             pout.v(d)
-#             writer.writerow(d)
-# 
-#     return filepath
-# 
-# 
-# def create_csv3(columns, count=0, path="", tmpdir="", encoding="UTF-8", **kwargs):
-# 
-#     import csv
-# 
-#     if not count:
-#         count = random.randint(1, 200)
-# 
-#     if not path:
-#         path = get_filename(ext="csv")
-# 
-#     #filepath = get_file(path=path, tmpdir=tmpdir, encoding=encoding)
-#     filepath = get_file(path=path, tmpdir=tmpdir)
-# 
-#     fieldnames = []
-#     if isinstance(columns, dict):
-#         fieldnames = list(columns.keys())
-#     kwargs.setdefault("fieldnames", fieldnames)
-# 
-#     kwargs.setdefault("dialect", csv.excel)
-#     kwargs.setdefault("restval", "")
-#     kwargs.setdefault("extrasaction", "ignore")
-#     kwargs.setdefault("quoting", csv.QUOTE_MINIMAL)
-# 
-#     with filepath.open("wb+") as stream:
-#         queue = StringIO()
-# 
-#         # https://docs.python.org/3/library/csv.html#csv.DictWriter
-#         writer = csv.DictWriter(queue, **kwargs)
-#         writer.writeheader()
-#         data = queue.getvalue()
-#         stream.write(data)
-#         queue.truncate(0)
-# 
-#         for i in range(count):
-#             d = {}
-#             for field_name, callback in columns.items():
-#                 d[field_name] = ByteString(callback())
-# 
-#             pout.v(d)
-#             writer.writerow(d)
-#             data = queue.getvalue()
-#             stream.write(data.decode(encoding))
-#             queue.truncate(0)
-# 
-#     return filepath
-
-
-def create_csv2(columns, count=0, path="", tmpdir="", encoding="", **kwargs):
-
-    import csv
-
-    if not count:
-        count = random.randint(1, 200)
-
-    if not path:
-        path = get_filename(ext="csv")
-
-    filepath = get_file(path=path, tmpdir=tmpdir, encoding=encoding)
-    #filepath = get_file(path=path, tmpdir=tmpdir)
-
-    fieldnames = []
-    if isinstance(columns, dict):
-        fieldnames = list(columns.keys())
-    kwargs.setdefault("fieldnames", fieldnames)
-
-    kwargs.setdefault("dialect", csv.excel)
-    kwargs.setdefault("restval", "")
-    kwargs.setdefault("extrasaction", "ignore")
-    kwargs.setdefault("quoting", csv.QUOTE_MINIMAL)
-
-    with filepath.replacing() as stream:
-        queue = StringIO()
-
-        # https://docs.python.org/3/library/csv.html#csv.DictWriter
-        writer = csv.DictWriter(queue, **kwargs)
-        writer.writeheader()
-        data = queue.getvalue()
-        stream.write(data)
-        queue.truncate(0)
-
-        for i in range(count):
-            d = {}
-            for field_name, callback in columns.items():
-                d[field_name] = ByteString(callback())
-
-            pout.v(d)
-            writer.writerow(d)
-            data = queue.getvalue()
-            stream.write(data.decode(stream.encoding))
-            queue.truncate(0)
-
-    return filepath
 
 
 def create_csv(columns, count=0, path="", tmpdir="", encoding="", **kwargs):
