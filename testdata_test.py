@@ -165,6 +165,27 @@ class ServerTest(TestCase):
 
 
 class PathTest(TestCase):
+    def test_create_csv(self):
+        p = testdata.create_csv({
+            "foo": testdata.get_name,
+            "bar": testdata.get_int,
+            "che": testdata.get_words,
+        }, count=2)
+
+        row_count = 0
+        for r in p:
+            for k in ["foo", "bar", "che"]:
+                self.assertTrue(k in r)
+            row_count += 1
+
+        self.assertEqual(2, row_count)
+
+
+        #pout.v(p.contents())
+        #p.append([{"foo": 1, "bar": 2, "che": 3}])
+        #pout.v(p.contents())
+
+
     def test_head_tail(self):
         count = 10
         p = testdata.create_file(contents=testdata.get_lines(21))

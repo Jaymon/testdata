@@ -15,6 +15,7 @@ import inspect
 import fnmatch
 import hashlib
 from collections import deque
+import csv
 
 
 from .compat import *
@@ -431,17 +432,28 @@ class Filepath(Dirpath):
         """Unlike create, this will just write the contents into the file"""
         return self.append(contents)
 
+    def replacing(self):
+        mode = "w+" if self.encoding else "wb+"
+        return self.open(mode)
+
     def replace(self, contents):
         """replaces the current contents of file with contents"""
-        mode = "w+" if self.encoding else "wb+"
-        with self.open(mode) as f:
+        #mode = "w+" if self.encoding else "wb+"
+        with self.replacing() as f:
+        #with self.open(mode) as f:
             ret = f.write(self.normalize_contents(contents))
         return ret
 
+    def appending(self):
+        mode = "a+" if self.encoding else "ab+"
+        return self.open(mode)
+    writing = appending
+
     def append(self, contents):
         """append the contents onto the end of the file"""
-        mode = "a+" if self.encoding else "ab+"
-        with self.open(mode) as f:
+        #mode = "a+" if self.encoding else "ab+"
+        with self.appending() as f:
+        #with self.open(mode) as f:
             ret = f.write(self.normalize_contents(contents))
         return ret
 
@@ -522,7 +534,7 @@ class Filepath(Dirpath):
 
     def contents(self):
         """Return the body of the file"""
-        with self.open("r") as f:
+        with self.open() as f:
             return f.read()
 
     def __iter__(self):
@@ -535,8 +547,8 @@ class Filepath(Dirpath):
 
     def normalize_contents(self, contents):
         if not isinstance(contents, basestring):
-            contents = "\n".join(contents)
-        return contents
+            contents = "\n".join(String(contents))
+        return String(contents)
 
     def run(self, arg_str="", cwd="", environ=None, **kwargs):
         """Treat this file like a script and execute it
@@ -755,6 +767,79 @@ class Modulepath(Filepath):
             mod = self.parent
         cmd = ModuleCommand(mod, cwd=cwd, environ=environ)
         return cmd.run(arg_str, **kwargs)
+
+
+class CSVpath(Filepath):
+    """Read and write CSV files
+
+    see testdata.create_csv() which wraps this class
+    """
+
+# TODO -- this function works, kind of, the sniffer never guesses the right delimiter
+# and in order to make it work I would have to DRY the create dict writer
+# creation and it's not worth it right now
+#     def append(self, rows, **kwargs):
+#         """append the contents onto the end of the file"""
+#         #mode = "a+" if self.encoding else "ab+"
+#         pout.v(rows)
+# 
+#         with self.open() as f:
+#             dialect = csv.Sniffer().sniff(f.read(2048))
+# 
+#         pout.i(dialect)
+#         pout.v(dialect.delimiter)
+# 
+#         for row in self.lines():
+#             fieldnames = list(row.keys())
+#             break
+# 
+#         pout.v(fieldnames)
+#         queue = StringIO()
+#         writer = csv.DictWriter(queue, fieldnames, dialect=dialect)
+#         for row in rows:
+#             row = {ByteString(k): ByteString(v) for k, v in row.items()}
+#             pout.v(row)
+#             writer.writerow(row)
+# 
+#         data = queue.getvalue()
+#         pout.v(String(data))
+#         return super(CSVpath, self).append(data)
+#         #return super(CSVpath, self).append(data.decode(self.encoding))
+
+    def create(self, rows, **kwargs):
+        """This will create not only the file, but the directory also and place
+        contents into the file
+
+        :param contents: string, what you want the file to contain
+        """
+        kwargs.setdefault("fieldnames", list(rows[0].keys()))
+        kwargs.setdefault("dialect", csv.excel)
+        kwargs.setdefault("restval", "")
+        kwargs.setdefault("extrasaction", "ignore")
+        kwargs.setdefault("quoting", csv.QUOTE_MINIMAL)
+
+        queue = StringIO()
+
+        # https://docs.python.org/3/library/csv.html#csv.DictWriter
+        writer = csv.DictWriter(queue, **kwargs)
+        writer.writeheader()
+
+        for row in rows:
+            row = {ByteString(k): ByteString(v) for k, v in row.items()}
+            writer.writerow(row)
+
+        data = queue.getvalue()
+        return super(CSVpath, self).create(data)
+        #return super(CSVpath, self).create(data.decode(self.encoding))
+
+    def lines(self):
+        """this is different than python built-in lines() method in that it strips
+        the line endings from the end of the string"""
+        with open(self.path, mode="rb") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                row = {String(k): String(v) for k, v in row.items()}
+                yield row
 
 
 class ContentMixin(object):

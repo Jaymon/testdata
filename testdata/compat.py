@@ -41,6 +41,7 @@ if is_py2:
 elif is_py3:
     basestring = (str, bytes)
     unicode = str
+    long = int
 
     import queue
     import _thread

@@ -54,7 +54,8 @@ from .path import (
     Modulepath,
     ContentBytes,
     ContentString,
-    ContentFilepath
+    ContentFilepath,
+    CSVpath,
 )
 from .threading import Thread
 from .output import Capture
@@ -556,6 +557,186 @@ def create_files(file_dict, tmpdir="", encoding=""):
 create_fs = create_files
 
 
+def get_file(path="", tmpdir="", encoding=""):
+    if not path:
+        path = get_ascii()
+
+    return Filepath(path, tmpdir, encoding)
+get_f = get_file
+
+
+# def create_csv(columns, count=0, path="", tmpdir="", encoding="", **kwargs):
+# 
+#     import csv
+# 
+#     if not count:
+#         count = random.randint(1, 200)
+# 
+#     if not path:
+#         path = get_filename(ext="csv")
+# 
+#     #filepath = get_file(path=path, tmpdir=tmpdir, encoding=encoding)
+#     filepath = get_file(path=path, tmpdir=tmpdir)
+# 
+#     fieldnames = []
+#     if isinstance(columns, dict):
+#         fieldnames = list(columns.keys())
+#     kwargs.setdefault("fieldnames", fieldnames)
+# 
+#     kwargs.setdefault("dialect", csv.excel)
+#     kwargs.setdefault("restval", "")
+#     kwargs.setdefault("extrasaction", "ignore")
+#     kwargs.setdefault("quoting", csv.QUOTE_MINIMAL)
+# 
+#     with filepath.open("wb+") as f:
+#         # https://docs.python.org/3/library/csv.html#csv.DictWriter
+#         writer = csv.DictWriter(f, **kwargs)
+#         writer.writeheader()
+# 
+#         for i in range(count):
+#             d = {}
+#             for field_name, callback in columns.items():
+#                 d[ByteString(field_name)] = ByteString(callback())
+# 
+#             pout.v(d)
+#             writer.writerow(d)
+# 
+#     return filepath
+# 
+# 
+# def create_csv3(columns, count=0, path="", tmpdir="", encoding="UTF-8", **kwargs):
+# 
+#     import csv
+# 
+#     if not count:
+#         count = random.randint(1, 200)
+# 
+#     if not path:
+#         path = get_filename(ext="csv")
+# 
+#     #filepath = get_file(path=path, tmpdir=tmpdir, encoding=encoding)
+#     filepath = get_file(path=path, tmpdir=tmpdir)
+# 
+#     fieldnames = []
+#     if isinstance(columns, dict):
+#         fieldnames = list(columns.keys())
+#     kwargs.setdefault("fieldnames", fieldnames)
+# 
+#     kwargs.setdefault("dialect", csv.excel)
+#     kwargs.setdefault("restval", "")
+#     kwargs.setdefault("extrasaction", "ignore")
+#     kwargs.setdefault("quoting", csv.QUOTE_MINIMAL)
+# 
+#     with filepath.open("wb+") as stream:
+#         queue = StringIO()
+# 
+#         # https://docs.python.org/3/library/csv.html#csv.DictWriter
+#         writer = csv.DictWriter(queue, **kwargs)
+#         writer.writeheader()
+#         data = queue.getvalue()
+#         stream.write(data)
+#         queue.truncate(0)
+# 
+#         for i in range(count):
+#             d = {}
+#             for field_name, callback in columns.items():
+#                 d[field_name] = ByteString(callback())
+# 
+#             pout.v(d)
+#             writer.writerow(d)
+#             data = queue.getvalue()
+#             stream.write(data.decode(encoding))
+#             queue.truncate(0)
+# 
+#     return filepath
+
+
+def create_csv2(columns, count=0, path="", tmpdir="", encoding="", **kwargs):
+
+    import csv
+
+    if not count:
+        count = random.randint(1, 200)
+
+    if not path:
+        path = get_filename(ext="csv")
+
+    filepath = get_file(path=path, tmpdir=tmpdir, encoding=encoding)
+    #filepath = get_file(path=path, tmpdir=tmpdir)
+
+    fieldnames = []
+    if isinstance(columns, dict):
+        fieldnames = list(columns.keys())
+    kwargs.setdefault("fieldnames", fieldnames)
+
+    kwargs.setdefault("dialect", csv.excel)
+    kwargs.setdefault("restval", "")
+    kwargs.setdefault("extrasaction", "ignore")
+    kwargs.setdefault("quoting", csv.QUOTE_MINIMAL)
+
+    with filepath.replacing() as stream:
+        queue = StringIO()
+
+        # https://docs.python.org/3/library/csv.html#csv.DictWriter
+        writer = csv.DictWriter(queue, **kwargs)
+        writer.writeheader()
+        data = queue.getvalue()
+        stream.write(data)
+        queue.truncate(0)
+
+        for i in range(count):
+            d = {}
+            for field_name, callback in columns.items():
+                d[field_name] = ByteString(callback())
+
+            pout.v(d)
+            writer.writerow(d)
+            data = queue.getvalue()
+            stream.write(data.decode(stream.encoding))
+            queue.truncate(0)
+
+    return filepath
+
+
+def create_csv(columns, count=0, path="", tmpdir="", encoding="", **kwargs):
+    """Create a csv file using the generators/callbacks found in columns
+
+
+    :param columns: dict, in the format of key: callback where the callback can
+        generate a value for the row, so something like "foo": testdata.get_name
+        would work
+    :param count: int, how many rows you want, will be randomly created between 
+        1 and 50 if not specified
+    :param path: string, the path relative to tmpdir, default is randomly generated
+    :param tmpdir: string, the temp directory to use as a base/prefix
+    :param encoding: string, the encoding to use for the csv file
+    :param **kwargs: dict, these will get passed to csv.DictWriter,
+        https://docs.python.org/3/library/csv.html#csv.DictWriter
+    :returns: testdata.path.CSVpath instance
+    """
+    if not count:
+        count = random.randint(1, 50)
+
+    if not path:
+        path = get_filename(ext="csv")
+
+    filepath = CSVpath(relpath=path, basedir=tmpdir, encoding=encoding)
+
+    rows = []
+    for i in range(count):
+        d = {}
+        for field_name, callback in columns.items():
+            if callable(callback):
+                d[field_name] = callback()
+            else:
+                d[field_name] = callback
+
+        rows.append(d)
+
+    filepath.create(rows, **kwargs)
+    return filepath
+
+
 def create_image(image_type="", path="", tmpdir=""):
     """Creates an image using the images founc in the data/ directory
 
@@ -641,14 +822,6 @@ def create_ico(path="", tmpdir=""):
     return create_image(image_type="ico", path=path, tmpdir=tmpdir)
 create_icon=create_ico
 create_favicon=create_ico
-
-
-def get_file(path="", tmpdir="", encoding=""):
-    if not path:
-        path = get_ascii()
-
-    return Filepath(path, tmpdir, encoding)
-get_f = get_file
 
 
 def get_filename(ext="", prefix="", name=""):
