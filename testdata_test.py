@@ -165,26 +165,53 @@ class ServerTest(TestCase):
 
 
 class PathTest(TestCase):
-    def test_create_csv(self):
+    def test_create_csv_noheader(self):
         p = testdata.create_csv({
             "foo": testdata.get_name,
             "bar": testdata.get_int,
             "che": testdata.get_words,
-        }, count=2)
+        }, count=2, header=False)
 
         row_count = 0
         for r in p:
             for k in ["foo", "bar", "che"]:
                 self.assertTrue(k in r)
             row_count += 1
-
         self.assertEqual(2, row_count)
 
+        p.append([{"foo": 1, "bar": 2, "che": 3}])
+        row_count = 0
+        for r in p:
+            for k in ["foo", "bar", "che"]:
+                self.assertTrue(k in r)
+            row_count += 1
+        self.assertEqual(3, row_count)
 
-        #pout.v(p.contents())
-        #p.append([{"foo": 1, "bar": 2, "che": 3}])
-        #pout.v(p.contents())
+    def test_create_csv_header(self):
+        p = testdata.create_csv({
+            "foo": testdata.get_name,
+            "bar": testdata.get_int,
+            "che": testdata.get_words,
+        }, count=2)
 
+        #contents = p.contents()
+        #pout.c(contents)
+        #pout.v(contents)
+
+        row_count = 0
+        for r in p:
+            for k in ["foo", "bar", "che"]:
+                self.assertTrue(k in r)
+            row_count += 1
+        self.assertEqual(2, row_count)
+
+        p.append([{"foo": 1, "bar": 2, "che": 3}])
+        row_count = 0
+        for r in p:
+            for k in ["foo", "bar", "che"]:
+                self.assertTrue(k in r)
+            row_count += 1
+        self.assertEqual(3, row_count)
 
     def test_head_tail(self):
         count = 10

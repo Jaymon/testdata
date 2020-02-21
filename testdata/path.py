@@ -536,6 +536,8 @@ class Filepath(Dirpath):
         """Return the body of the file"""
         with self.open() as f:
             return f.read()
+    body = contents
+    content = contents
 
     def __iter__(self):
         for line in self.lines():
@@ -769,69 +771,72 @@ class Modulepath(Filepath):
         return cmd.run(arg_str, **kwargs)
 
 
+from io import BytesIO
 class CSVpath(Filepath):
     """Read and write CSV files
 
     see testdata.create_csv() which wraps this class
     """
+    def __new__(cls, relpath, basedir="", encoding="", header=True, **kwargs):
+        instance = super(CSVpath, cls).__new__(
+            cls,
+            relpath=relpath,
+            basedir=basedir,
+            encoding=encoding,
+        )
 
-# TODO -- this function works, kind of, the sniffer never guesses the right delimiter
-# and in order to make it work I would have to DRY the create dict writer
-# creation and it's not worth it right now
-#     def append(self, rows, **kwargs):
-#         """append the contents onto the end of the file"""
-#         #mode = "a+" if self.encoding else "ab+"
-#         pout.v(rows)
-# 
-#         with self.open() as f:
-#             dialect = csv.Sniffer().sniff(f.read(2048))
-# 
-#         pout.i(dialect)
-#         pout.v(dialect.delimiter)
-# 
-#         for row in self.lines():
-#             fieldnames = list(row.keys())
-#             break
-# 
-#         pout.v(fieldnames)
-#         queue = StringIO()
-#         writer = csv.DictWriter(queue, fieldnames, dialect=dialect)
-#         for row in rows:
-#             row = {ByteString(k): ByteString(v) for k, v in row.items()}
-#             pout.v(row)
-#             writer.writerow(row)
-# 
-#         data = queue.getvalue()
-#         pout.v(String(data))
-#         return super(CSVpath, self).append(data)
-#         #return super(CSVpath, self).append(data.decode(self.encoding))
+        instance.header = header
 
-    def create(self, rows, **kwargs):
-        """create a csv file using the given rows
-
-        :param rows: list, a list of row dicts
-        :param **kwargs: dict, keywords to pass to DictWriter init
-        """
-        kwargs.setdefault("fieldnames", list(rows[0].keys()))
         kwargs.setdefault("dialect", csv.excel)
         kwargs.setdefault("restval", "")
         kwargs.setdefault("extrasaction", "ignore")
         kwargs.setdefault("quoting", csv.QUOTE_MINIMAL)
+        instance.kwargs = kwargs
 
+        return instance
+
+    def replace(self, rows):
+        """create a csv file using the given rows
+
+        :param rows: list, a list of row dicts
+        """
+        # in order to make unicode csvs work we are going to do a round about
+        # thing where we write to a string buffer and then pull that out and write
+        # it to the file, this is the only way I can make utf-8 work (2020-02-20)
         queue = StringIO()
+        #queue = BytesIO()
+
+        self.kwargs.setdefault("fieldnames", list(rows[0].keys()))
 
         # https://docs.python.org/3/library/csv.html#csv.DictWriter
-        writer = csv.DictWriter(queue, **kwargs)
-        writer.writeheader()
+        writer = csv.DictWriter(queue, **self.kwargs)
 
-        for row in rows:
-            row = {ByteString(r[0]): ByteString(r[1]) for r in row.items()}
-            writer.writerow(row)
+        if self.header:
+            writer.writeheader()
 
+        with self.replacing() as f:
+            for row in rows:
+                self.writerow(writer, queue, f, row)
+
+    def append(self, rows):
+        """append the rows onto the end of the csv file"""
+        queue = StringIO()
+        writer = csv.DictWriter(queue, **self.kwargs)
+        with self.appending() as f:
+            for row in rows:
+                self.writerow(writer, queue, f, row)
+
+    def writerow(self, writer, queue, f, row):
+        """this is more of an internal method that encapsulates common functionality
+        for both replace and append"""
+        row = {ByteString(r[0]): ByteString(r[1]) for r in row.items()}
+        writer.writerow(row)
         data = queue.getvalue()
         if is_py2:
             data = data.decode(self.encoding)
-        return super(CSVpath, self).create(data)
+        f.write(data)
+        queue.truncate(0)
+        queue.seek(0)
 
     def lines(self):
         """yields rows of the csv file
@@ -839,18 +844,36 @@ class CSVpath(Filepath):
         :returns: dict, a row from the csv with the columns mapped to the headers
         """
         if is_py2:
-            with open(self.path, mode="rb") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    row = {String(k): String(v) for k, v in row.items()}
-                    yield row
-
+            # for some reason codecs.open doesn't work in python2 like it should, see:
+            # https://alexwlchan.net/2018/12/reading-a-utf8-encoded-csv/
+            opener = lambda: open(self.path, mode="rb")
         else:
-            with self.open() as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    yield row
+            opener = self.open
 
+        with opener() as f:
+            fieldnames = self.kwargs.get("fieldnames", None)
+            reader = csv.DictReader(f, fieldnames=fieldnames)
+
+            first_row = True
+            for row in reader:
+                if is_py2:
+                    row = {String(k): String(v) for k, v in row.items()}
+
+                # if we pass in fieldnames then DictReader won't use the first
+                # row as fieldnames, so we need to check to make sure the first
+                # row isn't a field_name: field_name mapping
+                if first_row and fieldnames:
+                    first_row = False
+                    skip = True
+                    for fn in fieldnames:
+                        if fn in row and row[fn] != fn:
+                            skip = False
+                            break
+
+                    if skip:
+                        continue
+
+                yield row
 
 
 class ContentMixin(object):

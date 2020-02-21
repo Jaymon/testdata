@@ -77,7 +77,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.3.1'
+__version__ = '1.3.2'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -565,7 +565,7 @@ def get_file(path="", tmpdir="", encoding=""):
 get_f = get_file
 
 
-def create_csv(columns, count=0, path="", tmpdir="", encoding="", **kwargs):
+def create_csv(columns, count=0, path="", tmpdir="", encoding="", header=True, **kwargs):
     """Create a csv file using the generators/callbacks found in columns
 
 
@@ -587,7 +587,13 @@ def create_csv(columns, count=0, path="", tmpdir="", encoding="", **kwargs):
     if not path:
         path = get_filename(ext="csv")
 
-    filepath = CSVpath(relpath=path, basedir=tmpdir, encoding=encoding)
+    filepath = CSVpath(
+        relpath=path,
+        basedir=tmpdir,
+        encoding=encoding,
+        header=header,
+        **kwargs
+    )
 
     rows = []
     for i in range(count):
@@ -600,7 +606,7 @@ def create_csv(columns, count=0, path="", tmpdir="", encoding="", **kwargs):
 
         rows.append(d)
 
-    filepath.create(rows, **kwargs)
+    filepath.create(rows)
     return filepath
 
 
