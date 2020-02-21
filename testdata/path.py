@@ -771,7 +771,6 @@ class Modulepath(Filepath):
         return cmd.run(arg_str, **kwargs)
 
 
-from io import BytesIO
 class CSVpath(Filepath):
     """Read and write CSV files
 
