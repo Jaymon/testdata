@@ -803,7 +803,6 @@ class CSVpath(Filepath):
         # thing where we write to a string buffer and then pull that out and write
         # it to the file, this is the only way I can make utf-8 work (2020-02-20)
         queue = StringIO()
-        #queue = BytesIO()
 
         self.kwargs.setdefault("fieldnames", list(rows[0].keys()))
 

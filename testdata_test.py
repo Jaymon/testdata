@@ -194,10 +194,6 @@ class PathTest(TestCase):
             "che": testdata.get_words,
         }, count=2)
 
-        #contents = p.contents()
-        #pout.c(contents)
-        #pout.v(contents)
-
         row_count = 0
         for r in p:
             for k in ["foo", "bar", "che"]:
