@@ -182,7 +182,9 @@ class Dirpath(String):
             if relpath and relpath[0] == '.':
                 raise ValueError("You cannot start a path with ./ or ../")
 
-            if not basedir:
+            if basedir:
+                basedir = os.path.abspath(os.path.expanduser(basedir))
+            else:
                 basedir = tempfile.mkdtemp(dir=environ.TEMPDIR)
 
             if relpath:
@@ -223,6 +225,7 @@ class Dirpath(String):
                 yield Filepath(path.replace(self.basedir, ""), self.basedir)
 
     def contents(self):
+        """iterate through all the *directories* and *files* in this directory and subdirectories"""
         for basedir, directories, files in os.walk(self.path, topdown=True):
             for basename in directories:
                 path = os.path.join(basedir, basename)

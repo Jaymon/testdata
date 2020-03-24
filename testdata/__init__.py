@@ -60,7 +60,7 @@ from .path import (
 from .threading import Thread
 from .output import Capture
 from .server import PathServer, CookieServer, CallbackServer
-from .service import Upstart, InitD
+from .service import Upstart, InitD, Systemd
 from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import (
     TestCase,
@@ -77,7 +77,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.3.2'
+__version__ = '1.4.0'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -198,7 +198,7 @@ def start_service(service_name, ignore_failure=True):
     :param ignore_failure: bool, True if it should ignore a failure return code
     :returns: Service instance
     """
-    for service_class in [Upstart, InitD]:
+    for service_class in [Systemd, Upstart, InitD]:
         s = service_class(service_name)
         s.ignore_failure = ignore_failure
         if s.exists():
@@ -220,7 +220,7 @@ def stop_service(service_name, ignore_failure=True):
     :param ignore_failure: bool, True if it should ignore a failure return code
     :returns: Service instance
     """
-    for service_class in [Upstart, InitD]:
+    for service_class in [Systemd, Upstart, InitD]:
         s = service_class(service_name)
         s.ignore_failure = ignore_failure
         if s.exists():
