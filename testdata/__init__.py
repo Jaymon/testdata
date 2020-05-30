@@ -18,7 +18,7 @@ import tempfile
 import os
 import codecs
 import datetime
-from collections import deque
+from collections import deque, namedtuple
 import types
 #import imp
 #import importlib
@@ -45,7 +45,13 @@ from .data import (
     _first_names_male,
     _first_names_female,
     _last_names,
+    usa,
 )
+# from .data.usa import (
+#     cities,
+#     states,
+#     zipcodes,
+# )
 
 from . import environ
 from .path import (
@@ -77,7 +83,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.4.0'
+__version__ = '1.4.1'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -1143,16 +1149,16 @@ get_uniq_integer = get_unique_int
 get_unique_integer = get_unique_int
 
 
-def get_ascii_words(count=0, as_str=True):
-    return get_words(count, as_str, words=_ascii_words)
+def get_ascii_words(count=0, as_str=True, **kwargs):
+    return get_words(count, as_str, words=_ascii_words, **kwargs)
 
 
 def get_ascii_word():
     return get_words(1, as_str=True, words=_ascii_words)
 
 
-def get_unicode_words(count=0, as_str=True):
-    return get_words(count, as_str, words=_unicode_words)
+def get_unicode_words(count=0, as_str=True, **kwargs):
+    return get_words(count, as_str, words=_unicode_words, **kwargs)
 get_uni_words = get_unicode_words
 
 
@@ -1161,7 +1167,7 @@ def get_unicode_word():
 get_uni_word = get_unicode_word
 
 
-def get_words(count=0, as_str=True, words=None):
+def get_words(count=0, as_str=True, words=None, **kwargs):
     '''get some amount of random words
 
     :param count: integer, how many words you want, 0 means a random amount (at most 20)
@@ -1171,7 +1177,7 @@ def get_words(count=0, as_str=True, words=None):
     '''
     # since we specified we didn't care, randomly choose how many words there should be
     if count == 0:
-        count = random.randint(1, 20)
+        count = random.randint(kwargs.get("min_count", 1), kwargs.get("max_count", 20))
 
     if not words:
         words = _words
@@ -1257,6 +1263,184 @@ def get_email(name=''):
     ]
 
     return '{}@{}'.format(name.lower(), random.choice(email_domains))
+
+
+def get_street_address(house_number="", street="", **kwargs):
+    address = []
+    if not house_number:
+        house_number = get_int(max_size=99999)
+
+    address.append(String(house_number))
+
+    if street:
+        address.append(street)
+
+    else:
+        if "street_dir" in kwargs:
+            address.append(kwargs["street_dir"])
+
+        else:
+            if yes():
+                address.append(random.choice([
+                    "E", "East",
+                    "W", "West",
+                    "N", "North",
+                    "S", "South",
+                ]))
+
+        if "street_name" in kwargs:
+            address.append(kwargs["street_name"])
+
+        else:
+            if yes():
+                address.append(get_ascii_words(max_count=3))
+            else:
+                if yes():
+                    address.append(get_ascii_name())
+                else:
+                    address.append(get_ascii_last_name())
+
+        if "street_type" in kwargs:
+            address.append(kwargs["street_name"])
+
+        else:
+            if yes():
+                address.append(random.choice([
+                    "Boulevard",
+                    "Blvd",
+                    "Road",
+                    "RD",
+                    "Rd",
+                    "Street",
+                    "st",
+                    "st.",
+                    "Lane",
+                    "Ln",
+                    "Drive",
+                    "Dr",
+                    "Dr.",
+                    "Trail",
+                    "Court",
+                    "Ct",
+                    "Ct.",
+                    "Circle",
+                    "Cir",
+                    "Cir.",
+                    "Pike",
+                    "Highway",
+                    "Hwy",
+                    "Fwy",
+                    "Avenue",
+                    "Ave",
+                    "Ave.",
+                    "Terrace",
+                    "Pkwy",
+                    "Parkway",
+                    "Place",
+                ]))
+
+    return " ".join(address)
+
+def get_address_section(section="", **kwargs):
+    if not section:
+        section = []
+        if yes():
+            section.append(random.choice([
+                "Apt",
+                "Apt.",
+                "Apartment",
+                "Suite",
+                "Building",
+            ]))
+
+        number = String(get_int(max_size=9999))
+        if yes():
+            prefix = random.choice([
+                "#",
+                get_middle_initial(),
+            ])
+
+            number = "{}{}".format(prefix, number)
+
+        section.append(number)
+        section = " ".join(section)
+    return section
+
+
+def get_usa_city(city="", **kwargs):
+    if not city:
+        city = random.choice(usa.cities)
+    return city
+get_us_city = get_usa_city
+
+
+def get_usa_state(state="", **kwargs):
+    if not state:
+        if yes():
+            state = random.choice(usa.states.names)
+        else:
+            state = random.choice(usa.states.abbrs)
+    return state
+get_us_state = get_usa_state
+
+
+def get_usa_zipcode(state=""):
+    state = get_usa_state(state)
+    state = usa.states[state]["abbr"]
+    return random.choice(usa.zipcodes[state])
+get_us_zipcdoe = get_usa_zipcode
+get_usa_zip = get_usa_zipcode
+get_us_zip = get_usa_zipcode
+
+
+def get_usa_address(**kwargs):
+    """get an address that looks like it can be in the united states
+
+    the generated addresses are not real but should hopefully look plausible
+
+    https://en.wikipedia.org/wiki/Address#United_States
+
+    :returns: named tuple(street, section, city, state, zipcode, line, lines) where
+        line is a string of the address on one line and lines is the address on multiple
+        lines
+    """
+    Address = namedtuple("Address", ["street", "section", "city", "state", "zipcode", "line", "lines"])
+
+    street = get_street_address(**kwargs)
+    section = get_address_section(**kwargs) if yes() else ""
+    city = get_usa_city(**kwargs)
+    state = get_usa_state(**kwargs)
+    zipcode = get_usa_zipcode(state)
+
+    line = street
+    if section:
+        line += " " + section
+    line += ", " + city + ", " + state + " " + zipcode
+
+    lines = [street]
+    if section:
+        lines.append(section)
+    lines.append("{}, {}".format(city, state))
+    lines.append(zipcode)
+    lines = "\n".join(lines)
+
+    address = Address(
+        street,
+        section,
+        city,
+        state,
+        zipcode,
+        line,
+        lines,
+    )
+
+    #address.line = line
+    #address.lines = lines
+    #address.__str__ = lambda: line
+    return address
+get_us_address = get_usa_address
+get_us_addr = get_usa_address
+get_usa_addr = get_usa_address
 
 
 def get_name(name_count=2, as_str=True, is_unicode=None):
@@ -1351,6 +1535,28 @@ def get_unicode_first_name(gender=""):
 get_uni_first_name = get_unicode_first_name
 get_unicode_given_name = get_unicode_first_name
 get_unicode_firstname = get_unicode_first_name
+
+
+def get_middle_initial(*args, **kwargs):
+    """Returns just a capital letter"""
+    return get_str(str_size=1, chars=string.ascii_uppercase)
+
+
+def get_middle_name(*args, **kwargs):
+    """Get a middle name or initial"""
+    middle_name = get_first_name(*args, **kwargs)
+    if yes():
+        middle_name = get_first_name(*args, **kwargs)
+    else:
+        middle_name = get_middle_initial()
+    return middle_name
+get_middlename = get_middle_name
+
+
+def get_ascii_middle_name(gender=""):
+    '''return one ascii safe name'''
+    return get_middle_name(gender, is_unicode=False)
+get_ascii_middlename = get_middle_name
 
 
 def get_last_name(is_unicode=None):

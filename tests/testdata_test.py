@@ -702,9 +702,17 @@ class PatchTest(TestCase):
         self.assertEqual(1, m.FOO)
 
 
-
-
 class TestdataTest(TestCase):
+    def test_get_usa_address(self):
+        a = testdata.get_usa_address()
+        self.assertEqual(a[0], a.street)
+        self.assertEqual(a[1], a.section)
+        self.assertEqual(a[2], a.city)
+        self.assertEqual(a[3], a.state)
+        self.assertEqual(a[4], a.zipcode)
+        self.assertEqual(a[5], a.line)
+        self.assertEqual(a[6], a.lines)
+
     def test_get_filename(self):
         n = testdata.get_filename(ext="py", name="foo")
         self.assertEqual("foo.py", n)
