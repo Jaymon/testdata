@@ -83,7 +83,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.4.1'
+__version__ = '1.4.2'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -1263,6 +1263,32 @@ def get_email(name=''):
     ]
 
     return '{}@{}'.format(name.lower(), random.choice(email_domains))
+
+
+def get_phone(number_format="{area_code}-{exchange_code}-{line_number}", **kwargs):
+    """Get a phone number
+
+    part names come from:
+
+        https://www.freshworks.com/freshcaller-cloud-pbx/phone-numbers/us-area-codes/
+
+    to do an international format:
+
+        "+{country_code}-{area_code}-{exchange_code}-{line_number}"
+
+    :param number_format: string, allows you to format the number how you want, each of the
+        names (eg, area_code, exchange_code) corresponds to a value you can pass into
+        **kwargs
+    :param **kwargs: dict, any values you want to customize, if no keywords are passed
+        in then it will be generated
+    :returns: string, the phone number matching number_format
+    """
+    kwargs.setdefault("country_code", kwargs.pop("country", "1"))
+    kwargs.setdefault("area_code", kwargs.pop("area", get_digits(3)))
+    kwargs.setdefault("exchange_code", kwargs.pop("exchange", get_digits(3)))
+    kwargs.setdefault("line_number", kwargs.pop("line", get_digits(4)))
+    return number_format.format(**kwargs)
+get_phone_number = get_phone
 
 
 def get_street_address(house_number="", street="", **kwargs):

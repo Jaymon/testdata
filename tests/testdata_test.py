@@ -703,6 +703,16 @@ class PatchTest(TestCase):
 
 
 class TestdataTest(TestCase):
+    def test_get_phone(self):
+        ph = testdata.get_phone()
+        self.assertRegex(ph, r"\d{3}-\d{3}-\d{4}")
+
+        ph = testdata.get_phone("+{country_code}-{area_code}-{exchange_code}-{line_number}")
+        self.assertRegex(ph, r"\+\d-\d{3}-\d{3}-\d{4}")
+
+        ph = testdata.get_phone(line_number="5555")
+        self.assertTrue(ph.endswith("-5555"))
+
     def test_get_usa_address(self):
         a = testdata.get_usa_address()
         self.assertEqual(a[0], a.street)
