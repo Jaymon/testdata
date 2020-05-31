@@ -1378,6 +1378,11 @@ class TestdataTest(TestCase):
             self.assertGreater(now, dt)
             now = dt
 
+    def test_get_past_date(self):
+        for x in range(3):
+            dt = testdata.get_past_date()
+            self.assertTrue(type(dt) is datetime.date)
+
     def test_get_future_datetime(self):
         now = datetime.datetime.utcnow()
         for x in range(5):
@@ -1388,6 +1393,11 @@ class TestdataTest(TestCase):
             dt = testdata.get_future_datetime(now)
             self.assertGreater(dt, now)
             now = dt
+
+    def test_get_future_date(self):
+        for x in range(3):
+            dt = testdata.get_future_date()
+            self.assertTrue(type(dt) is datetime.date)
 
     def test_get_between_datetime(self):
         start = testdata.get_past_datetime()
@@ -1414,6 +1424,12 @@ class TestdataTest(TestCase):
         start_dt = testdata.get_past_datetime(now)
         stop_dt = testdata.get_between_datetime(start_dt, now)
         self.assertGreater(stop_dt, start_dt)
+
+    def test_get_between_date(self):
+        start = testdata.get_past_datetime()
+        for x in range(3):
+            dt = testdata.get_between_date(start)
+            self.assertTrue(type(dt) is datetime.date)
 
 
 # !!! This test no longer works (IT SHOULD BE REMOVED IN THE FUTURE) because the

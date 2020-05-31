@@ -83,7 +83,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.4.2'
+__version__ = '1.4.3'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -1598,6 +1598,7 @@ def get_last_name(is_unicode=None):
         name = '{}-{}'.format(name, get_last_name(is_unicode))
 
     return name.capitalize()
+get_lastname = get_last_name
 get_surname = get_last_name
 
 
@@ -1918,6 +1919,12 @@ def get_past_datetime(now=None):
 get_past_dt = get_past_datetime
 get_passed_datetime = get_past_datetime
 get_before_datetime = get_past_datetime
+get_past_date_time = get_past_datetime
+
+
+def get_past_date(now=None):
+    dt = get_past_datetime(now)
+    return datetime.date(dt.year, dt.month, dt.day)
 
 
 def get_future_datetime(now=None):
@@ -1934,6 +1941,13 @@ def get_future_datetime(now=None):
     )
 get_future_dt = get_future_datetime
 get_after_dt = get_future_datetime
+get_after_date_time = get_future_datetime
+get_future_date_time = get_future_datetime
+
+
+def get_future_date(now=None):
+    dt = get_future_datetime(now)
+    return datetime.date(dt.year, dt.month, dt.day)
 
 
 def get_between_datetime(start, stop=None):
@@ -1973,6 +1987,12 @@ def get_between_datetime(start, stop=None):
 
     return start + datetime.timedelta(**kwargs)
 get_between_dt = get_between_datetime
+get_between_date_time = get_between_datetime
+
+
+def get_between_date(start, stop=None):
+    dt = get_between_datetime(start, stop)
+    return datetime.date(dt.year, dt.month, dt.day)
 
 
 def get_interpreter():
