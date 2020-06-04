@@ -19,9 +19,7 @@ import time
 import sys
 import logging
 
-import testdata
 from testdata import environ
-from testdata.test import TestCase, SkipTest
 from testdata.path import (
     Dirpath,
     Filepath,
@@ -31,12 +29,12 @@ from testdata.path import (
     ContentFilepath
 )
 from testdata.compat import *
-from testdata.threading import Thread, Deque
-from testdata import threading
 from testdata.output import Capture
 from testdata.server import AnyServer, CookieServer, CallbackServer
 from testdata.client import HTTP, Command
 from testdata.utils import ByteString, String
+
+from . import TestCase, testdata, SkipTest
 
 
 testdata.basic_logging()
@@ -1430,181 +1428,6 @@ class TestdataTest(TestCase):
         for x in range(3):
             dt = testdata.get_between_date(start)
             self.assertTrue(type(dt) is datetime.date)
-
-
-# !!! This test no longer works (IT SHOULD BE REMOVED IN THE FUTURE) because the
-# queue is no longer global, so one thread can't fail on another thread's error
-# class Thread2Test(TestCase):
-#     @classmethod
-#     def setUpClass(cls):
-#         def run():
-#             time.sleep(0.5)
-#             raise ValueError("setUpClass")
-#         thread = Thread(target=run)
-#         thread.daemon = True
-#         thread.start()
-# 
-#     def test_raise_error_daemon_start(self):
-#         def run1():
-#             time.sleep(1)
-# 
-#         with self.assertRaises(ValueError):
-#             t1 = Thread(target=run1)
-#             t1.daemon = True
-#             t1.start()
-#             t1.join()
-
-
-class Thread3Test(TestCase):
-    def setUp(self):
-        # !!! this test can trigger a keyboard interrupt error, but I normally don't
-        # need to do that so only comment out if needed
-        self.skip_test()
-        pass
-
-    def test_lifecycle_1(self):
-        def run():
-            time.sleep(0.25)
-            raise ValueError("lifecycle 1")
-
-        thread = Thread(target=run)
-        thread.daemon = True
-        thread.start()
-
-        while not thread.exception:
-            pass
-
-        pout.v(thread.exception)
-        #time.sleep(1)
-
-    def test_lifecycle_2(self):
-        def run():
-            time.sleep(0.25)
-            raise ValueError("lifecycle 2")
-
-        thread = Thread(target=run)
-        thread.daemon = True
-        thread.start()
-
-#         while not thread.exception:
-#             pass
-# 
-#         pout.v(thread.exception)
-        #time.sleep(1)
-
-
-class ThreadTest(TestCase):
-#     def tearDown(self):
-#         # clear the queue to make sure one test doesn't inherit the error of another test
-#         q = threading.exc_queue
-#         while not q.empty():
-#             q.get(False)
-#             q.task_done()
-
-    def test_success(self):
-        q = queue.Queue()
-        def run():
-            q.put(2)
-
-        thread = Thread(target=run)
-        thread.start()
-        thread.join()
-        self.assertEqual(2, q.get(False)) 
-
-    def test_raise_error_daemon_start(self):
-        def run():
-            raise ValueError("raise_error_daemon_start")
-
-        thread = Thread(target=run)
-        thread.daemon = True
-        with self.assertRaises(KeyboardInterrupt):
-            thread.start()
-            while thread.is_alive():
-                time.sleep(0.1)
-
-        self.assertIsInstance(thread.exception, ValueError)
-
-    def test_raise_error_start(self):
-        def run():
-            raise ValueError("raise_error_start")
-
-        thread = Thread(target=run)
-        with self.assertRaises(KeyboardInterrupt):
-            thread.start()
-            while thread.is_alive():
-                time.sleep(0.1)
-
-        self.assertIsInstance(thread.exception, ValueError)
-
-    def test_raise_error_join(self):
-        def run():
-            time.sleep(0.5)
-            raise ValueError("raise_error_join")
-
-        thread = Thread(target=run)
-        thread.start()
-        with self.assertRaises(ValueError):
-            thread.join()
-
-    def test_raise_error_daemon_join(self):
-        def run():
-            time.sleep(0.5)
-            raise ValueError("raise_error_daemon_join")
-
-        thread = Thread(target=run)
-        thread.daemon = True
-        thread.start()
-        with self.assertRaises(ValueError):
-            thread.join()
-
-    def test_join_2(self):
-        def run():
-            time.sleep(0.5)
-            raise ValueError("join_2")
-
-        thread = Thread(target=run)
-        thread.daemon = True
-        thread.start()
-
-        try:
-            thread.join()
-
-        except ValueError as e:
-            self.assertEqual("join_2", str(e))
-
-    def test_no_error_raised(self):
-        # https://github.com/Jaymon/testdata/issues/14
-        class C2(object):
-            def blah(self, *args): pass
-        c2 = C2()
-
-        def c2_send():
-            c2.blah(foo_bar) # foo_bar doesn't exist so NameError should be raised
-
-        with self.assertRaises(NameError):
-            t2 = testdata.Thread(target=c2_send)
-            t2.start()
-            #pout.h()
-            #time.sleep(0.5)
-            t2.join()
-
-
-class DequeTest(TestCase):
-    def test_lifecycle(self):
-        d = Deque(2)
-        self.assertEqual(0, len(d))
-
-        d.append(1)
-        self.assertEqual(1, len(d))
-
-        d.append(2)
-        self.assertEqual(2, len(d))
-
-        d.append(3)
-        self.assertEqual(2, len(d))
-
-        self.assertEqual(2, d[0])
-        self.assertEqual(3, d[1])
 
 
 class CaptureTest(TestCase):

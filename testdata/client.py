@@ -82,12 +82,13 @@ class Command(object):
     def environ(self):
         del self._environ
 
-    def __init__(self, command, cwd="", environ=None):
+    def __init__(self, command, cwd="", environ=None, **kwargs):
         self.cwd = os.path.realpath(cwd) if cwd else os.getcwd()
         self.command = command
         if environ:
             self.environ.update(environ)
 
+        self.logger_prefix = kwargs.get("logger_prefix", None)
         logger = logging.getLogger("{}.Client".format(__name__))
         if len(logger.handlers) == 0:
             logger.setLevel(logging.INFO)
@@ -99,7 +100,11 @@ class Command(object):
 
     def flush(self, line):
         """flush the line to stdout"""
-        self.logger.info("{:0>5}: {}".format(self.process.pid, line.rstrip()))
+        if self.logger_prefix is None:
+            self.logger_prefix = "{:0>5}: ".format(self.process.pid)
+
+        #self.logger.info("{:0>5}: {}".format(self.process.pid, line.rstrip()))
+        self.logger.info("{}{}".format(self.logger_prefix, line.rstrip()))
         #sys.stdout.write(line)
         #sys.stdout.flush()
 

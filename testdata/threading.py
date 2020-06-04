@@ -269,3 +269,103 @@ class Thread(threading.Thread):
 #                     thread_e, thread_exc_info = thread_e_info
 #                     reraise(*thread_exc_info)
 
+import codecs
+import time
+import os
+import sys
+
+class Tail(object):
+
+    thread_class = Thread
+
+    def __init__(self, path, stream=None, encoding="UTF-8", **kwargs):
+        self.path = path
+        if stream:
+            self.stream = stream
+        else:
+            self.stream = sys.stderr
+        self.encoding = encoding
+        self.prefix = kwargs.get("prefix", "{}: ".format(os.path.basename(path)))
+
+    def start(self):
+        t = self.thread_class(target=self.target)
+        t.daemon = True
+        t.start()
+
+    def target(self):
+        with open(self.path, mode="rb") as fp:
+            fp.seek(0, 2)
+            pout.v(fp.tell())
+            while True:
+                line = fp.readline()
+                if line:
+                    line = line.decode(self.encoding)
+                    self.flush(line)
+                else:
+                    time.sleep(0.1)
+
+
+        return
+
+
+
+
+
+        with codecs.open(self.path, encoding=self.encoding, mode="r") as fp:
+        #with open(self.path, 'r') as fp:
+            fp.seek(0, 2)
+            pout.v(fp.tell())
+            #fp.seek(fp.tell() - 1)
+            #fh.seek(0, 2); file_size = fh.tell();
+
+#             for line in iter(fp.readline, b""):
+#                 line = line.decode(self.encoding)
+#                 self.flush(line)
+
+#             for line in iter(fp.readline, ""):
+#                 #pout.v(line)
+#                 self.flush(line)
+
+
+            while True:
+                pout.v(fp.tell())
+                line = fp.readline()
+                #pout.v(line)
+                if line:
+                    self.flush(line)
+                else:
+                    time.sleep(0.1)
+
+
+#                 if line is None:
+#                     time.sleep(0.1)
+# 
+#                 else:
+#                     line += tmp
+#                     if line.endswith("\n"):
+#                         self.flush(line)
+#                         yield line
+#                         line = ''
+#                 else:
+#                     time.sleep(0.1)
+
+    def flush(self, line):
+        """flush the line to stdout"""
+        #self.stream.write("{}{}\n".format(self.prefix, line.rstrip()))
+        self.stream.write("{}{}".format(self.prefix, line))
+        #self.stream.flush()
+#         try:
+#             logger.info("{}{}".format(self.prefix, line.rstrip()))
+#         except Exception as e:
+#             pout.v(e)
+#             raise
+
+
+
+        #self.stream.flush()
+        #sys.stdout.write(line)
+        #sys.stdout.flush()
+
+
+
+
