@@ -1340,6 +1340,13 @@ class TestdataTest(TestCase):
                 d = testdata.get_digits(count)
                 self.assertEqual(count, len(d))
 
+        with self.assertRaises(ValueError):
+            testdata.get_digits(4, 50000)
+
+        d = testdata.get_digits(5, 4000)
+        self.assertEqual(5, len(d))
+        self.assertEqual("04000", d)
+
     def test_get_int(self):
         i = testdata.get_int()
         self.assertGreater(i, 0)

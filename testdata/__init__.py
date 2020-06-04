@@ -63,7 +63,7 @@ from .path import (
     ContentFilepath,
     CSVpath,
 )
-from .threading import Thread
+from .threading import Thread, Tail
 from .output import Capture
 from .server import PathServer, CookieServer, CallbackServer
 from .service import Upstart, InitD, Systemd
@@ -83,7 +83,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.4.3'
+__version__ = '1.4.4'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -263,6 +263,25 @@ def capture(stdout=True, stderr=True, loggers=True, *args, **kwargs):
     """
     c = Capture(stdout=stdout, stderr=stderr, loggers=loggers)
     return c(*args, **kwargs)
+
+
+def tail(path, stream=None, encoding="UTF-8", **kwargs):
+    """Tail/follow path in a separate thread
+
+    :Example:
+        testdata.tail("/path/to/tail")
+
+    :param path: string, the path of the file you want to tail/follow
+    :param stream: io.IOBase, a file object with a write method
+    :param encoding: string, the encoding of lines
+    :param **kwargs:
+        prefix -- by default prefix is the path basename, but you can set
+            something custom here
+    """
+
+    t = Tail(path, stream, encoding, **kwargs)
+    t.start()
+    return t
 
 
 def yes(specifier=0):
@@ -1070,16 +1089,24 @@ def get_unique_float(min_size=None, max_size=None):
 get_uniq_float = get_unique_float
 
 
-def get_digits(count):
+def get_digits(count, n=None):
     """return a string value that contains count digits
 
     :param count: int, how many digits you want, so if you pass in 4, you would get
         4 digits
+    :param n: int, if you already have a value and want it to for sure by count digits
     :returns: string, this returns a string because the digits might start with
         zero
     """
     max_size = int("9" * count)
-    ret = "{{:0>{}}}".format(count).format(get_int(0, max_size))
+
+    if n is None:
+        n = get_int(0, max_size)
+    else:
+        if n > max_size:
+            raise ValueError("n={} has more than {} digits".format(n, count))
+
+    ret = "{{:0>{}}}".format(count).format(n)
     return ret
 get_digit = get_digits
 get_count_digits = get_digits

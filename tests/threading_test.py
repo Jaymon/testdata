@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
+import time
 
 from testdata.threading import Thread, Deque, Tail
 from testdata import threading
 from testdata.compat import *
 from testdata.utils import ByteString, String
+from testdata.client import Command
 
 from . import TestCase, testdata
 
@@ -161,56 +163,33 @@ class ThreadTest(TestCase):
             t2.join()
 
 
-from testdata.client import Command
-import time
-
 class TailTest(TestCase):
-    def test_tail_3(self):
-        c = Command("tail -n 0 -f tailtest.txt")
-        c.run_async()
-        for x in range(600):
-            time.sleep(0.1)
-            pass
-        return
-
-
-    def test_tail_2(self):
-        #p = testdata.create_file()
-        #pout.v(p)
-
+    def test_tail(self):
+        p = testdata.create_file()
         with testdata.capture() as c:
-            t = Tail("tailtest.txt")
-            t.start()
+            testdata.tail(p)
+            #t = Tail(p)
+            #t.start()
+
+            Command("echo 1 >> {}".format(p)).run()
+            Command("echo 2 >> {}".format(p)).run()
+            Command("echo end >> {}".format(p)).run()
 
             testdata.wait(lambda: "end" in c)
-        return
 
-        for x in range(600):
-            time.sleep(0.1)
-            pass
-        return
-
-        time.sleep(60)
-        return
-        with p.open("w+") as fp:
+    def test_tail_2(self):
+        self.skip_test("This was handy for manual testing")
+        p = testdata.create_file()
+        pout.v(p)
+        # echo -e "end" >> "/path/printed/above"
+        with testdata.capture() as c:
             t = Tail(p)
             t.start()
 
-            fp.write("Line 1. This line should be on the screen\n")
-            fp.write("Line 2.\n")
-            fp.write("Line 3.") 
-            fp.write(" This is another line")
-            fp.write("\n")
-
-        contents = p.contents()
-        pout.v(contents)
-        for x in range(10):
-            time.sleep(0.1)
-            pass
-
-
+            testdata.wait(lambda: "end" in c)
 
     def test_tail_1(self):
+        self.skip_test("I could not get this to work reliably")
 
         with testdata.capture() as c:
             p = testdata.create_file()
@@ -225,51 +204,4 @@ class TailTest(TestCase):
                 fp.write(b"\n")
 
             testdata.wait(lambda: "Line 3." in c)
-
-        return
-        contents = p.contents()
-        pout.v(contents)
-        for x in range(10):
-            time.sleep(0.1)
-            pass
-
-#     def test_tail_4(self):
-# 
-#         with testdata.capture() as c:
-#             p = testdata.create_file()
-#             c = Command("tail -n 0 -f {}".format(p))
-#             c.run_async()
-# 
-#             with open(p, "w+") as fp:
-#                 fp.write(b"Line 1. This line should be on the screen\n")
-#                 fp.write(b"Line 2.\n")
-#                 fp.write(b"Line 3.") 
-#                 fp.write(b" This is another line")
-#                 fp.write(b"\n")
-# 
-#             testdata.wait(lambda: "Line 3." in c)
-# 
-#         return
-#         contents = p.contents()
-#         pout.v(contents)
-#         for x in range(10):
-#             time.sleep(0.1)
-#             pass
-
-
-    def test_tail_5(self):
-        #p = testdata.create_file()
-        #pout.v(p)
-
-        p = testdata.create_file()
-        with testdata.capture() as c:
-            t = Tail(p)
-            t.start()
-
-            Command("echo 1 >> {}".format(p)).run()
-            Command("echo 2 >> {}".format(p)).run()
-            Command("echo end >> {}".format(p)).run()
-
-            testdata.wait(lambda: "end" in c)
-        return
 

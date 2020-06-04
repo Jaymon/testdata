@@ -5,6 +5,8 @@ import sys
 import logging
 from collections import deque
 import copy
+import time
+import os
 
 from .compat import queue, _thread, reraise, is_py2
 
@@ -269,16 +271,28 @@ class Thread(threading.Thread):
 #                     thread_e, thread_exc_info = thread_e_info
 #                     reraise(*thread_exc_info)
 
-import codecs
-import time
-import os
-import sys
 
 class Tail(object):
+    """Follow/tail a file and print the new contents of that file to a stream
+
+    This uses threads and has a similar interface to start it
+
+    :Example:
+        t = Tail("/path/to/file")
+        t.start()
+    """
 
     thread_class = Thread
 
     def __init__(self, path, stream=None, encoding="UTF-8", **kwargs):
+        """
+        :param path: string, the path of the file you want to tail/follow
+        :param stream: io.IOBase, a file object with a write method
+        :param encoding: string, the encoding of lines
+        :param **kwargs:
+            prefix -- by default prefix is the path basename, but you can set
+                something custom here
+        """
         self.path = path
         if stream:
             self.stream = stream
@@ -286,6 +300,8 @@ class Tail(object):
             self.stream = sys.stderr
         self.encoding = encoding
         self.prefix = kwargs.get("prefix", "{}: ".format(os.path.basename(path)))
+        if not self.prefix:
+            self.prefix = ""
 
     def start(self):
         t = self.thread_class(target=self.target)
@@ -293,9 +309,9 @@ class Tail(object):
         t.start()
 
     def target(self):
+        # we use regular open here because codecs.open was giving me caching problems
         with open(self.path, mode="rb") as fp:
-            fp.seek(0, 2)
-            pout.v(fp.tell())
+            fp.seek(0, 2) # we are tailing the file so we don't care about anything before now
             while True:
                 line = fp.readline()
                 if line:
@@ -304,68 +320,7 @@ class Tail(object):
                 else:
                     time.sleep(0.1)
 
-
-        return
-
-
-
-
-
-        with codecs.open(self.path, encoding=self.encoding, mode="r") as fp:
-        #with open(self.path, 'r') as fp:
-            fp.seek(0, 2)
-            pout.v(fp.tell())
-            #fp.seek(fp.tell() - 1)
-            #fh.seek(0, 2); file_size = fh.tell();
-
-#             for line in iter(fp.readline, b""):
-#                 line = line.decode(self.encoding)
-#                 self.flush(line)
-
-#             for line in iter(fp.readline, ""):
-#                 #pout.v(line)
-#                 self.flush(line)
-
-
-            while True:
-                pout.v(fp.tell())
-                line = fp.readline()
-                #pout.v(line)
-                if line:
-                    self.flush(line)
-                else:
-                    time.sleep(0.1)
-
-
-#                 if line is None:
-#                     time.sleep(0.1)
-# 
-#                 else:
-#                     line += tmp
-#                     if line.endswith("\n"):
-#                         self.flush(line)
-#                         yield line
-#                         line = ''
-#                 else:
-#                     time.sleep(0.1)
-
     def flush(self, line):
-        """flush the line to stdout"""
-        #self.stream.write("{}{}\n".format(self.prefix, line.rstrip()))
+        """flush the line to the stream"""
         self.stream.write("{}{}".format(self.prefix, line))
-        #self.stream.flush()
-#         try:
-#             logger.info("{}{}".format(self.prefix, line.rstrip()))
-#         except Exception as e:
-#             pout.v(e)
-#             raise
-
-
-
-        #self.stream.flush()
-        #sys.stdout.write(line)
-        #sys.stdout.flush()
-
-
-
 
