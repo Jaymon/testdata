@@ -88,7 +88,7 @@ class Command(object):
         if environ:
             self.environ.update(environ)
 
-        self.logger_prefix = kwargs.get("logger_prefix", None)
+        self.logger_prefix = kwargs.pop("logger_prefix", None)
         logger = logging.getLogger("{}.Client".format(__name__))
         if len(logger.handlers) == 0:
             logger.setLevel(logging.INFO)
@@ -97,6 +97,8 @@ class Command(object):
             logger.addHandler(log_handler)
             logger.propagate = False
         self.logger = logger
+
+        self.sudo = kwargs.pop("sudo", False)
 
     def flush(self, line):
         """flush the line to stdout"""
@@ -111,10 +113,10 @@ class Command(object):
     def is_running(self):
         return self.process.poll() is None
 
-    def create_cmd(self, arg_str):
-        if self.command:
-            if isinstance(self.command, basestring):
-                cmd = self.command
+    def create_cmd(self, command, arg_str):
+        if command:
+            if isinstance(command, basestring):
+                cmd = command
                 if arg_str:
                     if isinstance(arg_str, basestring):
                         cmd += " " + arg_str
@@ -122,7 +124,7 @@ class Command(object):
                         cmd += " ".join(arg_str)
 
             else:
-                cmd = self.command
+                cmd = list(command)
                 if arg_str:
                     if isinstance(arg_str, basestring):
                         cmd.append(arg_str)
@@ -132,6 +134,15 @@ class Command(object):
         else:
             cmd = arg_str
 
+        if self.sudo:
+            if isinstance(cmd, basestring):
+                if not cmd.startswith("sudo"):
+                    cmd = "sudo " + cmd
+
+            else:
+                if not cmd[0] == "sudo":
+                    cmd.insert(0, "sudo")
+
         return cmd
 
     def create_process(self, arg_str, **kwargs):
@@ -139,7 +150,7 @@ class Command(object):
         https://docs.python.org/3/library/subprocess.html
         """
         process = None
-        cmd = self.create_cmd(arg_str)
+        cmd = self.create_cmd(self.command, arg_str)
 
         options = {}
         options["quiet"] = quiet = kwargs.pop("quiet", self.quiet)
@@ -219,10 +230,11 @@ class Command(object):
         #return self.wait(timeout)
 
     def murder(self, timeout=1):
+        cmd = self.create_cmd(["pkill", "-f", self.cmd], "")
         if is_py2:
-            subprocess.call(["pkill", "-f", self.cmd])
+            subprocess.call(cmd)
         else:
-            subprocess.run(["pkill", "-f", self.cmd], check=False)
+            subprocess.run(cmd, check=False)
         return self.wait(timeout)
 
     def finish(self, method, timeout=1, maxcount=5, args=None, kwargs=None):
@@ -342,17 +354,17 @@ class ModuleCommand(Command):
 
         super(ModuleCommand, self).__init__(None, cwd=cwd, environ=environ)
 
-    def create_cmd(self, arg_str):
-        cmd = super(ModuleCommand, self).create_cmd(arg_str)
-        if isinstance(cmd, basestring):
-            ret = "{} {} {}".format(self.cmd_prefix, self.name, cmd)
+    def create_cmd(self, command, arg_str):
+        if isinstance(command, basestring):
+            ret = "{} {} {}".format(self.cmd_prefix, self.name, command)
 
         else:
             ret = re.split(r"\s+", self.cmd_prefix)
             ret.append(self.name)
-            ret.extend(cmd)
+            if command:
+                ret.extend(command)
 
-        return ret
+        return super(ModuleCommand, self).create_cmd(ret, arg_str)
 
 
 class FileCommand(ModuleCommand):

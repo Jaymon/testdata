@@ -12,14 +12,7 @@ from testdata.client import HTTP, Command
 from . import TestCase, testdata, SkipTest
 
 
-class ClientTest(TestCase):
-    def test_run_environ(self):
-        env = dict(os.environ)
-        contents = "some value"
-        env["TEST_RUN_ENVIRON"] = contents
-        r = testdata.run("echo $TEST_RUN_ENVIRON", environ=env)
-        self.assertEqual(contents, r)
-
+class CommandTest(TestCase):
     def test_murder(self):
         start = time.time()
         c = Command("sleep 15")
@@ -27,6 +20,25 @@ class ClientTest(TestCase):
         c.murder(15)
         stop = time.time()
         self.assertTrue((stop - start) < 10)
+
+    def test_create_cmd(self):
+        c = Command("sleep 1")
+
+        cmd = c.create_cmd("echo foo", "")
+        self.assertEqual("echo foo", cmd)
+
+        c.sudo = True
+        cmd = c.create_cmd(["echo", "foo"], "")
+        self.assertEqual("sudo", cmd[0])
+
+
+class ClientTest(TestCase):
+    def test_run_environ(self):
+        env = dict(os.environ)
+        contents = "some value"
+        env["TEST_RUN_ENVIRON"] = contents
+        r = testdata.run("echo $TEST_RUN_ENVIRON", environ=env)
+        self.assertEqual(contents, r)
 
     def test_async(self):
         start = time.time()

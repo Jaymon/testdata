@@ -83,7 +83,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.4.5'
+__version__ = '1.4.6'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
