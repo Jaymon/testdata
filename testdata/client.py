@@ -219,7 +219,10 @@ class Command(object):
         #return self.wait(timeout)
 
     def murder(self, timeout=1):
-        subprocess.run(["pkill", "-f", self.cmd], check=False)
+        if is_py2:
+            subprocess.call(["pkill", "-f", self.cmd])
+        else:
+            subprocess.run(["pkill", "-f", self.cmd], check=False)
         return self.wait(timeout)
 
     def finish(self, method, timeout=1, maxcount=5, args=None, kwargs=None):
