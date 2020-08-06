@@ -31,6 +31,7 @@ import time
 from time import sleep
 from contextlib import contextmanager
 import pkgutil
+import itertools
 
 from .compat import *
 from .utils import String, ByteString, Mock
@@ -83,7 +84,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.4.6'
+__version__ = '1.4.8'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -1174,6 +1175,24 @@ def get_unique_int(min_size=1, max_size=sys.maxsize):
 get_uniq_int = get_unique_int
 get_uniq_integer = get_unique_int
 get_unique_integer = get_unique_int
+
+
+def get_counter(start=1, step=1):
+    """Because sometimes you just want to count, this is just a wrapper around
+    itertools.count
+
+    :Example:
+        c = testdata.get_counter()
+        c() # 1
+        c() # 2
+        c() # 3
+
+    :param start: int, the number to start at
+    :param step: int, the increment each time the callback is called
+    :returns: callable, everytime you invoke it it will increment by step
+    """
+    counter = itertools.count(start, step)
+    return lambda: next(counter)
 
 
 def get_ascii_words(count=0, as_str=True, **kwargs):

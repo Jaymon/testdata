@@ -830,7 +830,7 @@ class CSVpath(Filepath):
     def writerow(self, writer, queue, f, row):
         """this is more of an internal method that encapsulates common functionality
         for both replace and append"""
-        row = {ByteString(r[0]): ByteString(r[1]) for r in row.items()}
+        row = {String(r[0]): ByteString(r[1]) for r in row.items()}
         writer.writerow(row)
         data = queue.getvalue()
         if is_py2:

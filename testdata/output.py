@@ -116,6 +116,15 @@ class Stream(Base):
         for t, s in self.heap:
             yield s
 
+    def __getattr__(self, k):
+        """first try and proxy unknown keys to the string, if that fails then try
+        and proxy to the wrapped stream instance"""
+        try:
+            return super(Stream, self).__getattr__(k)
+
+        except AttributeError:
+            return getattr(self.stream, k)
+
 
 class Capture(Base):
     """Capture stdout and stderr into internal buffers

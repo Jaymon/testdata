@@ -163,6 +163,18 @@ class ServerTest(TestCase):
 
 
 class PathTest(TestCase):
+    def test_csv_writes(self):
+        """Turns out, the csv writer didn't write anything in py3"""
+        csvfile = testdata.create_csv({
+            "foo": testdata.get_counter,
+            "bar": testdata.get_words,
+        })
+
+        for row in csvfile.lines():
+            for k in ["foo", "bar"]:
+                self.assertTrue(k in row)
+                self.assertTrue(row[k])
+
     def test_create_csv_noheader(self):
         p = testdata.create_csv({
             "foo": testdata.get_name,
@@ -174,6 +186,7 @@ class PathTest(TestCase):
         for r in p:
             for k in ["foo", "bar", "che"]:
                 self.assertTrue(k in r)
+                self.assertTrue(r[k])
             row_count += 1
         self.assertEqual(2, row_count)
 
@@ -182,6 +195,7 @@ class PathTest(TestCase):
         for r in p:
             for k in ["foo", "bar", "che"]:
                 self.assertTrue(k in r)
+                self.assertTrue(r[k])
             row_count += 1
         self.assertEqual(3, row_count)
 
@@ -196,6 +210,7 @@ class PathTest(TestCase):
         for r in p:
             for k in ["foo", "bar", "che"]:
                 self.assertTrue(k in r)
+                self.assertTrue(r[k])
             row_count += 1
         self.assertEqual(2, row_count)
 
@@ -204,6 +219,7 @@ class PathTest(TestCase):
         for r in p:
             for k in ["foo", "bar", "che"]:
                 self.assertTrue(k in r)
+                self.assertTrue(r[k])
             row_count += 1
         self.assertEqual(3, row_count)
 
@@ -701,6 +717,18 @@ class PatchTest(TestCase):
 
 
 class TestdataTest(TestCase):
+    def test_get_counter(self):
+        c = testdata.get_counter()
+        self.assertEqual(1, c())
+        self.assertEqual(2, c())
+        self.assertEqual(3, c())
+
+        c = testdata.get_counter(0, 2)
+        self.assertEqual(0, c())
+        self.assertEqual(2, c())
+        self.assertEqual(4, c())
+
+
     def test_get_phone(self):
         ph = testdata.get_phone()
         self.assertRegex(ph, r"\d{3}-\d{3}-\d{4}")

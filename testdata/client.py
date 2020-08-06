@@ -19,6 +19,9 @@ from .utils import String
 from .threading import Thread, Deque
 
 
+logger = logging.getLogger(__name__)
+
+
 class Command(object):
     """makes running a command from a non CLI environment easy peasy
 
@@ -231,6 +234,7 @@ class Command(object):
 
     def murder(self, timeout=1):
         cmd = self.create_cmd(["pkill", "-f", self.cmd], "")
+        logger.debug("Murdering {}".format(self.cmd))
         if is_py2:
             subprocess.call(cmd)
         else:
