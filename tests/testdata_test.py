@@ -165,8 +165,9 @@ class ServerTest(TestCase):
 class PathTest(TestCase):
     def test_csv_writes(self):
         """Turns out, the csv writer didn't write anything in py3"""
+        counter = testdata.get_counter()
         csvfile = testdata.create_csv({
-            "foo": testdata.get_counter,
+            "foo": counter,
             "bar": testdata.get_words,
         })
 
