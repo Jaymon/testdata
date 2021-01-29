@@ -2000,6 +2000,61 @@ def mock(**props_and_methods):
     return Mock(**props_and_methods)
 
 
+def get_datetime(now=None, backward=False, **kwargs):
+    """get a datetime
+
+    :param now: datetime|date|int|float|timedelta
+        datetime - just returned
+        date - returned as a datetime
+        int - assumed to be days and will be added/subtracted from utc now
+        float - assumed to be seconds and will be added/subtracted from utc now
+        timedelta - will be add/subtracted from utc now
+    :param backward: if True, then a positive int, float, or timedelta will be
+        subtracted from utc now, if False then it will be added
+    :param **kwargs: these will be passed to timedelta
+    :returns: datetime
+    """
+    if not now and kwargs:
+        now = datetime.timedelta(**kwargs)
+
+    if now:
+        if isinstance(now, datetime.datetime):
+            pass
+
+        elif isinstance(now, datetime.timedelta):
+            seconds = now.total_seconds()
+            microseconds = (seconds * 1000000) % 1000000
+            if backward and seconds > 0:
+                seconds *= -1.0
+
+            td = datetime.timedelta(seconds=seconds, microseconds=microseconds)
+            now = datetime.datetime.utcnow() + td
+
+        elif isinstance(now, datetime.date):
+            now = datetime.datetime(now.year, now.month, now.day)
+
+        elif isinstance(now, int):
+            if backward and now > 0:
+                now *= -1.0
+            now = datetime.datetime.utcnow() + datetime.timedelta(days=now)
+
+        elif isinstance(now, float):
+            seconds = int(now)
+            microseconds = (now * 1000000) % 1000000
+            if backward and seconds > 0:
+                seconds *= -1.0
+            td = datetime.timedelta(seconds=now, microseconds=microseconds)
+            now = datetime.datetime.utcnow() + td
+
+        else:
+            raise ValueError("Unknown value: {}".format(now))
+
+    else:
+        now = datetime.datetime.utcnow()
+
+    return now
+
+
 def get_birthday(as_str=False, start_age=18, stop_age=100):
     """
     return a random YYYY-MM-DD
@@ -2029,10 +2084,7 @@ get_bday = get_birthday
 
 def get_past_datetime(now=None):
     """return a datetime guaranteed to be in the past from now"""
-    if not now: now = datetime.datetime.utcnow()
-    if isinstance(now, datetime.timedelta):
-        now = datetime.datetime.utcnow() - now
-
+    now = get_datetime(now, backward=True)
     td = now - datetime.datetime(year=2000, month=1, day=1)
     return now - datetime.timedelta(
         days=random.randint(1, max(td.days, 1)),
@@ -2051,10 +2103,7 @@ def get_past_date(now=None):
 
 def get_future_datetime(now=None):
     """return a datetime guaranteed to be in the future from now"""
-    if not now: now = datetime.datetime.utcnow()
-    if isinstance(now, datetime.timedelta):
-        now = datetime.datetime.utcnow() + now
-
+    now = get_datetime(now)
     return now + datetime.timedelta(
         weeks=random.randint(1, 52 * 50),
         hours=random.randint(0, 24),
@@ -2077,20 +2126,8 @@ def get_between_datetime(start, stop=None):
 
     return a datetime guaranteed to be in the future from start and in the past from stop
     """
-    if not stop:
-        stop = datetime.datetime.utcnow()
-
-    # account for start or stop being a timedelta
-    if isinstance(start, datetime.timedelta) and isinstance(stop, datetime.timedelta):
-        now = datetime.datetime.utcnow()
-        start = now - start
-        stop = now - stop
-
-    elif isinstance(start, datetime.timedelta):
-        start = stop - start
-
-    elif isinstance(stop, datetime.timedelta):
-        stop = start + stop
+    start = get_datetime(start)
+    stop = get_datetime(stop)
 
     if start >= stop:
         raise ValueError("start datetime >= stop datetime")

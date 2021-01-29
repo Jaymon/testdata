@@ -1465,7 +1465,38 @@ class TestdataTest(TestCase):
             dt = testdata.get_future_date()
             self.assertTrue(type(dt) is datetime.date)
 
-    def test_get_between_datetime(self):
+    def test_get_datetime(self):
+        d = testdata.get_datetime(datetime.datetime.utcnow())
+        self.assertGreater(datetime.datetime.utcnow(), d)
+
+        d = testdata.get_datetime(datetime.datetime.utcnow().date())
+        self.assertGreater(datetime.datetime.utcnow(), d)
+
+        d = testdata.get_datetime(3600, backward=True)
+        self.assertGreater(datetime.datetime.utcnow(), d)
+
+        d = testdata.get_datetime(-3600, backward=True)
+        self.assertGreater(datetime.datetime.utcnow(), d)
+
+        d = testdata.get_datetime(-3600)
+        self.assertGreater(datetime.datetime.utcnow(), d)
+
+        d = testdata.get_datetime(3600)
+        self.assertLess(datetime.datetime.utcnow(), d)
+
+        d = testdata.get_datetime(datetime.timedelta(seconds=-3600), backward=True)
+        self.assertGreater(datetime.datetime.utcnow(), d)
+
+        d = testdata.get_datetime(datetime.timedelta(seconds=3600), backward=True)
+        self.assertGreater(datetime.datetime.utcnow(), d)
+
+        d = testdata.get_datetime(datetime.timedelta(seconds=-3600))
+        self.assertGreater(datetime.datetime.utcnow(), d)
+
+        d = testdata.get_datetime(datetime.timedelta(days=1, seconds=3600, microseconds=1234))
+        self.assertLess(datetime.datetime.utcnow(), d)
+
+    def test_get_between_datetime_1(self):
         start = testdata.get_past_datetime()
         for x in range(5):
             dt = testdata.get_between_datetime(start)
@@ -1483,6 +1514,14 @@ class TestdataTest(TestCase):
         now = datetime.datetime.utcnow()
         with self.assertRaises(ValueError):
             dt = testdata.get_between_datetime(now, now)
+
+        start = testdata.get_datetime(-60)
+
+        dt = testdata.get_between_datetime(start=datetime.timedelta(days=-60))
+        self.assertLess(start, dt)
+
+        dt = testdata.get_between_datetime(start=-60)
+        self.assertLess(start, dt)
 
     def test_get_between_datetime_same_microseconds(self):
         """noticed a problem when using the same now"""
