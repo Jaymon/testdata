@@ -242,6 +242,12 @@ def stop_service(service_name, ignore_failure=True):
     return s
 
 
+def restart_service(service_name, ignore_failure=True):
+    """see start_service() and stop_service()"""
+    stop_service(service_name, ignore_failure)
+    start_service(service_name, ignore_failure)
+
+
 def capture(stdout=True, stderr=True, loggers=True, *args, **kwargs):
     """Capture stdout and stderr so you can inspect it
 
@@ -363,18 +369,26 @@ def wait(callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1):
                 raise RuntimeError("wait() timed out after {} seconds".format(timeout))
 
 
-def choice(*args):
+def choice(*args, **kwargs):
     """Wrapper around random.choice that makes sure everything is a list, handy
     for python 3 code where you have to wrap a lot of generators in list(...)
 
     :param *args: iter(s), one or more iterators or lists that will all be combined
         into one giant list
+    :param exclude: list, a list of values that shouldn't be selected from *args
     :returns: a single object from all the *args
     """
+    exclude = kwargs.pop("exclude", None)
+    exclude = set(exclude) if exclude else set()
     vals = []
     for arg in args:
         vals.extend(arg)
-    return random.choice(vals)
+
+    ret = random.choice(vals)
+    while ret in exclude:
+        ret = random.choice(vals)
+    return ret
+choose = choice
 
 
 def get_bool():
@@ -531,13 +545,15 @@ def create_dirs(dirs, tmpdir=""):
 create_ds = create_dirs
 
 
-def get_dir(path):
+def get_dir(path=""):
     """
     return a directory path
 
     :param path: string, the path to a real directory
     :returns: Dirpath, the path wrapped with all the Dirpath functionality
     """
+    if not path:
+        path = get_filename()
     return Dirpath.get_instance(path)
 get_directory = get_dir
 get_d = get_dir
@@ -585,7 +601,7 @@ create_fs = create_files
 
 def get_file(path="", tmpdir="", encoding=""):
     if not path:
-        path = get_ascii()
+        path = get_filename()
 
     return Filepath(path, tmpdir, encoding)
 get_f = get_file
@@ -1193,6 +1209,55 @@ def get_counter(start=1, step=1):
     """
     counter = itertools.count(start, step)
     return lambda: next(counter)
+
+
+def get_range(max_size=10):
+    """Because sometimes you just want a random range
+
+    https://github.com/Jaymon/testdata/issues/74
+
+    :param max_size: int, the max range stop value you want
+    :returns: range that can be iterated
+    """
+    start = 1 if yes() else 0
+    stop = get_int(max_size=max_size)
+    return range(start, stop)
+
+
+def get_list(callback, max_size=100):
+    """Create a list filled with values returned from callback
+
+    https://github.com/Jaymon/testdata/issues/73
+
+    :param callback: callable, each item in the list will be populated by calling this
+    :param max_size: int, the maximum size of the list
+    :returns: list, the randomly generated list
+    """
+    ret = []
+    for x in get_range(max_size):
+        ret.append(callback())
+    return ret
+
+
+def get_dict(kv=None):
+    """Create a dict filled with key/values returned from kv
+
+    https://github.com/Jaymon/testdata/issues/73
+
+    :param kv: dict, each key/callable will be used to generate a random dict key/val
+    :returns: dict, the randomly generated dict
+    """
+    if not kv:
+        kv = {}
+        for x in get_range(5):
+            k = get_ascii_string()
+            v = lambda: get_words(5) if yes() else get_int
+            kv[k] = v
+
+    ret = {}
+    for k, callback in kv.items():
+        ret[k] = callback()
+    return ret
 
 
 def get_ascii_words(count=0, as_str=True, **kwargs):

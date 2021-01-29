@@ -37,9 +37,6 @@ from testdata.utils import ByteString, String
 from . import TestCase, testdata, SkipTest
 
 
-testdata.basic_logging()
-
-
 class ServerTest(TestCase):
     def test_close(self):
         content = testdata.get_unicode_words()

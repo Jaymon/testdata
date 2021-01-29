@@ -29,3 +29,5 @@ ENCODING = os.environ.get("TESTDATA_ENCODING", "UTF-8")
 # unique values
 MAX_UNIQUE = int(os.environ.get("TESTDATA_MAX_UNIQUE", 1000000))
 
+TESTDATA_MODULEPATH = os.environ.get("TESTDATA_TESTDATA_MODULEPATH", "")
+

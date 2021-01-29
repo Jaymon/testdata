@@ -14,6 +14,8 @@ import logging
 
 from .compat import *
 from .utils import String
+from .path import Modulepath
+from . import environ
 
 
 # https://docs.python.org/3/library/unittest.html#unittest.skip
@@ -119,7 +121,73 @@ else:
     )
 
 
-class TestCase(BaseTestCase):
+class _TestCaseMeta(type):
+#     @classmethod
+#     def get_testdata(cls):
+#         """Find and return the testdata module that will be used to proxy testdata
+#         methods through this class
+# 
+#         :returns: module, the testdata module that should be used
+#         """
+#         pout.v(cls)
+#         td = getattr(cls, "testdata", None)
+#         if not td:
+#             if environ.TESTDATA_MODULEPATH:
+#                 path = Modulepath(environ.TESTDATA_MODULEPATH)
+#                 td = path.module
+# 
+#             if not td:
+#                 path = __name__.split(".")[0]
+#                 td = sys.modules[path]
+# 
+#             cls.testdata = td
+#         return td
+
+
+    def get_testdata(self):
+        """Find and return the testdata module that will be used to proxy testdata
+        methods through this class
+
+        :returns: module, the testdata module that should be used
+        """
+        td = self.__dict__.get("testdata", None)
+        if not td:
+            if environ.TESTDATA_MODULEPATH:
+                path = Modulepath(environ.TESTDATA_MODULEPATH)
+                td = path.module
+
+            if not td:
+                path = __name__.split(".")[0]
+                td = sys.modules[path]
+
+            self.testdata = td
+
+        return td
+
+
+    def __getattr__(self, k):
+        """If the attribute isn't defined on this class try and proxy k to a testdata
+        module function, if that fails then an AttributeError is raised like normal
+
+        this allows self.<TESTDATA_FUNCTION_NAME>(*args, **kwargs) to be called from
+        any method. If the method is a class method, you'll have to use cls.get_testdata()
+        to get the testdata module since this only works with instance methods
+        """
+        td = self.get_testdata()
+        #pout.v(td.__name__, k)
+        if td:
+            try:
+                return getattr(td, k)
+            except AttributeError as e:
+                #pout.v(e)
+                raise
+
+        else:
+            raise AttributeError(k)
+
+
+
+class _TestCase(BaseTestCase):
     @staticmethod
     def skip(reason=""):
         raise SkipTest(reason)
@@ -135,7 +203,26 @@ class TestCase(BaseTestCase):
         if not condition:
             raise SkipTest(reason)
     skip_unless = skipUnless
-    skipUnless = skipUnless
+
+#     @classmethod
+#     def get_testdata(cls):
+#         """Find and return the testdata module that will be used to proxy testdata
+#         methods through this class
+# 
+#         :returns: module, the testdata module that should be used
+#         """
+#         td = getattr(cls, "testdata", None)
+#         if not td:
+#             if environ.TESTDATA_MODULEPATH:
+#                 path = Modulepath(environ.TESTDATA_MODULEPATH)
+#                 td = path.module
+# 
+#             if not td:
+#                 path = __name__.split(".")[0]
+#                 td = sys.modules[path]
+# 
+#             cls.testdata = td
+#         return td
 
     @classmethod
     def skip_test(cls, *args, **kwargs):
@@ -151,9 +238,8 @@ class TestCase(BaseTestCase):
         raise SkipTest(*args, **kwargs)
 
     def assertUntilTrue(callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1): 
-        # TODO -- move all the __init__.py functions into a func package, so they
-        # can be imported into this and this can just call wait
-        pass
+        td = self.get_testdata()
+        td.wait(callback, cb_args, cb_kwargs, timeout, interval)
 
     def assertAscii(self, s):
         """checks if the entire string only contains ASCII characters
@@ -186,6 +272,51 @@ class TestCase(BaseTestCase):
             total = stop - start
             if total > seconds:
                 self.fail("Runtime of {:.2f} seconds > {} seconds".format(total, seconds))
+
+
+#     def __new__(cls, *args, **kwargs):
+#         instance = super(TestCase, cls).__new__(cls)
+#         #instance = BaseTestCase.__new__(cls)
+#         #instance = super(TestCase, cls).__new__(cls, *args, **kwargs)
+#         #pout.v(instance.__metaclass__)
+#         type(instance).__getattr__ = instance.__getattr__
+#         pout.v(dir(instance), instance.__getattr__, type(instance).__getattr__)
+#         return instance
+
+#     def __getattr__(self, k):
+#         """If the attribute isn't defined on this class try and proxy k to a testdata
+#         module function, if that fails then an AttributeError is raised like normal
+# 
+#         this allows self.<TESTDATA_FUNCTION_NAME>(*args, **kwargs) to be called from
+#         any method. If the method is a class method, you'll have to use cls.get_testdata()
+#         to get the testdata module since this only works with instance methods
+#         """
+#         td = self.get_testdata()
+#         if td:
+#             return getattr(td, k)
+# 
+#         else:
+#             raise AttributeError(k)
+
+
+
+
+    def __getattr__(self, k):
+        #return super(_TestCase, self).__getattr__(k)
+        #return type(self).__getattr__(self, k)
+        """If the attribute isn't defined on this class try and proxy k to a testdata
+        module function, if that fails then an AttributeError is raised like normal
+
+        this allows self.<TESTDATA_FUNCTION_NAME>(*args, **kwargs) to be called from
+        any method. If the method is a class method, you'll have to use cls.get_testdata()
+        to get the testdata module since this only works with instance methods
+        """
+        td = type(self).get_testdata()
+        if td:
+            return getattr(td, k)
+
+        else:
+            raise AttributeError(k)
 
     if is_py2:
         def assertRegex(self, s, r):
@@ -224,3 +355,12 @@ class TestCase(BaseTestCase):
         def assertWarnsRegex(self, warning, regex, cb, *args, **kwargs):
             # https://github.com/python/cpython/blob/3.7/Lib/unittest/case.py#L221
             raise NotImplementedError()
+
+
+if is_py2:
+    class TestCase(_TestCase):
+        __metaclass__ = _TestCaseMeta
+
+else:
+    exec("class TestCase(_TestCase, metaclass=_TestCaseMeta): pass")
+
