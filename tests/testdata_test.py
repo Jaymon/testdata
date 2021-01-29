@@ -160,6 +160,16 @@ class ServerTest(TestCase):
 
 
 class PathTest(TestCase):
+    def test_csv_no_callback(self):
+        """Turns out, the csv writer didn't write anything in py3"""
+        csvfile = testdata.create_csv({
+            "foo": testdata.get_int(),
+            "bar": testdata.get_words(),
+        })
+        for count, row in enumerate(csvfile.lines(), 1):
+            pass
+        self.assertEqual(1, count)
+
     def test_csv_writes(self):
         """Turns out, the csv writer didn't write anything in py3"""
         counter = testdata.get_counter()

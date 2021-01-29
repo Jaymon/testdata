@@ -624,7 +624,10 @@ def create_csv(columns, count=0, path="", tmpdir="", encoding="", header=True, *
     :returns: testdata.path.CSVpath instance
     """
     if not count:
-        count = random.randint(1, 50)
+        if any((callable(c) for c in columns)):
+            count = random.randint(1, 50)
+        else:
+            count = 1
 
     if not path:
         path = get_filename(ext="csv")
