@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
-from unittest import \
-    TestCase as BaseTestCase, \
-    SkipTest, \
-    skip, \
-    skipIf, \
-    skipUnless, \
-    expectedFailure
+from unittest import(
+    TestCase as BaseTestCase,
+    SkipTest,
+    skip,
+    skipIf,
+    skipUnless,
+    expectedFailure,
+)
 from contextlib import contextmanager
 import time
 import collections
@@ -121,49 +122,27 @@ else:
     )
 
 
-class _TestCaseMeta(type):
-#     @classmethod
-#     def get_testdata(cls):
-#         """Find and return the testdata module that will be used to proxy testdata
-#         methods through this class
-# 
-#         :returns: module, the testdata module that should be used
-#         """
-#         pout.v(cls)
-#         td = getattr(cls, "testdata", None)
-#         if not td:
-#             if environ.TESTDATA_MODULEPATH:
-#                 path = Modulepath(environ.TESTDATA_MODULEPATH)
-#                 td = path.module
-# 
-#             if not td:
-#                 path = __name__.split(".")[0]
-#                 td = sys.modules[path]
-# 
-#             cls.testdata = td
-#         return td
+def get_testdata_module():
+    """Find and return the testdata module that will be used to proxy testdata
+    methods through this class
+
+    :returns: module, the testdata module that should be used
+    """
+    td = None
+    if environ.TESTDATA_MODULEPATH:
+        path = Modulepath(environ.TESTDATA_MODULEPATH)
+        td = path.module
+
+    if not td:
+        path = __name__.split(".")[0]
+        td = sys.modules[path]
+
+    return td
 
 
-    def get_testdata(self):
-        """Find and return the testdata module that will be used to proxy testdata
-        methods through this class
-
-        :returns: module, the testdata module that should be used
-        """
-        td = self.__dict__.get("testdata", None)
-        if not td:
-            if environ.TESTDATA_MODULEPATH:
-                path = Modulepath(environ.TESTDATA_MODULEPATH)
-                td = path.module
-
-            if not td:
-                path = __name__.split(".")[0]
-                td = sys.modules[path]
-
-            self.testdata = td
-
-        return td
-
+class _TestCaseMixin(object):
+    """The mixin for both the TestCase and the TestCase metaclass that provides the
+    passthrough to the testdata functions if the called method doesn't exist"""
 
     def __getattr__(self, k):
         """If the attribute isn't defined on this class try and proxy k to a testdata
@@ -173,21 +152,24 @@ class _TestCaseMeta(type):
         any method. If the method is a class method, you'll have to use cls.get_testdata()
         to get the testdata module since this only works with instance methods
         """
-        td = self.get_testdata()
-        #pout.v(td.__name__, k)
+        td = self.testdata
         if td:
-            try:
-                return getattr(td, k)
-            except AttributeError as e:
-                #pout.v(e)
-                raise
+            return getattr(td, k)
 
         else:
             raise AttributeError(k)
 
 
+class _TestCaseMeta(_TestCaseMixin, type):
+    """The MetaClass needs a __getattr__ in order for the testdata passthrough to
+    work in both class methods and instance methods"""
+    pass
 
-class _TestCase(BaseTestCase):
+
+class _TestCase(_TestCaseMixin, BaseTestCase):
+    testdata = get_testdata_module()
+    """Set this to whatever tesdata module you want to proxy"""
+
     @staticmethod
     def skip(reason=""):
         raise SkipTest(reason)
@@ -203,26 +185,6 @@ class _TestCase(BaseTestCase):
         if not condition:
             raise SkipTest(reason)
     skip_unless = skipUnless
-
-#     @classmethod
-#     def get_testdata(cls):
-#         """Find and return the testdata module that will be used to proxy testdata
-#         methods through this class
-# 
-#         :returns: module, the testdata module that should be used
-#         """
-#         td = getattr(cls, "testdata", None)
-#         if not td:
-#             if environ.TESTDATA_MODULEPATH:
-#                 path = Modulepath(environ.TESTDATA_MODULEPATH)
-#                 td = path.module
-# 
-#             if not td:
-#                 path = __name__.split(".")[0]
-#                 td = sys.modules[path]
-# 
-#             cls.testdata = td
-#         return td
 
     @classmethod
     def skip_test(cls, *args, **kwargs):
@@ -273,51 +235,6 @@ class _TestCase(BaseTestCase):
             if total > seconds:
                 self.fail("Runtime of {:.2f} seconds > {} seconds".format(total, seconds))
 
-
-#     def __new__(cls, *args, **kwargs):
-#         instance = super(TestCase, cls).__new__(cls)
-#         #instance = BaseTestCase.__new__(cls)
-#         #instance = super(TestCase, cls).__new__(cls, *args, **kwargs)
-#         #pout.v(instance.__metaclass__)
-#         type(instance).__getattr__ = instance.__getattr__
-#         pout.v(dir(instance), instance.__getattr__, type(instance).__getattr__)
-#         return instance
-
-#     def __getattr__(self, k):
-#         """If the attribute isn't defined on this class try and proxy k to a testdata
-#         module function, if that fails then an AttributeError is raised like normal
-# 
-#         this allows self.<TESTDATA_FUNCTION_NAME>(*args, **kwargs) to be called from
-#         any method. If the method is a class method, you'll have to use cls.get_testdata()
-#         to get the testdata module since this only works with instance methods
-#         """
-#         td = self.get_testdata()
-#         if td:
-#             return getattr(td, k)
-# 
-#         else:
-#             raise AttributeError(k)
-
-
-
-
-    def __getattr__(self, k):
-        #return super(_TestCase, self).__getattr__(k)
-        #return type(self).__getattr__(self, k)
-        """If the attribute isn't defined on this class try and proxy k to a testdata
-        module function, if that fails then an AttributeError is raised like normal
-
-        this allows self.<TESTDATA_FUNCTION_NAME>(*args, **kwargs) to be called from
-        any method. If the method is a class method, you'll have to use cls.get_testdata()
-        to get the testdata module since this only works with instance methods
-        """
-        td = type(self).get_testdata()
-        if td:
-            return getattr(td, k)
-
-        else:
-            raise AttributeError(k)
-
     if is_py2:
         def assertRegex(self, s, r):
             """brings py3 assert to py2
@@ -362,5 +279,6 @@ if is_py2:
         __metaclass__ = _TestCaseMeta
 
 else:
+    # py2 parser will choke on py3's metaclass syntax even if it doesn't run it
     exec("class TestCase(_TestCase, metaclass=_TestCaseMeta): pass")
 

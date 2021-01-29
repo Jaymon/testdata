@@ -24,22 +24,10 @@ modpath = testdata.create_module(contents=[
 
 
 class TestCaseTest(TestCase):
-    testdata = testdata
-    @classmethod
-    def setUpClass(cls):
-        #cls.get_words()
-        pout.v(id(cls.testdata))
-
-    def test_class_set(self):
-        pout.v(id(self.testdata))
-#         with self.assertRaises(AttributeError):
-#             self.get_words()
-
-
     def test_self_testdata(self):
         #s = self.get_string()
         #return
-
+        td = type(self).testdata
 
         s = type(self).get_string()
         self.assertTrue(s)
@@ -55,16 +43,15 @@ class TestCaseTest(TestCase):
             "    return (args, kwargs)"
         ])
 
-        type(self).testdata = None
-        environ.TESTDATA_MODULEPATH = modpath
+        type(self).testdata = modpath.module
+        #environ.TESTDATA_MODULEPATH = modpath
         with self.assertRaises(AttributeError):
             self.get_words()
         r = self.get_foo(1, 2)
         self.assertEqual((1, 2), r[0])
         self.assertEqual(self.testdata.__name__, modpath)
 
-        type(self).testdata = None
-        environ.TESTDATA_MODULEPATH = ""
+        type(self).testdata = td
 
         w = type(self).get_words()
         self.assertTrue(w)

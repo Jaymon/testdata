@@ -715,6 +715,39 @@ class PatchTest(TestCase):
 
 
 class TestdataTest(TestCase):
+    def test_get_range(self):
+        for x in range(10):
+            for count in testdata.get_range(50):
+                pass
+            self.assertLessEqual(count, 50)
+
+    def test_get_list(self):
+        xs = testdata.get_list(testdata.get_int)
+        for count, x in enumerate(xs):
+            self.assertEqual(int, type(x))
+        self.assertLess(0, count)
+
+    def test_get_dict(self):
+        d = testdata.get_dict()
+        self.assertTrue(isinstance(d, dict))
+
+        d = testdata.get_dict(foo=testdata.get_int)
+        self.assertEqual(1, len(d))
+        self.assertTrue(isinstance(d["foo"], int))
+        self.assertTrue(isinstance(d, dict))
+
+        d = testdata.get_dict("foo", "bar")
+        self.assertEqual(2, len(d))
+        self.assertTrue(isinstance(d, dict))
+        self.assertTrue("foo" in d)
+        self.assertTrue("bar" in d)
+
+    def test_choice(self):
+        xs = [1, 2]
+        for x in testdata.get_range():
+            r = testdata.choice(xs, exclude=[1])
+            self.assertEqual(2, r)
+
     def test_get_counter(self):
         c = testdata.get_counter()
         self.assertEqual(1, c())
@@ -725,7 +758,6 @@ class TestdataTest(TestCase):
         self.assertEqual(0, c())
         self.assertEqual(2, c())
         self.assertEqual(4, c())
-
 
     def test_get_phone(self):
         ph = testdata.get_phone()
@@ -967,6 +999,9 @@ class TestdataTest(TestCase):
 
         with self.assertRaises(ValueError):
             testdata.create_dir("./foo/bar")
+
+        d = testdata.create_dir()
+        self.assertTrue(os.path.isdir(d))
 
     def test_create_dirs(self):
         ts = [

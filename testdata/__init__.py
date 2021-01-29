@@ -84,7 +84,7 @@ from .test import (
 from .image import make_png
 
 
-__version__ = '1.4.8'
+__version__ = '2.0.0'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -1219,8 +1219,14 @@ def get_range(max_size=10):
     :param max_size: int, the max range stop value you want
     :returns: range that can be iterated
     """
-    start = 1 if yes() else 0
-    stop = get_int(max_size=max_size)
+    if yes():
+        start = 1
+        stop = get_int(1, max_size + 1)
+
+    else:
+        start = 0
+        stop = get_int(max_size=max_size)
+
     return range(start, stop)
 
 
@@ -1239,7 +1245,7 @@ def get_list(callback, max_size=100):
     return ret
 
 
-def get_dict(kv=None):
+def get_dict(*keys, **kv):
     """Create a dict filled with key/values returned from kv
 
     https://github.com/Jaymon/testdata/issues/73
@@ -1247,11 +1253,16 @@ def get_dict(kv=None):
     :param kv: dict, each key/callable will be used to generate a random dict key/val
     :returns: dict, the randomly generated dict
     """
+    if keys:
+        kv = {}
+        for k in keys:
+            kv[k] = (lambda: get_words(5)) if yes() else get_int
+
     if not kv:
         kv = {}
         for x in get_range(5):
             k = get_ascii_string()
-            v = lambda: get_words(5) if yes() else get_int
+            v = (lambda: get_words(5)) if yes() else get_int
             kv[k] = v
 
     ret = {}
