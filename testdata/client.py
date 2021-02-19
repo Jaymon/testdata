@@ -384,6 +384,7 @@ class FileCommand(ModuleCommand):
 
         class ProgamCommand(FileCommand):
             script_prefix = "/foo/bar"
+            script_postfix = ".py"
             name = "program"
 
     Then when you need to run program.py, you only need to do:
@@ -407,7 +408,7 @@ class FileCommand(ModuleCommand):
     script_prefix = ""
     """this will be prepended to the passed in script on initialization"""
 
-    script_postfix = ".py"
+    script_postfix = ""
     """this will be appended to the passed in script on initialization"""
 
     def __init__(self, fileroot="", cwd="", environ=None):

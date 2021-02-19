@@ -16,6 +16,7 @@ kwargs = {
     "url": 'http://github.com/Jaymon/{}'.format(name),
     "package_data": {name: ['data/*']},
     "license": "MIT",
+    "install_requires": ['datatypes'],
     "classifiers": [ # https://pypi.python.org/pypi?:action=list_classifiers
         'Development Status :: 4 - Beta',
         'Environment :: Plugins',
