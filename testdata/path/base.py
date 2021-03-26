@@ -34,13 +34,26 @@ from ..utils import ByteString, String
 class Dirpath(TempDirpath):
     def module(self, module_path):
         """similar to modpath but returns the actual module instead of Modulepath
-        instance"""
-        return self.modpath(module_path).module
+        instance
+
+        Return the actual module this Modulepath represents
+        """
+        injected = False
+        if self.path not in sys.path:
+            injected = True
+            sys.path.insert(0, self.path) 
+
+        module = importlib.import_module(module_path)
+
+        if injected:
+            sys.path.pop(0) 
+
+        return module
 
     def modules(self):
         """iterate through all the modules under this directory"""
         for modpath in self.modpaths():
-            yield modpath.module
+            yield modpath.module()
 
     def modpath(self, module_path):
         """Return a module that is rooted in this directory"""
@@ -50,15 +63,12 @@ class Dirpath(TempDirpath):
         """Similar to modules, returns all the modules under this directory as
         Modulepath instances"""
         for module_info in pkgutil.iter_modules([self.path]):
-            pout.v(module_info)
-            bits = self.relbits + [module_info[1]]
-            yield Modulepath(".".join(bits), self.basedir)
+            parts = self.relparts + [module_info[1]]
+            yield Modulepath(".".join(parts), dir=self.basedir)
 
             if module_info[2]: # module is a package because index 2 is True
-                submodules = Dirpath(os.sep.join(bits), self.basedir)
+                submodules = Dirpath(parts, dir=self.basedir)
                 for submodule in submodules.modpaths():
-                    #subbits = [module_info[1]] + submodule.relbits
-                    #yield Modulepath(u".".join(subbits), self.basedir)
                     yield submodule
 
     def __contains__(self, pattern):
@@ -101,40 +111,26 @@ class Modulepath(Filepath):
 #             ret = type(self)(".".join(bits), self.basedir)
 #         return ret
 # 
-#     @property
-#     def directory(self):
-#         """Return the directory this module lives in"""
-#         f = Filepath(self.relpath, self.basedir)
-#         return f.directory
 
     @property
-    def module(self):
-        """Return the actual module this Modulepath represents"""
-        injected = False
-        if self.basedir not in sys.path:
-            injected = True
-            sys.path.insert(0, self.basedir) 
-
-        module = importlib.import_module(self)
-
-        if injected:
-            sys.path.pop(0) 
-
-        return module
-
-    @property
-    def classes(self):
-        """Return all the classes this module contains"""
-        m = self.module
-        for m in self.modules():
-            for klass_name, klass in inspect.getmembers(m, inspect.isclass):
-                yield klass
+    def modparts(self):
+        return self.split('.')
 
 #     @property
 #     def relparts(self):
 #         """If this module was foo.bar this would return ["foo", "bar"]"""
 #         return self.split('.')
-# 
+
+
+
+
+    @property
+    def directory(self):
+        """Return the directory this module lives in"""
+        d = super(Modulepath, self).directory
+        if self.is_package():
+            d = d.directory
+        return d
 
 #     @property
 #     def fileroot(self):
@@ -171,10 +167,9 @@ class Modulepath(Filepath):
 
     @classmethod
     def normparts(cls, *parts, **kwargs):
-        ps = []
-        for p in parts:
-            ps.extend(filter(None, p.split(".")))
-        parts = super(Modulepath, cls).normparts(*ps, **kwargs)
+        kwargs.setdefault("root", "")
+        kwargs.setdefault("regex", r"[\.\\/]+")
+        parts = super(Modulepath, cls).normparts(*parts, **kwargs)
         return parts
 
     @classmethod
@@ -188,7 +183,17 @@ class Modulepath(Filepath):
             parts.append("__init__.py")
 
         else:
-            parts.append("{}.py".format(basename))
+            # check if we already have a package
+            path = super(Modulepath, cls).normpath(parts, basename)
+            if os.path.isdir(path):
+                if "is_package" in kwargs:
+                    raise ValueError("Cannot convert package back to module")
+
+                parts.append(basename) 
+                parts.append("__init__.py")
+
+            else:
+                parts.append("{}.py".format(basename))
 
         path = super(Modulepath, cls).normpath(*parts, **kwargs)
         return path
@@ -267,22 +272,6 @@ class Modulepath(Filepath):
 #         return instance
 
 
-    def modpaths(self):
-        """Similar to modules, returns all the modules under this directory as
-        Modulepath instances"""
-        for module_info in pkgutil.iter_modules([self.directory]):
-            bits = self.relparts + [module_info[1]]
-            yield Modulepath(".".join(bits), dir=self.basedir)
-
-            if module_info[2]: # module is a package because index 2 is True
-                submodules = Dirpath(os.sep.join(bits), dir=self.basedir)
-                for submodule in submodules.modpaths():
-                    #subbits = [module_info[1]] + submodule.relbits
-                    #yield Modulepath(u".".join(subbits), self.basedir)
-                    yield submodule
-
-
-
     def prepare_text(self, data):
         self.touch()
         data, encoding, errors = super(Modulepath, self).prepare_text(data)
@@ -336,6 +325,27 @@ class Modulepath(Filepath):
 
             else:
                 target.touch()
+
+    def modpaths(self):
+        """Similar to modules, returns all the modules under this directory as
+        Modulepath instances"""
+        dp = Dirpath(self.modparts, dir=self.directory)
+        return dp.modpaths()
+
+    def classes(self):
+        """Return all the classes this module contains"""
+        for m in self.modules():
+            for klass_name, klass in inspect.getmembers(m, inspect.isclass):
+                yield klass
+
+    def module(self):
+        """Return the actual module this Modulepath represents"""
+        dp = Dirpath(dir=self.directory)
+        return dp.module(self)
+
+    def modules(self):
+        dp = Dirpath(dir=self.directory)
+        return dp.modules()
 
 
 

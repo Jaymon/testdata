@@ -492,33 +492,6 @@ def create_cookieserver(cookies, hostname="", port=0):
     return CookieServer(cookies, hostname=hostname, port=port)
 
 
-def get_content_file(fileroot, basedir="", encoding=""):
-    return ContentFilepath(fileroot, basedir=basedir, encoding=encoding)
-get_content_path = get_content_file
-get_path = get_content_file
-get_data_path = get_content_file
-
-
-def get_content_body(fileroot, basedir="", encoding=""):
-    """Returns the contents of a file matching basedir/fileroot.*
-
-    :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
-        in which case basedir/fileroot.* will be searched for and first file matched
-        will be used
-    :param basedir: string, the directory to search for fileroot.*, if not passed
-        in then os.getcwd()/*/testdata will be searched for
-    :returns: string, the contents of the found file
-    """
-    if encoding:
-        return ContentString(fileroot, basedir=basedir, encoding=encoding)
-    else:
-        return ContentBytes(fileroot, basedir=basedir)
-get_contents = get_content_body
-get_content_contents = get_content_body
-get_content_data = get_content_body
-get_data = get_content_body
-
-
 def get_url():
     '''
     get a url, this is just a nice shortcut method to something I seemed to do a lot

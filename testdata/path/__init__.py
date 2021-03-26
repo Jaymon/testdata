@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
+import os
 import random
 import inspect
 import pkgutil
 import string
+from contextlib import contextmanager
 
 from datatypes.csv import CSV
 
 from ..compat import *
 from ..utils import String, ByteString
+from .. import environ
 
 from .base import (
     Dirpath,
@@ -100,7 +103,7 @@ def get_file(path="", tmpdir="", encoding="", **kwargs):
     """
     :param **kwargs: key/vals will be passed to get_filename()
     """
-    kwargs.setdefault(touch=False)
+    kwargs.setdefault("touch", False)
     return Filepath(path, encoding=encoding, dir=tmpdir, **kwargs)
 get_f = get_file
 
@@ -255,12 +258,13 @@ def get_filename(ext="", name="", **kwargs):
 get_file_name = get_filename
 filename = get_filename
 file_name = get_filename
+get_basename = get_filename
 
 
-def get_module_name(bits=1, name="", **kwargs):
+def get_module_name(count=1, name="", **kwargs):
     """Returns just a valid module name or module path
 
-    :param bits: int, how many parts you want in your module path (1 is foo, 2 is foo.bar, etc)
+    :param count: int, how many parts you want in your module path (1 is foo, 2 is foo.bar, etc)
     :param prefix: string, if you want the last bit to be prefixed with something
     :param postfix: string, if you want the last bit to be posfixed with something (eg, ".py")
     :param name: string, the name you want to use for the last bit
@@ -268,7 +272,7 @@ def get_module_name(bits=1, name="", **kwargs):
          the end of the name)
     :returns: string, the modulepath
     """
-    parts = Modulepath.get_parts(bits=bits, name=name, **kwargs)
+    parts = Modulepath.get_parts(count=count, name=name, **kwargs)
     return ".".join(parts)
 get_package_name = get_module_name
 get_modulename = get_module_name
@@ -301,6 +305,9 @@ def get_source_filepath(v):
     return Filepath(ret)
 get_source_file = get_source_filepath
 get_source_path = get_source_filepath
+get_sourcepath = get_source_filepath
+get_sourcefilepath = get_source_filepath
+get_sourcefile = get_source_filepath
 
 
 def create_module(data="", modpath="", tmpdir="", make_importable=True, **kwargs):
@@ -325,7 +332,7 @@ def create_module(data="", modpath="", tmpdir="", make_importable=True, **kwargs
     )
 
 
-def create_modules(module_dict, modpath="", tmpdir="", make_importable=True):
+def create_modules(module_dict, modpath="", tmpdir="", make_importable=True, **kwargs):
     """
     create a whole bunch of modules all at once
 
@@ -338,18 +345,14 @@ def create_modules(module_dict, modpath="", tmpdir="", make_importable=True):
     :returns: Dirpath
     """
     module_base_dir = create_dir(tmpdir=tmpdir)
-
-    if modpath:
-        ks = list(module_dict.keys()) # we cast to list to make sure ks doesn't grow
-        for k in ks:
-            module_dict[".".join(filter(None, [modpath, k]))] = module_dict.pop(k)
-
-    for modname, data in module_dict.items():
-        create_module(
+    module_list = Dirpath.normpaths(module_dict, modpath, regex=r"[\.\\/]+", root="")
+    for modname, data in module_list:
+        m = create_module(
             data=data,
             modpath=modname,
             tmpdir=module_base_dir,
             make_importable=make_importable,
+            **kwargs
         )
         make_importable = False
 
@@ -371,11 +374,11 @@ def create_package(data="", modpath="", tmpdir="", make_importable=True, **kwarg
 
     return -- Module -- the module file path
     '''
-    kwargs.setdefault["is_package"] = True
+    kwargs.setdefault("is_package", True)
     return create_module(
         data=data,
         modpath=modpath,
-        dir=tmpdir,
+        tmpdir=tmpdir,
         make_importable=make_importable,
         **kwargs
     )
@@ -391,4 +394,133 @@ def create_package(data="", modpath="", tmpdir="", make_importable=True, **kwarg
 #         is_package=True
 #     )
 
+
+def get_content_body(fileroot, basedir="", encoding=""):
+    """Returns the contents of a file matching basedir/fileroot.*
+
+    :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
+        in which case basedir/fileroot.* will be searched for and first file matched
+        will be used
+    :param basedir: string, the directory to search for fileroot.*, if not passed
+        in then os.getcwd()/*/testdata will be searched for
+    :returns: string, the contents of the found file
+    """
+    if encoding:
+        return ContentString(fileroot, basedir=basedir, encoding=encoding)
+    else:
+        return ContentBytes(fileroot, basedir=basedir)
+get_contents = get_content_body
+get_content_contents = get_content_body
+get_content_data = get_content_body
+get_data = get_content_body
+
+
+def get_content_file(fileroot, basedir="", encoding=""):
+    return ContentFilepath(fileroot, basedir=basedir, encoding=encoding)
+get_content_path = get_content_file
+get_path = get_content_file
+get_data_path = get_content_file
+
+
+# def get_content_body(fileroot, basedir="", encoding=""):
+#     """Returns the contents of a file matching basedir/fileroot.*
+# 
+#     :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
+#         in which case basedir/fileroot.* will be searched for and first file matched
+#         will be used
+#     :param basedir: string, the directory to search for fileroot.*, if not passed
+#         in then os.getcwd()/*/testdata will be searched for
+#     :returns: string, the contents of the found file
+#     """
+#     if encoding:
+#         return ContentString(fileroot, basedir=basedir, encoding=encoding)
+#     else:
+#         return ContentBytes(fileroot, basedir=basedir)
+# get_contents = get_content_body
+# get_content_contents = get_content_body
+# get_content_data = get_content_body
+# get_data = get_content_body
+
+
+def find_data_file(fileroot, basedir="", encoding=""):
+    f = None
+
+    basedir = basedir or environ.CONTENTS_DIR
+    if not basedir:
+        basedir = os.getcwd()
+
+    if not basedir:
+        raise IOError("Could not find a testdata data directory")
+
+    basedir = Dirpath(basedir)
+    patterns = [fileroot, "{}.*".format(fileroot)]
+    for pattern in patterns:
+        for f in basedir.rglob(pattern):
+            if f:
+                break
+
+    if not f:
+        raise IOError("Could not find a testdata data file matching {}".format(fileroot))
+
+    if encoding:
+        f.encoding = encoding
+    return f
+get_content_file = find_data_file
+get_content_path = find_data_file
+get_path = find_data_file
+get_data_path = find_data_file
+
+
+def find_data_text(fileroot, basedir="", encoding=""):
+    f = find_data_file(fileroot, basedir, encoding)
+    return f.read_text()
+
+
+def find_data_bytes(fileroot, basedir=""):
+    f = find_data_file(fileroot, basedir)
+    return f.read_bytes()
+
+
+def find_data(fileroot, basedir="", encoding=""):
+    """Returns the contents of a file matching basedir/fileroot.*
+
+    :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
+        in which case basedir/fileroot.* will be searched for and first file matched
+        will be used
+    :param basedir: string, the directory to search for fileroot.*, if not passed
+        in then os.getcwd()/*/testdata will be searched for
+    :returns: string, the contents of the found file
+    """
+    if encoding:
+        return find_data_text(fileroot, basedir, encoding)
+    else:
+        return find_data_bytes(fileroot, basedir)
+get_content_body = find_data
+get_contents = find_data
+get_content_contents = find_data
+get_content_data = find_data
+get_data = find_data
+
+
+@contextmanager
+def chdir(curdir, **kwargs):
+    """Change the directory for the current context
+
+    :Example:
+        with testdata.chdir("/new/current/directory"):
+            print(os.getcwd())
+        print(os.getcwd())
+
+    :param curdir: str, the directory you want to now be the current directory
+    """
+    # backup the current directory to restore it when context resets
+    cwd = os.getcwd()
+
+    os.chdir(curdir)
+    yield curdir
+
+    # restore the original current directory 
+    os.chdir(cwd)
+cwd = chdir
+curdir = chdir
 

@@ -3,6 +3,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import os
 import importlib
 from collections import OrderedDict
+import inspect
 
 from testdata.path import (
     Dirpath,
@@ -90,66 +91,127 @@ class CSVTest(TestCase):
 
 
 class ContentTest(TestCase):
+    def test_find(self):
+        basedir = testdata.create_files({
+            "foo.txt": "foo",
+            "bar.txt": "bar",
+            "che/bam.txt": "bam",
+        })
+
+        f = testdata.find_data_file("foo", basedir)
+        self.assertEqual(basedir, f.directory)
+
+        f = testdata.find_data_file("bam.txt", basedir)
+        self.assertTrue(f.startswith(basedir))
+        self.assertTrue(f.endswith("bam.txt"))
+        self.assertTrue("che" in f)
+
     def test_contents_decode_error(self):
+        base_d = testdata.create_files({
+            "bytes.txt": testdata.get_words(),
+        })
+        with testdata.chdir(base_d):
+            c = testdata.find_data("bytes")
+            self.assertTrue(isinstance(c, bytes))
+
+            c = testdata.find_data("bytes", encoding="UTF-8")
+            self.assertTrue(isinstance(c, unicode))
+
+    def test_contents_1(self):
         base_d = testdata.create_dir()
-        os.chdir(base_d)
-        f = base_d.create_file("bytes.txt", testdata.get_words())
+        with testdata.chdir(base_d):
 
-        c = testdata.get_contents(f)
-        self.assertTrue(isinstance(c, ContentBytes))
+            # check scanning failure
+            with self.assertRaises(IOError):
+                c = testdata.find_data("foo", encoding="UTF-8")
 
-        c = testdata.get_contents(f, encoding="UTF-8")
-        self.assertTrue(isinstance(c, ContentString))
+            # check scanning success
+            foo_f = base_d.add_file("testdata/foo.txt", testdata.get_words())
+            c = testdata.find_data("foo", encoding="UTF-8")
+            self.assertEqual(foo_f.read_text(), c)
 
-    def test_contents(self):
-        base_d = testdata.create_dir()
-        cwd = os.getcwd()
-        os.chdir(base_d)
+            # check direct match
+            c = testdata.find_data("foo.txt", encoding="UTF-8")
+            self.assertEqual(foo_f.read_text(), c)
 
-        # check scanning failure
-        with self.assertRaises(IOError):
-            c = ContentString("foo", encoding="UTF-8")
-
-        # check scanning success
-        foo_f = base_d.create_file("testdata/foo.txt", testdata.get_words())
-        c = ContentString("foo", encoding="UTF-8")
-        self.assertEqual(foo_f.contents(), c)
+            # check wrapper
+            c = testdata.find_data("foo", encoding="UTF-8")
+            f = testdata.find_data_file("foo")
+            self.assertEqual(c, f.read_text())
 
         # check passed in directory
-        c = ContentString("foo", base_d.child("testdata"), encoding="UTF-8")
-        self.assertEqual(foo_f.contents(), c)
-
-        # check direct match
-        c = ContentString("foo.txt", encoding="UTF-8")
-        self.assertEqual(foo_f.contents(), c)
-
-        # check wrapper
-        c = testdata.get_content_body("foo", encoding="UTF-8")
-        self.assertEqual(foo_f.contents(), c)
-
-        f = testdata.get_content_file("foo")
-        self.assertEqual(f.path, c.path)
-        self.assertEqual(f, c.path)
-
-        os.chdir(cwd)
-
+        c = testdata.find_data("foo", base_d.child("testdata"), encoding="UTF-8")
+        self.assertTrue(c)
 
 
 class FilepathTest(TestCase):
-    def test_existing_file_creation(self):
-        path = testdata.create_dir()
-        d2 = testdata.create_dir(path)
-        self.assertEqual(path, d2)
-
-        relpath = "/foo1/bar1/test.txt"
-        s = "happy"
-        f = testdata.create_file(relpath, s)
-
     def test_tmpdir(self):
         f = testdata.create_file("first file", ext="txt")
         f2 = testdata.create_file("first file", tmpdir=f.directory, ext="txt")
         self.assertEqual(f.directory, f2.directory)
         self.assertNotEqual(f, f2)
+
+    def test_get_file(self):
+        f = testdata.get_file()
+        self.assertFalse(f.exists())
+
+        f.write(testdata.get_words())
+        self.assertTrue(f.exists())
+
+        f = testdata.get_file("foobar.txt")
+        self.assertTrue(f.endswith("foobar.txt"))
+
+        words = testdata.get_words()
+        f.write_text(words)
+        self.assertEqual(words, f.read_text())
+
+    def test_create_file(self):
+        ts = [
+            "./foo/bar/test.txt",
+            "\\foo\\bar\\test.txt",
+            "/foo1/bar1/test.txt",
+            "/test.txt",
+            "foo3/test.txt",
+            "foo4/bar4/che4/test.txt",
+        ]
+        s = "happy"
+
+        for t in ts:
+            f = testdata.create_file(s, t)
+            self.assertTrue(os.path.isfile(f))
+            self.assertEqual(s, f.read_text())
+
+    def test_get_filename(self):
+        n = testdata.get_filename(ext="py", name="foo")
+        self.assertEqual("foo.py", n)
+
+        n = testdata.get_filename(ext="py", name="foo.py")
+        self.assertEqual("foo.py", n)
+
+        n = testdata.get_filename(ext="py", prefix="bar", name="foo.py")
+        self.assertEqual("barfoo.py", n)
+
+
+class DirpathTest(TestCase):
+    def test_create_dir(self):
+        ts = [
+            "\\foo\\bar",
+            "/foo1/bar1",
+            "/foo2/bar2/",
+            "foo3/bar3",
+            "foo4/bar4/",
+            "./foo/bar",
+            "",
+            None
+        ]
+
+        for t in ts:
+            d = testdata.create_dir(t)
+            self.assertTrue(os.path.isdir(d))
+
+        d = testdata.create_dir()
+        self.assertTrue(os.path.isdir(d))
+
 
 
 class ModulepathTest(TestCase):
@@ -168,7 +230,7 @@ class ModulepathTest(TestCase):
         self.assertNotEqual(m, m2)
         self.assertNotEqual(m, m3)
 
-    def test_create_module_2(self):
+    def test_create_module_1(self):
         m = testdata.create_module([
             "from unittest import TestCase",
             "class FooTest(TestCase):",
@@ -185,8 +247,55 @@ class ModulepathTest(TestCase):
             "        pass",
         ])
         self.assertFalse(m.is_package())
-        self.assertEqual(m.module.__file__, m.path)
+        self.assertEqual(m.module().__file__, m.path)
         self.assertTrue(m.relpath.endswith(".py"))
+
+    def test_create_module_2(self):
+        ts = [
+            (
+                "foo.bar",
+                "Che",
+                u"class Che(object): pass"
+            )
+        ]
+
+        for t in ts:
+            m = testdata.create_module(data=t[2], modpath=t[0])
+            module = m.module()
+            #module = importlib.import_module(t[0])
+            class_name = getattr(module, t[1])
+            instance = class_name()
+            # if all these worked, then the test passed :)
+
+    def test_create_module_package(self):
+        m = testdata.create_module("class Foo(object): pass", is_package=False)
+        d = m.directory
+        self.assertTrue(m.path.endswith("{}.py".format(m)))
+        self.assertFalse(m.is_package())
+
+        m2 = testdata.create_module(
+            "class Foo(object): pass",
+            m,
+            tmpdir=m.directory,
+            is_package=True
+        )
+        d2 = m.directory
+        self.assertFalse(m2.path.endswith("{}.py".format(m)))
+        self.assertTrue(m2.path.endswith("__init__.py"))
+        self.assertTrue(m2.is_package())
+
+        self.assertEqual(d, d2)
+
+    def test_create_module_existing(self):
+        for is_package in [False, True]:
+            m = testdata.create_module("class Foo(object): pass", is_package=is_package)
+            self.assertTrue(len(m.read_text()))
+
+            m2 = Modulepath(m, dir=m.directory)
+            self.assertEqual(m.directory, m2.directory)
+            self.assertEqual(m, m2)
+            self.assertEqual(m.read_text(), m2.read_text())
+            self.assertLess(0, len(m2.read_text()))
 
     def test_directory(self):
         d = testdata.create_dir()
@@ -195,13 +304,13 @@ class ModulepathTest(TestCase):
         self.assertEqual(d, f.directory)
 
         p = testdata.create_package(modpath="r.e", tmpdir=d)
-        self.assertEqual(os.path.join(d, "r", "e"), p.directory)
+        self.assertEqual(os.path.join(d, "r"), p.directory)
 
         m = testdata.create_module(modpath="d.i", tmpdir=d)
         self.assertEqual(os.path.join(d, "d"), m.directory)
 
-    def test_create_modules_1(self):
-        modpath = "test_modules"
+    def test_create_modules_modpath(self):
+        modpath = "modpref"
         mpath = testdata.create_modules({
             "foo": [
                 "class Foo(object): pass",
@@ -220,42 +329,48 @@ class ModulepathTest(TestCase):
         }, modpath=modpath)
 
         mp = mpath.modpath(modpath)
-        pout.v(mp)
-        mps = list(mp.modpaths())
-        pout.v(mps)
-        return
-        self.assertTrue(3, len(mps))
-        for modpath in ["test_modules.foo", "test_modules.bar", "test_modules.che"]:
-            self.assertTrue(modpath in mps)
-
-        klasses = list(mp.classes)
-        self.assertEqual(5, len(klasses))
-
-    def test_modules_prefix(self):
-        mpath = testdata.create_modules({
-            "foo": [
-                "class Foo(object): pass",
-                "class Bar(object): pass",
-                "",
-            ],
-            "bar": [
-                "class Che(object): pass",
-                "class Bar(object): pass",
-                "",
-            ],
-            "che": [
-                "class Baz(object): pass",
-                "",
-            ],
-        }, prefix="modpref")
-
-        mp = mpath.modpath("modpref")
         mps = list(mp.modpaths())
         self.assertTrue(3, len(mps))
         for modpath in ["modpref.foo", "modpref.bar", "modpref.che"]:
             self.assertTrue(modpath in mps)
 
-    def test_create_modules(self):
+    def test_create_modules_1(self):
+        modpath = "test_modules"
+        mpath = testdata.create_modules({
+            "foo": [
+                "class Foo(object): pass",
+                "class Bar(object): pass",
+            ],
+            "bar": [
+                "class Che(object): pass",
+                "class Bar(object): pass",
+            ],
+            "che": [
+                "class Baz(object): pass",
+            ],
+        }, modpath=modpath)
+
+        m = mpath.module(modpath)
+        # https://stackoverflow.com/a/1547567/5006
+        self.assertTrue(inspect.ismodule(m))
+
+        mps = list(mpath.modpaths())
+        self.assertEqual(4, len(mps))
+
+        mp = mpath.modpath(modpath)
+        self.assertTrue(mp.path.endswith("__init__.py"))
+        self.assertEqual(modpath, mp)
+        self.assertEqual(m, mp.module())
+
+        mps = list(mp.modpaths())
+        self.assertTrue(3, len(mps))
+        for modpath in ["test_modules.foo", "test_modules.bar", "test_modules.che"]:
+            self.assertTrue(modpath in mps)
+
+        klasses = list(mp.classes())
+        self.assertEqual(5, len(klasses))
+
+    def test_create_modules_2(self):
         ts = [
             OrderedDict([
                 ("foo2.bar", u"class Che(object): pass"),
@@ -263,7 +378,7 @@ class ModulepathTest(TestCase):
             ])
         ]
 
-        tmpdir = testdata.create_dir(u"")
+        tmpdir = testdata.create_dir()
         for t in ts:
             testdata.create_modules(t, tmpdir=tmpdir)
             for k in t.keys():
@@ -280,53 +395,51 @@ class ModulepathTest(TestCase):
             v = os.path.join(tmpdir, v)
             self.assertTrue(os.path.isfile(v))
 
-    def test_create_modules_2(self):
+    def test_create_modules_3(self):
         prefix = "testdata_cm2"
         r = testdata.create_modules({
-            prefix: os.linesep.join([
-                "class Default(object):",
-                "    def GET(*args, **kwargs): pass",
-                ""
-            ]),
-            "{}.default".format(prefix): os.linesep.join([
-                "class Default(object):",
-                "    def GET(*args, **kwargs): pass",
-                ""
-            ]),
-            "{}.foo".format(prefix): os.linesep.join([
-                "class Default(object):",
-                "    def GET(*args, **kwargs): pass",
-                "",
-                "class Bar(object):",
-                "    def GET(*args, **kwargs): pass",
-                "    def POST(*args, **kwargs): pass",
-                ""
-            ]),
-            "{}.foo.baz".format(prefix): os.linesep.join([
-                "class Default(object):",
-                "    def GET(*args, **kwargs): pass",
-                "",
-                "class Che(object):",
-                "    def GET(*args, **kwargs): pass",
-                ""
-            ]),
+            prefix: {
+                "": [
+                    "class Default(object):",
+                    "    def GET(*args, **kwargs): pass",
+                ],
+                "default": [
+                    "class Default(object):",
+                    "    def GET(*args, **kwargs): pass",
+                ],
+                "foo": [
+                    "class Default(object):",
+                    "    def GET(*args, **kwargs): pass",
+                    "",
+                    "class Bar(object):",
+                    "    def GET(*args, **kwargs): pass",
+                    "    def POST(*args, **kwargs): pass",
+                ],
+                "foo.baz": [
+                    "class Default(object):",
+                    "    def GET(*args, **kwargs): pass",
+                    "",
+                    "class Che(object):",
+                    "    def GET(*args, **kwargs): pass",
+                ],
+            }
         })
 
         module = importlib.import_module(prefix)
         class_name = getattr(module, "Default")
         instance = class_name()
 
-    def test_create_modules_3(self):
+    def test_create_modules_4(self):
         prefix = "testdata_cm3"
         r = testdata.create_modules({
-            "{}.foo.bar".format(prefix): [
+            "foo.bar": [
                 "class Bar(object): pass",
             ],
-            "{}.foo.bar.che.baz".format(prefix): [
+            "foo.bar.che.baz": [
                 "class Baz(object): pass",
                 ""
             ],
-        })
+        }, prefix)
 
         self.assertEqual(5, len(list(r.modules())))
 
@@ -336,7 +449,7 @@ class ModulepathTest(TestCase):
         mp = r.modpath("{}.foo".format(prefix))
         self.assertTrue(mp.is_package())
 
-    def test_create_modules_4(self):
+    def test_create_modules_5(self):
         """I discovered a bug while fixing some stuff in pyt where create_modules
         seems to create a structure like prefix/prefix/modname.py instead of 
         prefix/modname.py
@@ -350,7 +463,7 @@ class ModulepathTest(TestCase):
             "bar": [
                 "class Bar(object): pass",
             ],
-        }, basedir, prefix=prefix)
+        }, tmpdir=basedir, modpath=prefix)
 
         p = os.path.join(basedir, prefix)
         self.assertTrue(os.path.isdir(p))
@@ -360,22 +473,22 @@ class ModulepathTest(TestCase):
 
     def test_create_package(self):
         prefix = "foo"
-        contents = os.linesep.join([
+        data = [
             "class Bar(object): pass",
-        ])
-        mp = testdata.create_package(prefix, contents=contents)
+        ]
+        mp = testdata.create_package(data, prefix)
         self.assertTrue(mp.is_package())
 
     def test_get_module_name_1(self):
-        mp = testdata.get_module_name(bits=5, name="foo")
+        mp = testdata.get_module_name(count=5, name="foo")
         self.assertTrue(mp.endswith(".foo"))
 
-        mp = testdata.get_module_name(bits=5, prefix="bar", name="foo")
+        mp = testdata.get_module_name(count=5, prefix="bar", name="foo")
         self.assertTrue(mp.endswith(".barfoo"))
 
     def test_get_module_name_2(self):
         for x in range(100):
-            mn = testdata.get_module_name(bits=testdata.random.randint(1, 3))
+            mn = testdata.get_module_name(count=testdata.random.randint(1, 3))
             for bit in mn.split("."):
                 self.assertNotRegex(bit, r"^[0-9]")
                 self.assertTrue(mn.islower())
@@ -385,73 +498,6 @@ class ModulepathTest(TestCase):
 
 
 class TestdataTest(TestCase):
-    def test_get_filename(self):
-        n = testdata.get_filename(ext="py", name="foo")
-        self.assertEqual("foo.py", n)
-
-        n = testdata.get_filename(ext="py", name="foo.py")
-        self.assertEqual("foo.py", n)
-
-        n = testdata.get_filename(ext="py", prefix="bar", name="foo.py")
-        self.assertEqual("barfoo.py", n)
-
-    def test_create_dir(self):
-        ts = [
-            "\\foo\\bar",
-            "/foo1/bar1",
-            "/foo2/bar2/",
-            "foo3/bar3",
-            "foo4/bar4/",
-            "",
-            None
-        ]
-
-        for t in ts:
-            d = testdata.create_dir(t)
-            self.assertTrue(os.path.isdir(d))
-
-        with self.assertRaises(ValueError):
-            testdata.create_dir("./foo/bar")
-
-        d = testdata.create_dir()
-        self.assertTrue(os.path.isdir(d))
-
-    def test_get_file(self):
-        f = testdata.get_file()
-        self.assertFalse(f.exists())
-
-        f.write(testdata.get_words())
-        self.assertTrue(f.exists())
-
-        f = testdata.get_file("foobar.txt")
-        self.assertTrue(f.endswith("foobar.txt"))
-
-        words = testdata.get_words()
-        with f.open("w+") as fp:
-            fp.write(words)
-
-        self.assertEqual(words, f.contents())
-
-    def test_create_file(self):
-        ts = [
-            "\\foo\\bar\\test.txt",
-            "/foo1/bar1/test.txt",
-            "/test.txt",
-            "foo3/test.txt",
-            "foo4/bar4/che4/test.txt",
-        ]
-        s = "happy"
-
-        for t in ts:
-            f = testdata.create_file(t, s)
-            self.assertTrue(os.path.isfile(f))
-            with open(f) as fr:
-                sr = fr.read()
-                self.assertEqual(s, sr)
-
-        with self.assertRaises(ValueError):
-            testdata.create_dir("./foo/bar/test.txt")
-
     def test_create_image(self):
         d = testdata.create_directory()
         jpg = testdata.create_jpg(tmpdir=d)
@@ -480,20 +526,4 @@ class TestdataTest(TestCase):
         png_red = testdata.create_png(tmpdir=png_bw.directory, width=1000, height=500, color=[255,0,0])
         self.assertTrue(png_red.exists())
         self.assertTrue(png_bw.exists())
-
-    def test_create_module(self):
-        ts = [
-            (
-                "foo.bar",
-                "Che",
-                u"class Che(object): pass"
-            )
-        ]
-
-        for t in ts:
-            testdata.create_module(t[0], contents=t[2])
-            module = importlib.import_module(t[0])
-            class_name = getattr(module, t[1])
-            instance = class_name()
-            # if all these worked, then the test passed :)
 
