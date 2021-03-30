@@ -1,28 +1,383 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 import os
-import random
-import inspect
+import re
+import tempfile
+from distutils import dir_util, file_util
+import codecs
+import shutil
+import sys
 import pkgutil
-import string
+import importlib
+import stat
+import inspect
+#import glob
+import fnmatch
+import hashlib
+from collections import deque
+import random
 from contextlib import contextmanager
+import zlib
+import struct
 
+from datatypes.path import (
+    TempFilepath,
+    TempDirpath,
+    Dirpath as DPath,
+    Filepath as FPath,
+)
 from datatypes.csv import CSV
 
-from ..compat import *
-from ..utils import String, ByteString
-from .. import environ
+from .compat import *
+from . import environ
+from .client import ModuleCommand, FileCommand
 
-from .base import (
-    Dirpath,
-    Filepath,
-    Modulepath,
-    ContentBytes,
-    ContentString,
-    ContentFilepath,
-)
-from ..image import make_png
 
+###############################################################################
+# Supporting classes and methods
+###############################################################################
+class Path(object):
+    @classmethod
+    def gettempdir(cls):
+        return environ.TEMPDIR
+
+    @classmethod
+    def mktempdir(cls, **kwargs):
+        kwargs.setdefault("dir", cls.gettempdir())
+        return super(Path, cls).mktempdir(**kwargs)
+
+    @classmethod
+    def tempdir_class(cls):
+        return Dirpath
+
+    @classmethod
+    def tempfile_class(cls):
+        return Filepath
+
+
+class Dirpath(Path, TempDirpath):
+    def module(self, module_path):
+        """similar to modpath but returns the actual module instead of Modulepath
+        instance
+
+        Return the actual module this Modulepath represents
+        """
+        injected = False
+        if self.path not in sys.path:
+            injected = True
+            sys.path.insert(0, self.path) 
+
+        module = importlib.import_module(module_path)
+
+        if injected:
+            sys.path.pop(0) 
+
+        return module
+
+    def modules(self):
+        """iterate through all the modules under this directory"""
+        for modpath in self.modpaths():
+            yield modpath.module()
+
+    def modpath(self, module_path):
+        """Return a module that is rooted in this directory"""
+        return Modulepath(module_path, dir=self.path)
+
+    def modpaths(self):
+        """Similar to modules, returns all the modules under this directory as
+        Modulepath instances"""
+        for module_info in pkgutil.iter_modules([self.path]):
+            parts = self.relparts + [module_info[1]]
+            yield Modulepath(".".join(parts), dir=self.basedir)
+
+            if module_info[2]: # module is a package because index 2 is True
+                submodules = Dirpath(parts, dir=self.basedir)
+                for submodule in submodules.modpaths():
+                    yield submodule
+
+    def __contains__(self, pattern):
+        return self.has(pattern)
+
+
+class Filepath(Path, TempFilepath):
+    def prepare_text(self, data):
+        if not isinstance(data, basestring):
+            data = "\n".join(data)
+        return super(Filepath, self).prepare_text(data)
+
+    def run(self, arg_str="", cwd="", environ=None, **kwargs):
+        """Treat this file like a script and execute it
+
+        :param arg_str: string, flags you want to pass into the execution of the script
+        :returns: string, the output of running the file/script
+        """
+        cwd = cwd if cwd else self.basedir
+        cmd = FileCommand(self, cwd=cwd, environ=environ)
+        return cmd.run(arg_str, **kwargs)
+
+
+class Modulepath(Filepath):
+    '''
+    create a python module folder structure so that the module can be imported
+
+    module_name -- string -- something like foo.bar
+    contents -- string -- the contents of the module
+    tmpdir -- string -- the temp directory that will be added to the syspath if make_importable is True
+    make_importable -- boolean -- if True, then tmpdir will be added to the python path so it can be imported
+    '''
+    @property
+    def modparts(self):
+        return self.split('.')
+
+    @property
+    def directory(self):
+        """Return the directory this module lives in"""
+        d = super(Modulepath, self).directory
+        if self.is_package():
+            d = d.directory
+        return d
+
+    @classmethod
+    def normparts(cls, *parts, **kwargs):
+        kwargs.setdefault("root", "")
+        kwargs.setdefault("regex", r"[\.\\/]+")
+        parts = super(Modulepath, cls).normparts(*parts, **kwargs)
+        return parts
+
+    @classmethod
+    def normpath(cls, *parts, **kwargs):
+        parts = list(parts)
+        basename = parts.pop(-1)
+        is_package = kwargs.get("is_package", False)
+
+        if is_package:
+            parts.append(basename)
+            parts.append("__init__.py")
+
+        else:
+            # check if we already have a package
+            path = super(Modulepath, cls).normpath(parts, basename)
+            if os.path.isdir(path):
+                if "is_package" in kwargs:
+                    raise ValueError("Cannot convert package back to module")
+
+                parts.append(basename) 
+                parts.append("__init__.py")
+
+            else:
+                parts.append("{}.py".format(basename))
+
+        path = super(Modulepath, cls).normpath(*parts, **kwargs)
+        return path
+
+    @classmethod
+    def normvalue(cls, *parts, **kwargs):
+        return ".".join(parts[1:])
+        #return super(Modulepath, cls).normvalue(*parts, **kwargs)
+
+    @classmethod
+    def create_as(cls, instance, **kwargs):
+        instance = super(Modulepath, cls).create_as(instance, **kwargs)
+
+        # add the path to the top of the sys path so importing the new module will work
+        make_importable = kwargs.pop("make_importable", True)
+        if make_importable:
+            sys.path.insert(0, instance.basedir) 
+
+        return instance
+
+    def prepare_text(self, data):
+        self.touch()
+        data, encoding, errors = super(Modulepath, self).prepare_text(data)
+        add_encoding = not data.lstrip().startswith("# -*- coding: utf-8 -*-")
+        if "from __future__ import " not in data:
+            lines = [
+                "from __future__ import (",
+                "    unicode_literals,",
+                "    division,",
+                "    print_function,",
+                "    absolute_import",
+                ")",
+                "",
+            ]
+            data = "\n".join(lines) + data
+
+        if add_encoding:
+            data = "# -*- coding: utf-8 -*-\n" + data.lstrip()
+
+        if not data.endswith("\n"):
+            data += "\n"
+
+        return data, encoding, errors
+
+    def touch(self, mode=0o666, exist_ok=True):
+        super(Modulepath, self).touch(mode=mode, exist_ok=exist_ok)
+
+        # we need to make sure every part/directory of the module path is a valid
+        # python module with an __init__.py file
+
+        mod_parts = filter(lambda p: not p.endswith(".py"), self.relparts)
+
+        base_dir = self.basedir
+        for modname in mod_parts:
+            mod_file = FPath(base_dir, "{}.py".format(modname), touch=False)
+
+            # turn module.py into a package (module/__init__.py)
+            base_dir = DPath(base_dir, modname)
+            target = FPath(base_dir, "__init__.py", touch=False)
+
+            if mod_file.isfile():
+                mod_file.mv(target)
+
+            else:
+                target.touch()
+
+    def modpaths(self):
+        """Similar to modules, returns all the modules under this directory as
+        Modulepath instances"""
+        dp = Dirpath(self.modparts, dir=self.directory)
+        return dp.modpaths()
+
+    def classes(self):
+        """Return all the classes this module contains"""
+        for m in self.modules():
+            for klass_name, klass in inspect.getmembers(m, inspect.isclass):
+                yield klass
+
+    def module(self):
+        """Return the actual module this Modulepath represents"""
+        dp = Dirpath(dir=self.directory)
+        return dp.module(self)
+
+    def modules(self):
+        dp = Dirpath(dir=self.directory)
+        return dp.modules()
+
+    def is_package(self):
+        """returns True if this module is a package (directory with __init__.py file
+        in it)"""
+        return self.path.endswith("__init__.py")
+
+    def run(self, arg_str="", cwd="", environ=None, **kwargs):
+        """Run this module on the command line
+
+        :param arg_str: string, flags you want to pass into the execution of this module
+        :returns: string, the output of running the file/script
+        """
+        mod = self
+        cwd = cwd if cwd else mod.basedir
+        if self.endswith("__main__") or self.endswith("__init__"):
+            mod = self.parent
+        cmd = ModuleCommand(mod, cwd=cwd, environ=environ)
+        return cmd.run(arg_str, **kwargs)
+
+
+def make_png(width, height, color=None):
+    """Make a png image of arbitrary width, height, and color
+
+    The mojority of this function comes from this great SO answer with public domain
+    code:
+
+        https://stackoverflow.com/a/25835368/5006
+
+    it's been modified with help from:
+        http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
+        https://en.wikipedia.org/wiki/Portable_Network_Graphics
+        https://www.w3.org/TR/PNG/
+
+    to support arbitrary dimensions and 0-255 rgb colors
+
+    :param width: int, the width of the image you want to generate
+    :param height: int, the height of the image you want to generate
+    :param color: list|tuple, a list/tuple of an (r, g, b) value where r, g, and
+        b are integers between 0 and 255
+    :returns: bytes, the raw png that can be written to a file
+    """
+    def I1(value):
+        return struct.pack("!B", value & (2**8-1))
+
+    def I4(value):
+        return struct.pack("!I", value & (2**32-1))
+
+    def B1(value):
+        return chr(value) if is_py2 else value
+
+    # PNG file header
+    png = b"\x89" + "PNG\r\n\x1A\n".encode('ascii')
+
+    # IHDR block
+    # colortype values:
+    #   6 for color: Each pixel is an R,G,B triple, followed by an alpha sample
+    #   0 for b&w: Each pixel is a grayscale sample
+    colortype = 6 if color else 0
+    bitdepth = 8 # with one byte per pixel (0..255)
+    compression = 0 # zlib (no choice here)
+    filtertype = 0 # adaptive (each scanline seperately)
+    interlaced = 0 # no
+    IHDR = I4(width) + I4(height) + I1(bitdepth)
+    IHDR += I1(colortype) + I1(compression)
+    IHDR += I1(filtertype) + I1(interlaced)
+    block = "IHDR".encode('ascii') + IHDR
+    png += I4(len(IHDR)) + block + I4(zlib.crc32(block))
+
+    # IDAT block (the actual image)
+    # if we don't have a color then we just use a black pixel bit, but if we do have
+    # a color we use 4 bits (r, g, b, a) for each pixel
+    raw = bytearray()
+
+    if color:
+        # NOTE -- you could make the images smaller by creating a
+        # palette (colortype 2) with one color and then just using the
+        # index like the b&w image does, but that's way more work because we
+        # would need to add a PLTE block with the palette information
+        c = []
+        for co in color:
+            c.append(B1(co))
+        c.append(B1(255)) # alpha
+    else:
+        c = [B1(0)] # default black pixel
+
+    # populate the actual image data
+    for y in range(height):
+        raw.append(B1(0)) # no filter for this scanline
+        for x in range(width):
+            raw.extend(c)
+
+    compressor = zlib.compressobj()
+    compressed = compressor.compress(bytes(raw) if is_py2 else raw)
+    compressed += compressor.flush()
+    block = "IDAT".encode('ascii') + compressed
+    png += I4(len(compressed)) + block + I4(zlib.crc32(block))
+
+    # IEND block
+    block = "IEND".encode('ascii')
+    png += I4(0) + block + I4(zlib.crc32(block))
+
+    return png
+
+
+def make_jpg(width, height, color=None):
+    """Looks like this would be possible but I don't really need it right now so 
+    I'm not bothering right now
+
+    https://en.wikipedia.org/wiki/JPEG#The_JPEG_standard
+    https://stackoverflow.com/a/16755049/5006
+
+    you can probably pick apart how PIL does it:
+        https://github.com/whatupdave/pil/blob/master/PIL/JpegImagePlugin.py
+
+    search:
+        create a jpeg of one color in pure python
+    """
+    pass
+
+
+
+
+
+###############################################################################
+# testdata functions
+###############################################################################
 
 def create_dir(path="", tmpdir=""):
     '''
@@ -118,7 +473,6 @@ def create_script(*args, **kwargs):
 
 def create_csv(columns, count=0, path="", tmpdir="", encoding="", header=True, **kwargs):
     """Create a csv file using the generators/callbacks found in columns
-
 
     :param columns: dict, in the format of key: callback where the callback can
         generate a value for the row, so something like "foo": testdata.get_name
@@ -382,64 +736,6 @@ def create_package(data="", modpath="", tmpdir="", make_importable=True, **kwarg
         make_importable=make_importable,
         **kwargs
     )
-
-#     if not data:
-#         data = kwargs.pop("contents", kwargs.pop("content", kwargs.pop("text", "")))
-# 
-#     return Modulepath(
-#         modpath,
-#         data=data,
-#         dir=tmpdir,
-#         make_importable=make_importable,
-#         is_package=True
-#     )
-
-
-def get_content_body(fileroot, basedir="", encoding=""):
-    """Returns the contents of a file matching basedir/fileroot.*
-
-    :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
-        in which case basedir/fileroot.* will be searched for and first file matched
-        will be used
-    :param basedir: string, the directory to search for fileroot.*, if not passed
-        in then os.getcwd()/*/testdata will be searched for
-    :returns: string, the contents of the found file
-    """
-    if encoding:
-        return ContentString(fileroot, basedir=basedir, encoding=encoding)
-    else:
-        return ContentBytes(fileroot, basedir=basedir)
-get_contents = get_content_body
-get_content_contents = get_content_body
-get_content_data = get_content_body
-get_data = get_content_body
-
-
-def get_content_file(fileroot, basedir="", encoding=""):
-    return ContentFilepath(fileroot, basedir=basedir, encoding=encoding)
-get_content_path = get_content_file
-get_path = get_content_file
-get_data_path = get_content_file
-
-
-# def get_content_body(fileroot, basedir="", encoding=""):
-#     """Returns the contents of a file matching basedir/fileroot.*
-# 
-#     :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
-#         in which case basedir/fileroot.* will be searched for and first file matched
-#         will be used
-#     :param basedir: string, the directory to search for fileroot.*, if not passed
-#         in then os.getcwd()/*/testdata will be searched for
-#     :returns: string, the contents of the found file
-#     """
-#     if encoding:
-#         return ContentString(fileroot, basedir=basedir, encoding=encoding)
-#     else:
-#         return ContentBytes(fileroot, basedir=basedir)
-# get_contents = get_content_body
-# get_content_contents = get_content_body
-# get_content_data = get_content_body
-# get_data = get_content_body
 
 
 def find_data_file(fileroot, basedir="", encoding=""):

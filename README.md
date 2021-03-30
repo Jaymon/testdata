@@ -480,7 +480,9 @@ return a datetime guaranteed to be in the future from `start` and in the past fr
     datetime.datetime(2017, 8, 3, 15, 54, 58, 670249)
 
 
-## Testing
+## Development
+
+### Testing
 
 Testing in 2.7 on most systems:
 
@@ -489,4 +491,13 @@ Testing in 2.7 on most systems:
 Testing in 3.5 on MacOS:
 
     $ python3.5 -m unittest testdata_test
+
+
+### Dependencies
+
+Development needs [datatypes](https://github.com/Jaymon/datatypes) on the path. This is kind of a strange thing because datatypes depends on testdata for testing. Making datatypes available to testdata for development should be as easy as:
+
+```
+export PYTHONPATH=$PYTHONPATH:/path/to/dir/containing/datatypes
+```
 

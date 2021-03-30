@@ -6,12 +6,7 @@ from collections import OrderedDict
 import inspect
 
 from testdata.path import (
-    Dirpath,
-    Filepath,
     Modulepath,
-    ContentBytes,
-    ContentString,
-    ContentFilepath
 )
 from testdata.compat import *
 from testdata.utils import ByteString, String

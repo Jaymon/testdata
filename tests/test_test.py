@@ -2,25 +2,10 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 
 from testdata.compat import *
-from testdata.utils import ByteString, String
 from testdata.path import Modulepath
 from testdata import environ
 
-from . import TestCase
-
-
-
-import testdata
-
-modpath = testdata.create_module(contents=[
-    "def get_foo(*args, **kwargs):",
-    "    return (args, kwargs)"
-])
-
-
-
-
-
+from . import TestCase, testdata
 
 
 class TestCaseTest(TestCase):
@@ -38,12 +23,12 @@ class TestCaseTest(TestCase):
         w = self.get_words(10)
         self.assertEqual(10, len(w.split(" ")))
 
-        modpath = self.create_module(contents=[
+        modpath = self.create_module([
             "def get_foo(*args, **kwargs):",
             "    return (args, kwargs)"
         ])
 
-        type(self).testdata = modpath.module
+        type(self).testdata = modpath.module()
         #environ.TESTDATA_MODULEPATH = modpath
         with self.assertRaises(AttributeError):
             self.get_words()
@@ -56,7 +41,7 @@ class TestCaseTest(TestCase):
         w = type(self).get_words()
         self.assertTrue(w)
 
-        type(self).testdata = modpath.module
+        type(self).testdata = modpath.module()
         with self.assertRaises(AttributeError):
             self.get_words()
         r = self.get_foo(1, 3)

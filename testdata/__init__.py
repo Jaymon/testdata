@@ -34,7 +34,7 @@ import pkgutil
 import itertools
 
 from .compat import *
-from .utils import String, ByteString, Mock
+from .utils import Mock
 from .data import (
     _names,
     _unicode_names,
@@ -48,28 +48,11 @@ from .data import (
     _last_names,
     usa,
 )
-# from .data.usa import (
-#     cities,
-#     states,
-#     zipcodes,
-# )
 
 from . import environ
-from .path import *
-# from .path import (
-#     Dirpath,
-#     Filepath,
-#     Modulepath,
-#     ContentBytes,
-#     ContentString,
-#     ContentFilepath,
-#     CSVpath,
-# )
-# from .functions.path import *
 from .threading import Thread, Tail
 from .output import Capture
 from .server import PathServer, CookieServer, CallbackServer
-from .service import Upstart, InitD, Systemd
 from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import (
     TestCase,
@@ -83,10 +66,11 @@ from .test import (
     expected_failure,
     expect_failure,
 )
-from .image import make_png
+from .path import *
+from .service import *
 
 
-__version__ = '2.0.0'
+__version__ = '3.0.0'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -198,56 +182,6 @@ def environment(thing=None, **kwargs):
 modify = environment
 change = environment
 configure = environment
-
-
-def start_service(service_name, ignore_failure=True):
-    """start a local service
-
-    :param service_name: string, the service you want to start
-    :param ignore_failure: bool, True if it should ignore a failure return code
-    :returns: Service instance
-    """
-    for service_class in [Systemd, Upstart, InitD]:
-        s = service_class(service_name)
-        s.ignore_failure = ignore_failure
-        if s.exists():
-            s.start()
-            break
-        else:
-            s = None
-
-    if s is None:
-        raise RuntimeError("Could not find a valid service for {}".format(service_name))
-
-    return s
-
-
-def stop_service(service_name, ignore_failure=True):
-    """stop a local service
-
-    :param service_name: string, the service you want to stop
-    :param ignore_failure: bool, True if it should ignore a failure return code
-    :returns: Service instance
-    """
-    for service_class in [Systemd, Upstart, InitD]:
-        s = service_class(service_name)
-        s.ignore_failure = ignore_failure
-        if s.exists():
-            s.stop()
-            break
-        else:
-            s = None
-
-    if s is None:
-        raise RuntimeError("Could not find a valid service for {}".format(service_name))
-
-    return s
-
-
-def restart_service(service_name, ignore_failure=True):
-    """see start_service() and stop_service()"""
-    stop_service(service_name, ignore_failure)
-    start_service(service_name, ignore_failure)
 
 
 def capture(stdout=True, stderr=True, loggers=True, *args, **kwargs):
