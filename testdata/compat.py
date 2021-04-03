@@ -8,6 +8,7 @@ from datatypes.string import String, ByteString
 
 if is_py2:
     from Cookie import SimpleCookie
+    import imp
 
 else:
     from http.cookies import SimpleCookie

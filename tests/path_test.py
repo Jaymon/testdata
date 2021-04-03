@@ -492,7 +492,7 @@ class ModulepathTest(TestCase):
         self.assertTrue(mn.startswith("get_module_name"))
 
 
-class TestdataTest(TestCase):
+class ImageTest(TestCase):
     def test_create_image(self):
         d = testdata.create_directory()
         jpg = testdata.create_jpg(tmpdir=d)
