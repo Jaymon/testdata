@@ -6,7 +6,7 @@ from collections import OrderedDict
 import inspect
 
 from testdata.path import (
-    Modulepath,
+    TempModulepath,
 )
 from testdata.compat import *
 from testdata.utils import ByteString, String
@@ -186,8 +186,39 @@ class FilepathTest(TestCase):
         n = testdata.get_filename(ext="py", prefix="bar", name="foo.py")
         self.assertEqual("barfoo.py", n)
 
+    def test_create_files(self):
+        filename = testdata.get_filename(ext="txt")
+        contents = testdata.get_words()
+        file_dict = {
+            filename: [contents]
+        }
+        basedir = testdata.create_files(file_dict)
+
+        count = 0
+        for path in basedir.rglob(filename):
+            self.assertEqual(contents, path.read_text())
+            count += 1
+        self.assertEqual(1, count)
+
 
 class DirpathTest(TestCase):
+    def test_get_dir(self):
+        d = testdata.get_dir()
+        self.assertFalse(d.exists())
+
+    def test_add_1(self):
+        """The testdata *path classes can take lists and things as a data body, this
+        makes sure that works as expected"""
+        contents = testdata.get_words()
+        d = testdata.create_dir()
+        ts = {
+            "foo.txt": [contents],
+        }
+        ds = d.add(ts)
+        path = ds[0]
+        self.assertTrue(os.path.isfile(path), "{} does not exist".format(path))
+        self.assertEqual(contents, path.read_text())
+
     def test_create_dir(self):
         ts = [
             "\\foo\\bar",
@@ -206,7 +237,6 @@ class DirpathTest(TestCase):
 
         d = testdata.create_dir()
         self.assertTrue(os.path.isdir(d))
-
 
 
 class ModulepathTest(TestCase):
@@ -286,7 +316,7 @@ class ModulepathTest(TestCase):
             m = testdata.create_module("class Foo(object): pass", is_package=is_package)
             self.assertTrue(len(m.read_text()))
 
-            m2 = Modulepath(m, dir=m.directory)
+            m2 = TempModulepath(m, dir=m.directory)
             self.assertEqual(m.directory, m2.directory)
             self.assertEqual(m, m2)
             self.assertEqual(m.read_text(), m2.read_text())
@@ -521,4 +551,14 @@ class ImageTest(TestCase):
         png_red = testdata.create_png(tmpdir=png_bw.directory, width=1000, height=500, color=[255,0,0])
         self.assertTrue(png_red.exists())
         self.assertTrue(png_bw.exists())
+
+
+class InterpreterTest(TestCase):
+    def test_get_interpreter(self):
+        r = testdata.get_interpreter()
+        self.assertTrue(r.exists())
+        self.assertNotEqual("", r.major)
+        self.assertNotEqual("", r.minor)
+        self.assertNotEqual("", r.patch)
+        self.assertNotEqual("", r.version)
 

@@ -5,8 +5,10 @@ import inspect
 import sys
 import importlib
 import os
+import copy
 
 from .compat import *
+from .path import get_module_name
 
 
 ###############################################################################
@@ -214,16 +216,18 @@ def patch_class(mod, patches=None, **kwargs_patches):
         copy_dict(mod)
     )
     for name, patch in patches.items():
-        o = getattr(mod_patched, name, None)
-        if inspect.isroutine(o):
-            if inspect.ismethod(o):
-                # https://stackoverflow.com/a/19228282/5006
-                if o.__self__ is mod_patched:
-                    patch = classmethod(patch)
+        if is_py2:
+            o = getattr(mod_patched, name, None)
+            if inspect.isroutine(o):
+                if inspect.ismethod(o):
+                    # https://stackoverflow.com/a/19228282/5006
+                    if o.__self__ is mod_patched:
+                        if not isinstance(patch, classmethod):
+                            patch = classmethod(patch)
 
-            elif isinstance(o, types.FunctionType):
-                # https://stackoverflow.com/a/695694
-                patch = staticmethod(patch)
+                elif isinstance(o, types.FunctionType):
+                    # https://stackoverflow.com/a/695694
+                    patch = staticmethod(patch)
 
         setattr(mod_patched, name, patch)
 
@@ -279,7 +283,10 @@ def patch_module(mod, patches=None, **kwargs_patches):
 
                 else:
                     spec = importlib.machinery.PathFinder().find_spec(p, paths)
-                    mod_path = spec.submodule_search_locations[0]
+                    if spec.submodule_search_locations:
+                        mod_path = spec.submodule_search_locations[0]
+                    else:
+                        mod_path = spec.origin
 
             return mod_path
 
@@ -294,7 +301,8 @@ def patch_module(mod, patches=None, **kwargs_patches):
             if not mfile.endswith(".py"):
                 mfile = '{}.py'.format(mpath)
 
-    mname = '{}_{}'.format(mod_name, get_ascii(8))
+    mname = get_module_name(prefix=mod_name)
+    #mname = '{}_{}'.format(mod_name, get_ascii(8))
     if is_py2:
         m = imp.load_source(mname, mfile)
     else:

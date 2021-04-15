@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
+import os
 
 from testdata.compat import *
+from testdata import environ
 
 from . import TestCase, testdata
 
@@ -66,13 +68,13 @@ class MockTest(TestCase):
 
 
 class PatchTest(TestCase):
-    def test_patch(self):
+    def test_patch_1(self):
 
         @classmethod
         def mock_bam(*args, **kwargs): return 22
 
         def mock_boom(): return 2
-        contents = os.linesep.join([
+        contents = [
             "def boom():",
             "    return 1",
             "",
@@ -80,22 +82,20 @@ class PatchTest(TestCase):
             "    @classmethod",
             "    def bam(cls): return boom()",
             ""
-        ])
-        testdata.create_module("patch.foo", contents=contents)
+        ]
+        m = testdata.create_module(contents)
+        foo = m.module()
 
-        from patch.foo import FooPatch
+        self.assertEqual(1, foo.FooPatch.bam())
 
-        self.assertEqual(1, FooPatch.bam())
-
-        FP = testdata.patch(FooPatch, bam=mock_bam)
+        FP = testdata.patch(foo.FooPatch, bam=mock_bam)
         self.assertEqual(22, FP.bam())
 
-        from patch import foo
         self.assertEqual(1, foo.FooPatch.bam())
         foo = testdata.patch(foo, boom=mock_boom)
         self.assertEqual(2, foo.FooPatch.bam())
 
-        foo = testdata.patch('patch.foo', boom=mock_boom)
+        foo = testdata.patch(m, boom=mock_boom)
         self.assertEqual(2, foo.FooPatch.bam())
 
     def test_patch_instance(self):
@@ -147,25 +147,24 @@ class PatchTest(TestCase):
 
     def test_patch_class_self(self):
         """a class that creates itself should create a copy of the patched class"""
-        contents = os.linesep.join([
+        contents = [
             "class PatchFactory(object):",
             "    def clone(self): return type(self)()",
             "    def bar(self): return 55",
             ""
-        ])
-        testdata.create_module("pathclassmod", contents=contents)
-
-        from pathclassmod import PatchFactory
+        ]
+        m = testdata.create_module(contents)
+        pathclassmod = m.module()
 
         def mock_bar(self):
             return 33
 
         MonkeyFactory = testdata.patch_class(
-            PatchFactory,
+            pathclassmod.PatchFactory,
             bar=mock_bar
         )
 
-        f = PatchFactory()
+        f = pathclassmod.PatchFactory()
         fm = MonkeyFactory()
 
         self.assertEqual(55, f.bar())

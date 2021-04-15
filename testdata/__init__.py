@@ -49,7 +49,6 @@ from .data import (
 from . import environ
 from .threading import Thread, Tail
 from .output import Capture
-from .server import PathServer, CookieServer, CallbackServer
 from .client import Command, ModuleCommand, FileCommand, HTTP
 from .test import (
     TestCase,
@@ -66,9 +65,10 @@ from .test import (
 from .path import *
 from .service import *
 from .mock import *
+from .server import *
 
 
-__version__ = '3.0.0'
+__version__ = '4.0.0'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -393,35 +393,6 @@ def fetch(url, body=None, query=None, **kwargs):
             ret = c.post(url, body, query=query, **kwargs)
 
     return ret
-
-
-def create_fileserver(file_dict, tmpdir="", hostname="", port=0, encoding=""):
-    """
-    create a fileserver that can be used to test remote file retrieval
-
-    :param file_dict: dict|list|str, same as create_files
-    :param tmpdir: str, same as create_files
-    :param hostname: str, usually leave this alone and it will use localhost
-    :param port: int, the port you want to use
-    """
-    if isinstance(file_dict, Sequence):
-        file_dict = {
-            "index.html": file_dict
-        }
-
-    path = create_files(file_dict, tmpdir=tmpdir, encoding=encoding)
-    return PathServer(path, hostname=hostname, port=port, encoding=encoding)
-
-
-def create_cookieserver(cookies, hostname="", port=0):
-    """
-    create a fileserver that can be used to test remote file retrieval
-
-    :param cookies: a dict of name: val or a list ot tuples(name, val)
-    :param hostname: str, usually leave this alone and it will use localhost
-    :param port: int, the port you want to use
-    """
-    return CookieServer(cookies, hostname=hostname, port=port)
 
 
 def get_url():
@@ -1478,53 +1449,6 @@ def get_between_date(start, stop=None):
     dt = get_between_datetime(start, stop)
     return datetime.date(dt.year, dt.month, dt.day)
 
-
-def get_interpreter():
-    """Return the best python interpreter
-
-    :returns: a Filepath
-    """
-
-    exe = sys.executable
-    version_info = sys.version_info
-
-    if re.search(r"\d+\.\d+", exe):
-        ret = exe
-
-    elif re.search(r"\d+", exe):
-        ret = "{}.{}".format(exe, version_info[1])
-        f = Filepath.get_instance(ret)
-        if not f.exists():
-            ret = exe
-
-    else:
-        # try major.minor
-        version = ".".join(map(String, version_info[0:2]))
-        ret = "{}{}".format(exe, version)
-        f = Filepath.get_instance(ret)
-
-        if not f.exists():
-            # try major
-            ret = "{}.{}".format(exe, version_info[1])
-            f = Filepath.get_instance(ret)
-            if not f.exists():
-                # just return the found interpreter
-                ret = exe
-
-    f = Filepath.get_instance(ret)
-
-    # https://semver.org/
-    f.major = version_info[0]
-    f.minor = version_info[1]
-    f.patch = version_info[2]
-    f.release = version_info[3]
-    f.version = "{}.{}.{}".format(f.major, f.minor, f.patch)
-
-    return f
-get_exe = get_interpreter
-get_exec = get_interpreter
-get_executable = get_interpreter
-get_python = get_interpreter
 
 # used in the get_unique_int() function to make sure it never returns the same int twice
 # this is a possible memory leak if you are using this script in a very long running

@@ -12,10 +12,10 @@ from contextlib import contextmanager
 import time
 import collections
 import logging
+import importlib
 
 from .compat import *
 from .utils import String
-from .path import Modulepath
 from . import environ
 
 
@@ -130,8 +130,7 @@ def get_testdata_module():
     """
     td = None
     if environ.TESTDATA_MODULEPATH:
-        path = Modulepath(environ.TESTDATA_MODULEPATH)
-        td = path.module
+        td = importlib.import_module(environ.TESTDATA_MODULEPATH)
 
     if not td:
         path = __name__.split(".")[0]

@@ -21,10 +21,10 @@ import zlib
 import struct
 
 from datatypes.path import (
-    TempFilepath,
-    TempDirpath,
-    Dirpath as DPath,
-    Filepath as FPath,
+    TempFilepath as BaseTempFilepath,
+    TempDirpath as BaseTempDirpath,
+    Dirpath as BaseDirpath,
+    Filepath as BaseFilepath,
 )
 from datatypes.csv import CSV
 
@@ -48,19 +48,44 @@ class Path(object):
 
     @classmethod
     def tempdir_class(cls):
-        return Dirpath
+        return TempDirpath
 
     @classmethod
     def tempfile_class(cls):
+        return TempFilepath
+
+    @classmethod
+    def tempmodule_class(cls):
+        return TempModulepath
+
+    @classmethod
+    def file_class(cls):
         return Filepath
 
+    @classmethod
+    def dir_class(cls):
+        return Dirpath
 
-class Dirpath(Path, TempDirpath):
+    def prepare_text(self, data, **kwargs):
+        if not isinstance(data, basestring):
+            data = "\n".join(data)
+        return super(Path, self).prepare_text(data, **kwargs)
+
+
+class Filepath(Path, BaseFilepath):
+    pass
+
+
+class Dirpath(Path, BaseDirpath):
+    pass
+
+
+class TempDirpath(Path, BaseTempDirpath):
     def module(self, module_path):
         """similar to modpath but returns the actual module instead of Modulepath
         instance
 
-        Return the actual module this Modulepath represents
+        Return the actual module imported via module_path
         """
         injected = False
         if self.path not in sys.path:
@@ -81,17 +106,17 @@ class Dirpath(Path, TempDirpath):
 
     def modpath(self, module_path):
         """Return a module that is rooted in this directory"""
-        return Modulepath(module_path, dir=self.path)
+        return self.tempmodule_class()(module_path, dir=self.path)
 
     def modpaths(self):
         """Similar to modules, returns all the modules under this directory as
         Modulepath instances"""
         for module_info in pkgutil.iter_modules([self.path]):
             parts = self.relparts + [module_info[1]]
-            yield Modulepath(".".join(parts), dir=self.basedir)
+            yield self.tempmodule_class()(".".join(parts), dir=self.basedir)
 
             if module_info[2]: # module is a package because index 2 is True
-                submodules = Dirpath(parts, dir=self.basedir)
+                submodules = self.tempdir_class()(parts, dir=self.basedir)
                 for submodule in submodules.modpaths():
                     yield submodule
 
@@ -99,12 +124,7 @@ class Dirpath(Path, TempDirpath):
         return self.has(pattern)
 
 
-class Filepath(Path, TempFilepath):
-    def prepare_text(self, data):
-        if not isinstance(data, basestring):
-            data = "\n".join(data)
-        return super(Filepath, self).prepare_text(data)
-
+class TempFilepath(Path, BaseTempFilepath):
     def run(self, arg_str="", cwd="", environ=None, **kwargs):
         """Treat this file like a script and execute it
 
@@ -116,7 +136,7 @@ class Filepath(Path, TempFilepath):
         return cmd.run(arg_str, **kwargs)
 
 
-class Modulepath(Filepath):
+class TempModulepath(TempFilepath):
     '''
     create a python module folder structure so that the module can be imported
 
@@ -132,7 +152,7 @@ class Modulepath(Filepath):
     @property
     def directory(self):
         """Return the directory this module lives in"""
-        d = super(Modulepath, self).directory
+        d = super(TempModulepath, self).directory
         if self.is_package():
             d = d.directory
         return d
@@ -141,7 +161,7 @@ class Modulepath(Filepath):
     def normparts(cls, *parts, **kwargs):
         kwargs.setdefault("root", "")
         kwargs.setdefault("regex", r"[\.\\/]+")
-        parts = super(Modulepath, cls).normparts(*parts, **kwargs)
+        parts = super(TempModulepath, cls).normparts(*parts, **kwargs)
         return parts
 
     @classmethod
@@ -156,7 +176,7 @@ class Modulepath(Filepath):
 
         else:
             # check if we already have a package
-            path = super(Modulepath, cls).normpath(parts, basename)
+            path = super(TempModulepath, cls).normpath(parts, basename)
             if os.path.isdir(path):
                 if "is_package" in kwargs:
                     raise ValueError("Cannot convert package back to module")
@@ -167,17 +187,17 @@ class Modulepath(Filepath):
             else:
                 parts.append("{}.py".format(basename))
 
-        path = super(Modulepath, cls).normpath(*parts, **kwargs)
+        path = super(TempModulepath, cls).normpath(*parts, **kwargs)
         return path
 
     @classmethod
     def normvalue(cls, *parts, **kwargs):
         return ".".join(parts[1:])
-        #return super(Modulepath, cls).normvalue(*parts, **kwargs)
+        #return super(TempModulepath, cls).normvalue(*parts, **kwargs)
 
     @classmethod
     def create_as(cls, instance, **kwargs):
-        instance = super(Modulepath, cls).create_as(instance, **kwargs)
+        instance = super(TempModulepath, cls).create_as(instance, **kwargs)
 
         # add the path to the top of the sys path so importing the new module will work
         make_importable = kwargs.pop("make_importable", True)
@@ -188,7 +208,7 @@ class Modulepath(Filepath):
 
     def prepare_text(self, data):
         self.touch()
-        data, encoding, errors = super(Modulepath, self).prepare_text(data)
+        data, encoding, errors = super(TempModulepath, self).prepare_text(data)
         add_encoding = not data.lstrip().startswith("# -*- coding: utf-8 -*-")
         if "from __future__ import " not in data:
             lines = [
@@ -211,7 +231,7 @@ class Modulepath(Filepath):
         return data, encoding, errors
 
     def touch(self, mode=0o666, exist_ok=True):
-        super(Modulepath, self).touch(mode=mode, exist_ok=exist_ok)
+        super(TempModulepath, self).touch(mode=mode, exist_ok=exist_ok)
 
         # we need to make sure every part/directory of the module path is a valid
         # python module with an __init__.py file
@@ -220,11 +240,11 @@ class Modulepath(Filepath):
 
         base_dir = self.basedir
         for modname in mod_parts:
-            mod_file = FPath(base_dir, "{}.py".format(modname), touch=False)
+            mod_file = self.create_file(base_dir, "{}.py".format(modname), touch=False)
 
             # turn module.py into a package (module/__init__.py)
-            base_dir = DPath(base_dir, modname)
-            target = FPath(base_dir, "__init__.py", touch=False)
+            base_dir = self.create_dir(base_dir, modname)
+            target = self.create_file(base_dir, "__init__.py", touch=False)
 
             if mod_file.isfile():
                 mod_file.mv(target)
@@ -235,7 +255,7 @@ class Modulepath(Filepath):
     def modpaths(self):
         """Similar to modules, returns all the modules under this directory as
         Modulepath instances"""
-        dp = Dirpath(self.modparts, dir=self.directory)
+        dp = self.tempdir_class()(self.modparts, dir=self.directory)
         return dp.modpaths()
 
     def classes(self):
@@ -246,11 +266,11 @@ class Modulepath(Filepath):
 
     def module(self):
         """Return the actual module this Modulepath represents"""
-        dp = Dirpath(dir=self.directory)
+        dp = self.tempdir_class()(dir=self.directory)
         return dp.module(self)
 
     def modules(self):
-        dp = Dirpath(dir=self.directory)
+        dp = self.tempdir_class()(dir=self.directory)
         return dp.modules()
 
     def is_package(self):
@@ -369,10 +389,7 @@ def make_jpg(width, height, color=None):
     search:
         create a jpeg of one color in pure python
     """
-    pass
-
-
-
+    raise NotImplementedError()
 
 
 ###############################################################################
@@ -390,7 +407,7 @@ def create_dir(path="", tmpdir=""):
     :param tmpdir: string, the temp directory to use as the base
     :returns: Dirpath, the full directory path
     '''
-    return Dirpath(path, dir=tmpdir)
+    return TempDirpath(path, dir=tmpdir)
 create_directory = create_dir
 create_d = create_dir
 
@@ -404,13 +421,13 @@ def create_dirs(dirs, tmpdir=""):
     :returns: Dirpath instance pointing to the base directory all of dirs were
         created in
     """
-    base_dir = Dirpath(dir=tmpdir)
+    base_dir = TempDirpath(dir=tmpdir)
     base_dir.add(dirs)
     return base_dir
 create_ds = create_dirs
 
 
-def get_dir(path=""):
+def get_dir(path="", tmpdir="", **kwargs):
     """
     return a directory path
 
@@ -418,13 +435,15 @@ def get_dir(path=""):
     :returns: Dirpath, the path wrapped with all the Dirpath functionality
     """
     if not path:
+        # we have to create a filename because otherwise the temp directory will exist
         path = get_filename()
-    return Dirpath(path)
+    kwargs.setdefault("touch", False)
+    return TempDirpath(path, dir=tmpdir, **kwargs)
 get_directory = get_dir
 get_d = get_dir
 
 
-def create_file(contents="", path="", tmpdir="", encoding="", **kwargs):
+def create_file(data="", path="", tmpdir="", encoding="", **kwargs):
     '''
     create a file and return the full path to that file
 
@@ -436,20 +455,23 @@ def create_file(contents="", path="", tmpdir="", encoding="", **kwargs):
 
     :returns: Filepath, the full file path
     '''
-    return Filepath(path, data=contents, encoding=encoding, dir=tmpdir, **kwargs)
+    return TempFilepath(path, data=data, encoding=encoding, dir=tmpdir, **kwargs)
 create_f = create_file
 
 
-def create_files(file_dict, tmpdir=""):
+def create_files(file_dict, tmpdir="", **kwargs):
     """
     create a whole bunch of files all at once
 
-    file_dict -- dict -- keys are the filepath relative to tmpdir, values are the
+    :param file_dict: dict, keys are the filepath relative to tmpdir, values are the
         file contents
-    tmpdir -- Dirpath -- same as create_module() tmpdir
+    :param tmpdir: Dirpath, same as create_module() tmpdir
+    :param **kwargs:
+        encoding -- the encoding for any files
+        errors -- what to do if encoding encounters an error
     """
-    base_dir = Dirpath(dir=tmpdir)
-    base_dir.add(file_dict)
+    base_dir = TempDirpath(dir=tmpdir)
+    base_dir.add(file_dict, **kwargs)
     return base_dir
 create_fs = create_files
 
@@ -459,7 +481,7 @@ def get_file(path="", tmpdir="", encoding="", **kwargs):
     :param **kwargs: key/vals will be passed to get_filename()
     """
     kwargs.setdefault("touch", False)
-    return Filepath(path, encoding=encoding, dir=tmpdir, **kwargs)
+    return TempFilepath(path, encoding=encoding, dir=tmpdir, **kwargs)
 get_f = get_file
 
 
@@ -487,13 +509,13 @@ def create_csv(columns, count=0, path="", tmpdir="", encoding="", header=True, *
     :returns: testdata.path.CSVpath instance
     """
     if not count:
-        if any((callable(c) for c in columns)):
+        if any((callable(c) for c in columns.values())):
             count = random.randint(1, 50)
         else:
             count = 1
 
     kwargs.setdefault("ext", "csv")
-    path = Filepath(path, dir=tmpdir, encoding=encoding, **kwargs)
+    path = TempFilepath(path, dir=tmpdir, encoding=encoding, **kwargs)
     csv = CSV(path, fieldnames=list(columns.keys()))
     with csv:
         if not header:
@@ -608,7 +630,7 @@ def get_filename(ext="", name="", **kwargs):
         of the name and ext will be added to the end of the name)
     :returns: string, the random filename
     """
-    return Filepath.get_basename(ext=ext, name=name, **kwargs)
+    return TempFilepath.get_basename(ext=ext, name=name, **kwargs)
 get_file_name = get_filename
 filename = get_filename
 file_name = get_filename
@@ -626,7 +648,7 @@ def get_module_name(count=1, name="", **kwargs):
          the end of the name)
     :returns: string, the modulepath
     """
-    parts = Modulepath.get_parts(count=count, name=name, **kwargs)
+    parts = TempModulepath.get_parts(count=count, name=name, **kwargs)
     return ".".join(parts)
 get_package_name = get_module_name
 get_modulename = get_module_name
@@ -656,7 +678,7 @@ def get_source_filepath(v):
         ret = inspect.getsourcefile(v)
     except TypeError:
         ret = inspect.getsourcefile(v.__class__)
-    return Filepath(ret)
+    return TempFilepath(ret)
 get_source_file = get_source_filepath
 get_source_path = get_source_filepath
 get_sourcepath = get_source_filepath
@@ -677,7 +699,7 @@ def create_module(data="", modpath="", tmpdir="", make_importable=True, **kwargs
     if not data:
         data = kwargs.pop("contents", kwargs.pop("content", kwargs.pop("text", "")))
 
-    return Modulepath(
+    return TempModulepath(
         modpath,
         data=data,
         dir=tmpdir,
@@ -699,7 +721,7 @@ def create_modules(module_dict, modpath="", tmpdir="", make_importable=True, **k
     :returns: Dirpath
     """
     module_base_dir = create_dir(tmpdir=tmpdir)
-    module_list = Dirpath.normpaths(module_dict, modpath, regex=r"[\.\\/]+", root="")
+    module_list = TempDirpath.normpaths(module_dict, modpath, regex=r"[\.\\/]+", root="")
     for modname, data in module_list:
         m = create_module(
             data=data,
@@ -819,4 +841,52 @@ def chdir(curdir, **kwargs):
     os.chdir(cwd)
 cwd = chdir
 curdir = chdir
+
+
+def get_interpreter():
+    """Return the best python interpreter
+
+    :returns: a Filepath
+    """
+
+    exe = sys.executable
+    version_info = sys.version_info
+
+    if re.search(r"\d+\.\d+", exe):
+        ret = exe
+
+    elif re.search(r"\d+", exe):
+        ret = "{}.{}".format(exe, version_info[1])
+        f = Filepath(ret)
+        if not f.exists():
+            ret = exe
+
+    else:
+        # try major.minor
+        version = ".".join(map(String, version_info[0:2]))
+        ret = "{}{}".format(exe, version)
+        f = Filepath(ret)
+
+        if not f.exists():
+            # try major
+            ret = "{}.{}".format(exe, version_info[1])
+            f = Filepath(ret)
+            if not f.exists():
+                # just return the found interpreter
+                ret = exe
+
+    f = Filepath(ret)
+
+    # https://semver.org/
+    f.major = version_info[0]
+    f.minor = version_info[1]
+    f.patch = version_info[2]
+    f.release = version_info[3]
+    f.version = "{}.{}.{}".format(f.major, f.minor, f.patch)
+
+    return f
+get_exe = get_interpreter
+get_exec = get_interpreter
+get_executable = get_interpreter
+get_python = get_interpreter
 

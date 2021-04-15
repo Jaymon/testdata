@@ -6,14 +6,20 @@ import logging
 from wsgiref.simple_server import WSGIServer as WSGIHTTPServer, WSGIRequestHandler
 import runpy
 
+from datatypes.url import Url
+
 from .compat import *
 from .threading import Thread
 from . import environ
+from .path import create_files
 
 
 logger = logging.getLogger(__name__)
 
 
+###############################################################################
+# Supporting classes and methods
+###############################################################################
 class PathHandler(SimpleHTTPRequestHandler):
     """Overrides built-in handler to allow setting of the base path instead of
     always using os.getcwd()
@@ -85,13 +91,14 @@ class CallbackHandler(AnyHandler):
         return _body
 
     def parse_querystr(self, s):
-        d = {}
-        for k, kv in urlparse.parse_qs(s, True, strict_parsing=True).items():
-            if len(kv) > 1:
-                d[k] = kv
-            else:
-                d[k] = kv[0]
-        return d
+        return Url.parse_query(s)
+#         d = {}
+#         for k, kv in parse.parse_qs(s, True, strict_parsing=True).items():
+#             if len(kv) > 1:
+#                 d[k] = kv
+#             else:
+#                 d[k] = kv[0]
+#         return d
 
     def do_HEAD(self):
         return self.do()
@@ -424,4 +431,37 @@ class WSGIServer(Server):
         instance.config = config
         instance.wsgifile = wsgifile
         return instance
+
+
+###############################################################################
+# testdata functions
+###############################################################################
+
+def create_fileserver(file_dict, tmpdir="", hostname="", port=0, encoding=""):
+    """
+    create a fileserver that can be used to test remote file retrieval
+
+    :param file_dict: dict|list|str, same as create_files
+    :param tmpdir: str, same as create_files
+    :param hostname: str, usually leave this alone and it will use localhost
+    :param port: int, the port you want to use
+    """
+    if isinstance(file_dict, Sequence):
+        file_dict = {
+            "index.html": file_dict
+        }
+
+    path = create_files(file_dict, tmpdir=tmpdir, encoding=encoding)
+    return PathServer(path, hostname=hostname, port=port, encoding=encoding)
+
+
+def create_cookieserver(cookies, hostname="", port=0):
+    """
+    create a fileserver that can be used to test remote file retrieval
+
+    :param cookies: a dict of name: val or a list ot tuples(name, val)
+    :param hostname: str, usually leave this alone and it will use localhost
+    :param port: int, the port you want to use
+    """
+    return CookieServer(cookies, hostname=hostname, port=port)
 
