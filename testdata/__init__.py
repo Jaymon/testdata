@@ -68,7 +68,7 @@ from .mock import *
 from .server import *
 
 
-__version__ = '4.0.0'
+__version__ = '4.0.1'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -341,10 +341,7 @@ def run(cmd, arg_str="", cwd="", environ=None, **kwargs):
     :param **kwargs: allows you to pass into underlying Command.run() method
     :returns: string, the output from the command
     """
-    if isinstance(cmd, Modulepath):
-        ret = cmd.run(arg_str, cwd=cwd, environ=environ, **kwargs)
-
-    elif isinstance(cmd, Filepath):
+    if isinstance(cmd, Path) and hasattr(cmd, "run"):
         ret = cmd.run(arg_str, cwd=cwd, environ=environ, **kwargs)
 
     else:
