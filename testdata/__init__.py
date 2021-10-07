@@ -68,7 +68,7 @@ from .mock import *
 from .server import *
 
 
-__version__ = '4.0.1'
+__version__ = '5.0.0'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
