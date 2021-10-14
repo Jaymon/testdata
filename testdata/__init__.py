@@ -19,6 +19,7 @@ import os
 import codecs
 import datetime
 from collections import deque, namedtuple
+from collections.abc import Collection
 import types
 import inspect
 import copy
@@ -68,7 +69,7 @@ from .mock import *
 from .server import *
 
 
-__version__ = '5.0.0'
+__version__ = '5.0.1'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
@@ -316,7 +317,7 @@ def choice(*args, **kwargs):
     exclude = set(exclude) if exclude else set()
     vals = []
     for arg in args:
-        if isinstance(arg, basestring) or not isinstance(arg, Sequence):
+        if isinstance(arg, basestring) or not isinstance(arg, (Sequence, Collection)):
             vals.append(arg)
         else:
             vals.extend(arg)

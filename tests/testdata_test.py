@@ -54,11 +54,20 @@ class TestdataTest(TestCase):
         self.assertTrue("foo" in d)
         self.assertTrue("bar" in d)
 
-    def test_choice(self):
+    def test_choice_1(self):
         xs = [1, 2]
         for x in testdata.get_range():
             r = testdata.choice(xs, exclude=[1])
             self.assertEqual(2, r)
+
+    def test_choice_2(self):
+        """dict_values instances in py3 weren't identified as sequences"""
+        d = {
+            "foo": 1,
+            "bar": 2
+        }
+        r = testdata.choice(d.values())
+        self.assertTrue(r in set(d.values()))
 
     def test_get_counter(self):
         c = testdata.get_counter()
