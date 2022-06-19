@@ -3,7 +3,6 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import os
 import re
 import tempfile
-from distutils import dir_util, file_util
 import codecs
 import shutil
 import sys
@@ -761,24 +760,38 @@ def create_package(data="", modpath="", tmpdir="", make_importable=True, **kwarg
 
 
 def find_data_file(fileroot, basedir="", encoding=""):
+    """find and return a file
+
+    this is primarily used by find_data(), find_data_text(), and find_data_bytes()
+
+    :param fileroot: string, if dirpath + fileroot is actually a full filepath then
+        that will be returned, if not then dirpath/fileroot.* will be searched for
+    :param basedir: string, the base directory used to search for fileroot
+    :returns: Path, the found file
+    """
     f = None
 
-    basedir = basedir or environ.CONTENTS_DIR
-    if not basedir:
-        basedir = os.getcwd()
+    filepath = Filepath(fileroot, dir=basedir)
+    if filepath.exists():
+        f = filepath
 
-    if not basedir:
-        raise IOError("Could not find a testdata data directory")
+    else:
+        basedir = basedir or environ.CONTENTS_DIR
+        if not basedir:
+            basedir = os.getcwd()
 
-    basedir = Dirpath(basedir)
-    patterns = [fileroot, "{}.*".format(fileroot)]
-    for pattern in patterns:
-        for f in basedir.rglob(pattern):
-            if f:
-                break
+        if not basedir:
+            raise IOError("Could not find a testdata data directory")
 
-    if not f:
-        raise IOError("Could not find a testdata data file matching {}".format(fileroot))
+        basedir = Dirpath(basedir)
+        patterns = [fileroot, "{}.*".format(fileroot)]
+        for pattern in patterns:
+            for f in basedir.rglob(pattern):
+                if f:
+                    break
+
+        if not f:
+            raise IOError("Could not find a testdata data file matching {}".format(fileroot))
 
     if encoding:
         f.encoding = encoding
