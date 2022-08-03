@@ -33,6 +33,7 @@ import pkgutil
 import itertools
 
 from .compat import *
+import datatypes
 from .data import (
     _names,
     _unicode_names,
@@ -69,10 +70,11 @@ from .mock import *
 from .server import *
 
 
-__version__ = '5.0.1'
+__version__ = '5.0.2'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
+# DEPRECATED 7-15-2022, doesn't seem to be needed in python3
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
@@ -84,38 +86,9 @@ def basic_logging(**kwargs):
         import testdata
         testdata.basic_logging() # near top of file
 
-    this basically does this:
-        import sys, logging
-        logger = logging.getLogger()
-        logger.setLevel(logging.DEBUG)
-        log_handler = logging.StreamHandler(stream=sys.stderr)
-        log_formatter = logging.Formatter('[%(levelname).1s] %(message)s')
-        log_handler.setFormatter(log_formatter)
-        logger.addHandler(log_handler)
-
     :param **kwargs: key/val, these will be passed into logger.basicConfig method
     """
-    levels = kwargs.pop("levels", [])
-
-    # configure root logger
-    kwargs.setdefault("format", "[%(levelname).1s] %(message)s")
-    kwargs.setdefault("level", logging.DEBUG)
-    kwargs.setdefault("stream", sys.stdout)
-    logging.basicConfig(**kwargs)
-
-    # configure certain loggers
-    # https://github.com/Jaymon/testdata/issues/34
-    for logger_name, logger_level in levels:
-        l = logging.getLogger(logger_name)
-        l.setLevel(getattr(logging, logger_level))
-
-#     rlogger = logging.getLogger()
-#     if not rlogger.handlers:
-#         rlogger.setLevel(kwargs["level"])
-#         handler = logging.StreamHandler(stream=kwargs["stream"])
-#         formatter = logging.Formatter(kwargs["format"])
-#         handler.setFormatter(formatter)
-#         rlogger.addHandler(handler)
+    datatypes.logging.quick_config(**kwargs)
 
 
 @contextmanager

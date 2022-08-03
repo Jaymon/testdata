@@ -9,11 +9,6 @@ from . import TestCase, testdata
 
 
 class MockTest(TestCase):
-#     def test_mock_instance(self):
-#         instance = testdata.mock_instance(foo=1, bar=lambda *a, **kw: 5)
-#         pout.v(instance.foo)
-#         pout.v(instance.bar())
-
     def test_mock_instance(self):
         instance = testdata.mock(foo="1", bar=2, che=lambda *a, **k: 3)
         self.assertEqual("1", instance.foo)
@@ -26,10 +21,15 @@ class MockTest(TestCase):
         self.assertEqual("1", d["foo"])
         self.assertEqual("1", d["che"]["baz"]["foo"])
 
-    def test_mock_depth(self):
+    def test_mock_depth_attr(self):
         """make sure we can mock one object and have it look like many objects"""
         instance = testdata.mock(foo=1)
         self.assertEqual(1, instance.bar.che.foo)
+
+    def test_mock_depth_method(self):
+        """make sure we can mock one object and have it look like many objects"""
+        instance = testdata.mock(foo=1)
+        self.assertEqual(1, instance.bar().che().foo())
 
     def test_mock_error(self):
         instance = testdata.mock(foo=AttributeError, bar=RuntimeError("bar is bad"))
@@ -51,13 +51,8 @@ class MockTest(TestCase):
         self.assertTrue(instance.foo)
         self.assertTrue(instance.foo())
 
-    def test__is_type(self):
-        m = testdata.mock()
-
-        self.assertTrue(m._is_type(True, bool))
-        self.assertTrue(m._is_type(False, bool))
-        self.assertTrue(m._is_type(bool, bool))
-        self.assertFalse(m._is_type(str, bool))
+        self.assertTrue(isinstance(instance.foo, bool))
+        self.assertTrue(isinstance(instance.foo(), bool))
 
     def test_tuple(self):
         m = testdata.mock(foo=("one", "two"))

@@ -39,6 +39,12 @@ class Mock(object):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+    def __call__(self, *args, **kwargs):
+        """if the method doesn't exist then return self so you can do things like
+        `Mock(foo=1).bar().che().foo` and have it work similar to `Mock(foo=1).bar.che.foo`
+        """
+        return self
+
     def __getitem__(self, key):
         try:
             v = super(Mock, self).__getattribute__(key)
@@ -60,23 +66,25 @@ class Mock(object):
             v = super(Mock, self).__getattribute__(key)
 
         except AttributeError:
+            # if the attribute doesn't exist then return self so you can do
+            # things like `Mock(foo=1).bar.che.foo` and have it work
             return self
 
         else:
             if v is not None:
 
                 self._raise_if_error(v)
-                #self.__dict__["_raise_if_error"](v)
 
                 if not hasattr(v, "__call__"):
 
                     frames = inspect.stack()
                     frame = frames[1]
-                    loc = "\n".join(frame[4])
+                    loc = "\n".join(frame[4]) if frame[4] else ["REPL"]
                     if ".{}(".format(key) in loc or ".{}".format(key) not in loc:
 
                         # https://stackoverflow.com/questions/2172189/why-i-cant-extend-bool-in-python
-                        class_type = type(v) if self._is_type(v, bool) == 0 else object 
+                        not_bool = (not self._is_instance(v, bool) and not self._is_subclass(v, bool))
+                        class_type = type(v) if not_bool else object 
 
                         class MockAttr(class_type):
                             def __new__(cls, *args, **kwargs):
@@ -97,54 +105,28 @@ class Mock(object):
         return v
 
     def _raise_if_error(self, v):
-        is_type = self._is_type(v, Exception)
-        if is_type == 1:
+        if self._is_instance(v, Exception):
             raise v
-
-        elif is_type == 2:
+        elif self._is_subclass(v, Exception):
             raise v()
 
-#         do_raise = False
-#         try:
-#             do_raise = isinstance(v, Exception)
-# 
-#         except TypeError:
-#             pass
-# 
-#         else:
-#             if do_raise:
-#                 raise v
-# 
-#         try:
-#             do_raise = issubclass(v, Exception)
-# 
-#         except TypeError:
-#             pass
-# 
-#         else:
-#             if do_raise:
-#                 raise v()
-
-    def _is_type(self, v, class_types):
-        ret = 0
+    def _is_instance(self, v, class_types):
         try:
             if isinstance(v, class_types):
-                ret = 1
+                return True
 
         except TypeError:
             pass
+        return False
 
-        if ret == 0:
-            try:
-                if issubclass(v, class_types):
-                    ret = 2
+    def _is_subclass(self, v, class_types):
+        try:
+            if issubclass(v, class_types):
+                return True
 
-            except TypeError:
-                pass
-
-        return ret
-
-
+        except TypeError:
+            pass
+        return False
 
 
 ###############################################################################
@@ -375,6 +357,5 @@ def mock(**props_and_methods):
     :returns: Mock instance
     """
     return Mock(**props_and_methods)
-
 
 
