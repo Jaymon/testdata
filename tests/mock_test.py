@@ -10,11 +10,24 @@ from . import TestCase, testdata
 
 class MockTest(TestCase):
     def test_mock_instance(self):
+        """make sure .mock_instance() acts like .mock()"""
+        instance = testdata.mock_instance("FooBar", foo="1", bar=2)
+        self.assertEqual("1", instance.foo)
+        self.assertEqual("1", instance.foo())
+        self.assertTrue(isinstance(instance.bar, int))
+        self.assertTrue(isinstance(instance.bar(), int))
+
+    def test_mock_1(self):
         instance = testdata.mock(foo="1", bar=2, che=lambda *a, **k: 3)
         self.assertEqual("1", instance.foo)
         self.assertEqual("1", instance.foo())
         self.assertTrue(isinstance(instance.bar, int))
         self.assertTrue(isinstance(instance.bar(), int))
+        self.assertEqual(3, instance.che())
+
+    def test_mock_2(self):
+        instance = testdata.mock({"foo.bar.che": 1})
+        self.assertEqual(1, instance.foo.bar.che)
 
     def test_mock_dict(self):
         d = testdata.mock(foo="1", bar=2)
@@ -260,4 +273,44 @@ class PatchTest(TestCase):
             environ.FOO
         self.assertEqual(1, m.FOO)
 
+    def test_patch_module_nested(self):
+        m = testdata.patch_module(environ, {"foo.bar.che": 1, "os.getcwd": "/foo/bar"})
+        self.assertEqual(1, m.foo.bar.che)
+        self.assertEqual("/foo/bar", m.os.getcwd())
+
+    def test_patch_method_without_method(self):
+        """Make sure patching a method with a non-method wraps the non-method in
+        a method"""
+        class Foo(object):
+            def barmethod(self):
+                return "barmethod"
+
+            @classmethod
+            def barclass(cls):
+                return "barclass"
+
+            def barstatic():
+                return "barstatic"
+
+        m = testdata.patch_instance(
+            Foo(),
+            barmethod="barmethod 3", 
+            barclass="barclass 3", 
+            barstatic="barstatic 3", 
+        )
+        self.assertEqual("barmethod 3", m.barmethod())
+        self.assertEqual("barclass 3", m.barclass())
+        self.assertEqual("barstatic 3", m.barstatic())
+
+        m_class = testdata.patch_class(
+            Foo,
+            barmethod="barmethod 2", 
+            barclass="barclass 2", 
+            barstatic="barstatic 2", 
+        )
+
+        m = m_class()
+        self.assertEqual("barmethod 2", m.barmethod())
+        self.assertEqual("barclass 2", m.barclass())
+        self.assertEqual("barstatic 2", m.barstatic())
 

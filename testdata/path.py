@@ -661,7 +661,7 @@ module_name = get_module_name
 
 def get_classname(name=""):
     n = get_filename(name=name)
-    return n.title()
+    return n if name else n.title()
 get_class_name = get_classname
 classname = get_classname
 class_name = get_classname
