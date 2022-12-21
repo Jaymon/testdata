@@ -205,24 +205,25 @@ class TempModulepath(TempFilepath):
 
         return instance
 
-    def prepare_text(self, data):
+    def prepare_text(self, data, **kwargs):
         self.touch()
-        data, encoding, errors = super(TempModulepath, self).prepare_text(data)
-        add_encoding = not data.lstrip().startswith("# -*- coding: utf-8 -*-")
-        if "from __future__ import " not in data:
-            lines = [
-                "from __future__ import (",
-                "    unicode_literals,",
-                "    division,",
-                "    print_function,",
-                "    absolute_import",
-                ")",
-                "",
-            ]
-            data = "\n".join(lines) + data
+        data, encoding, errors = super().prepare_text(data, **kwargs)
+        add_coding = kwargs.get("add_coding", not "# -*- coding:" in data)
+        if kwargs.get("add_future", False):
+            if "from __future__ import " not in data:
+                lines = [
+                    "from __future__ import (",
+                    "    unicode_literals,",
+                    "    division,",
+                    "    print_function,",
+                    "    absolute_import",
+                    ")",
+                    "",
+                ]
+                data = "\n".join(lines) + data
 
-        if add_encoding:
-            data = "# -*- coding: utf-8 -*-\n" + data.lstrip()
+        if add_coding:
+            data = f"# -*- coding: {encoding} -*-\n" + data.lstrip()
 
         if not data.endswith("\n"):
             data += "\n"
