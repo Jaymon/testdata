@@ -120,7 +120,7 @@ class TempDirpath(Path, BaseTempDirpath):
                     yield submodule
 
     def __contains__(self, pattern):
-        return self.has(pattern)
+        return self.has(pattern=pattern)
 
 
 class TempFilepath(Path, BaseTempFilepath):
@@ -560,7 +560,7 @@ def create_image(image_type="", path="", tmpdir=""):
         image_type, ext, image = random.choice(images)
 
     # https://docs.python.org/2/library/pkgutil.html#pkgutil.get_data
-    contents = pkgutil.get_data(__name__.split(".")[0], "data/{}".format(image))
+    data = pkgutil.get_data(__name__.split(".")[0], "data/{}".format(image))
 
     if path:
         if not path.lower().endswith(ext):
@@ -569,7 +569,7 @@ def create_image(image_type="", path="", tmpdir=""):
         path = get_filename(ext=ext)
 
     return create_file(
-        contents=contents,
+        data=data,
         path=path,
         tmpdir=tmpdir,
         encoding=None

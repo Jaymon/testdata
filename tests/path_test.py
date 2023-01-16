@@ -219,7 +219,7 @@ class DirpathTest(TestCase):
         self.assertTrue(os.path.isfile(path), "{} does not exist".format(path))
         self.assertEqual(contents, path.read_text())
 
-    def test_create_dir(self):
+    def test_create_dir_1(self):
         ts = [
             "\\foo\\bar",
             "/foo1/bar1",
@@ -237,6 +237,11 @@ class DirpathTest(TestCase):
 
         d = testdata.create_dir()
         self.assertTrue(os.path.isdir(d))
+
+    def test_create_dir_2(self):
+        tmpdir = testdata.create_dir()
+        r = testdata.create_dir("foo", tmpdir=tmpdir)
+        self.assertTrue(r.startswith(tmpdir))
 
 
 class ModulepathTest(TestCase):
@@ -527,24 +532,31 @@ class ImageTest(TestCase):
         d = testdata.create_directory()
         jpg = testdata.create_jpg(tmpdir=d)
         self.assertTrue(jpg.endswith(".jpg"))
+        self.assertLess(0, jpg.size())
 
         png = testdata.create_png(tmpdir=d)
         self.assertTrue(png.endswith(".png"))
+        self.assertLess(0, png.size())
 
         gif = testdata.create_gif(tmpdir=d)
         self.assertTrue(gif.endswith(".gif"))
+        self.assertLess(0, gif.size())
 
         agif = testdata.create_animated_gif(tmpdir=d)
         self.assertTrue(agif.endswith(".gif"))
+        self.assertLess(0, gif.size())
 
         ico = testdata.create_ico(tmpdir=d)
         self.assertTrue(ico.endswith(".ico"))
+        self.assertLess(0, ico.size())
 
         jpg = testdata.create_jpg("foo", tmpdir=d)
         self.assertTrue(jpg.endswith("foo.jpg"))
+        self.assertLess(0, jpg.size())
 
         jpg = testdata.create_jpg("bar.jpg", tmpdir=d)
         self.assertTrue(jpg.endswith("bar.jpg"))
+        self.assertLess(0, jpg.size())
 
     def test_create_png(self):
         png_bw = testdata.create_png(width=1000, height=500)

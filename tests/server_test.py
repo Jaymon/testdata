@@ -4,10 +4,16 @@ import logging
 
 from testdata import environ
 from testdata.compat import *
-from testdata.server import AnyServer, CookieServer, CallbackServer
+from testdata.server import AnyServer, CookieServer, CallbackServer, Server
 from testdata.client import HTTP, Command
 
 from . import TestCase, testdata
+
+
+class ServerTest(TestCase):
+    def test_url(self):
+        s = Server()
+        self.assertTrue(s.url("foo", "bar.txt").endswith("/foo/bar.txt"))
 
 
 class FileserverTest(TestCase):
