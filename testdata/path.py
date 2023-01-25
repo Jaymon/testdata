@@ -136,14 +136,7 @@ class TempFilepath(Path, BaseTempFilepath):
 
 
 class TempModulepath(TempFilepath):
-    '''
-    create a python module folder structure so that the module can be imported
-
-    module_name -- string -- something like foo.bar
-    contents -- string -- the contents of the module
-    tmpdir -- string -- the temp directory that will be added to the syspath if make_importable is True
-    make_importable -- boolean -- if True, then tmpdir will be added to the python path so it can be imported
-    '''
+    """create a python module folder structure so that the module can be imported"""
     @property
     def modparts(self):
         return self.split('.')
@@ -448,7 +441,7 @@ def create_file(data="", path="", tmpdir="", encoding="", **kwargs):
     create a file and return the full path to that file
 
     :param path: string, the path to the file
-    :param contents: string, the file contents
+    :param data: string, the file contents
     :param tmpdir: string, the temp directory to use as the base
     :param encoding: string, whatever encoding you want the file to have
     :param **kwargs: anything else will be passed to constructor
@@ -594,7 +587,7 @@ def create_png(path="", tmpdir="", width=0, height=0, color=None):
 
         return create_file(
             path=path,
-            contents=make_png(width, height, color=color),
+            data=make_png(width, height, color=color),
             tmpdir=tmpdir,
             encoding=None
         )
@@ -744,7 +737,7 @@ def create_package(data="", modpath="", tmpdir="", make_importable=True, **kwarg
     an __init__.py instead of module_name.py
 
     module_name -- string -- something like foo.bar
-    contents -- string -- the contents of the module
+    data -- string -- the contents of the module
     tmpdir -- string -- the temp directory that will be added to the syspath if make_importable is True
     make_importable -- boolean -- if True, then tmpdir will be added to the python path so it can be imported
 

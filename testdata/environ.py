@@ -17,6 +17,7 @@ TEMPDIR = os.environ.get("TESTDATA_TEMPDIR", tempfile.gettempdir())
 CONTENTS_DIR = os.environ.get("TESTDATA_CONTENTS_DIR", "")
 
 # The server hostname and port information
+# DEPRECATED?
 HOSTNAME = os.environ.get("TESTDATA_HOSTNAME", "127.0.0.1")
 HOSTPORT = int(os.environ.get("TESTDATA_HOSTPORT", 0))
 

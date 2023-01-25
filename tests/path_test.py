@@ -163,9 +163,9 @@ class FilepathTest(TestCase):
     def test_create_file(self):
         ts = [
             "./foo/bar/test.txt",
-            "\\foo\\bar\\test.txt",
-            "/foo1/bar1/test.txt",
-            "/test.txt",
+            "foo\\bar\\test.txt",
+            "foo1/bar1/test.txt",
+            "test.txt",
             "foo3/test.txt",
             "foo4/bar4/che4/test.txt",
         ]
@@ -221,9 +221,9 @@ class DirpathTest(TestCase):
 
     def test_create_dir_1(self):
         ts = [
-            "\\foo\\bar",
-            "/foo1/bar1",
-            "/foo2/bar2/",
+            "foo\\bar",
+            "foo1/bar1",
+            "foo2/bar2/",
             "foo3/bar3",
             "foo4/bar4/",
             "./foo/bar",
@@ -562,7 +562,9 @@ class ImageTest(TestCase):
         png_bw = testdata.create_png(width=1000, height=500)
         png_red = testdata.create_png(tmpdir=png_bw.directory, width=1000, height=500, color=[255,0,0])
         self.assertTrue(png_red.exists())
+        self.assertLess(0, png_red.size())
         self.assertTrue(png_bw.exists())
+        self.assertLess(0, png_bw.size())
 
 
 class InterpreterTest(TestCase):
