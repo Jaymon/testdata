@@ -29,7 +29,6 @@ expected_failure = expectedFailure # Mark the test as an expected failure.
 expect_failure = expectedFailure
 
 
-
 def get_testdata_module():
     """Find and return the testdata module that will be used to proxy testdata
     methods through this class
@@ -106,7 +105,37 @@ class _TestCase(_TestCaseMixin, BaseTestCase):
         """This overrides the default skipTest method to work in things like setUpClass()"""
         raise SkipTest(*args, **kwargs)
 
-    def assertUntilTrue(callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1): 
+    def assertEventuallyEqual(self, v1, callback, msg="", count=30, wait=0.25):
+        """Will run callback up to count times waiting wait seconds between each
+        check or until callback's return value equals v1
+
+        Moved here from morp's base test interface class on 2-6-2023
+
+        :param v1: mixed, the value to check against callback
+        :param callback: callable, this will be called up to count times or until
+            the return value equals v1
+        :param msg: str, the message to print on failure
+        :param count: int, how many times to run callback
+        :param wait: float, how many seconds to wait before attempts
+        """
+        ret = False
+        for x in range(count - 1):
+            if callback() == v1:
+                ret = True
+                break
+
+            else:
+                time.sleep(wait)
+
+        if not ret:
+            self.assertEqual(v1, callback(), msg)
+
+    def assertUntilTrue(self, callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1): 
+        """will run callback every interval until timeout is exceeded or until callback
+        returns True
+
+        see testdata.wait()
+        """
         td = self.get_testdata()
         td.wait(callback, cb_args, cb_kwargs, timeout, interval)
 
@@ -124,13 +153,19 @@ class _TestCase(_TestCaseMixin, BaseTestCase):
     assertNotAscii = assertUnicode
 
     @contextmanager
-    def assertWithin(self, seconds):
+    def assertWithin(self, *seconds):
         """checks if the code executes within seconds
 
         :Example:
             with self.assertWithin(1):
                 foo() # if returns within 1 second we're good, otherwise AssertError
-        :param seconds: float, how many seconds before considered a failure
+
+            with self.assertWithin(.75, 1.25):
+                foo() # if returns between .75-1.25 seconds then it's good
+
+        :param *seconds: float(s), how many seconds before considered a failure, if
+            only one is passed in then it is max seconds, if two values are passed
+            in then it is min, max and the value has to be between them
         """
         try:
             start = time.time()
@@ -139,8 +174,17 @@ class _TestCase(_TestCaseMixin, BaseTestCase):
         finally:
             stop = time.time()
             total = stop - start
-            if total > seconds:
-                self.fail("Runtime of {:.2f} seconds > {} seconds".format(total, seconds))
+            if len(seconds) > 1:
+                if total <= seconds[0] or total >= seconds[1]:
+                    self.fail("Runtime of {:.2f} seconds was not within {} - {} seconds".format(
+                        total,
+                        seconds[0],
+                        seconds[1]
+                    ))
+
+            else:
+                if total > seconds[0]:
+                    self.fail("Runtime of {:.2f} seconds > {} seconds".format(total, seconds[0]))
 
 
 class TestCase(_TestCase, metaclass=_TestCaseMeta):
