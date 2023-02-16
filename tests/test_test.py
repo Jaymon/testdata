@@ -9,8 +9,6 @@ from . import TestCase, testdata
 
 class TestCaseTest(TestCase):
     def test_self_testdata(self):
-        #s = self.get_string()
-        #return
         td = type(self).testdata
 
         s = type(self).get_string()

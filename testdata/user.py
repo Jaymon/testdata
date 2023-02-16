@@ -2,7 +2,6 @@
 import re
 import random
 import string
-#from collections import namedtuple
 import time
 
 from datatypes import String
@@ -20,12 +19,32 @@ from .base import TestData
 
 class Address(tuple):
     @property
+    def street(self):
+        return self[0]
+
+    @property
     def address1(self):
         return self.street
 
     @property
+    def section(self):
+        return self[1]
+
+    @property
     def address2(self):
         return self.section
+
+    @property
+    def city(self):
+        return self[2]
+
+    @property
+    def state(self):
+        return self[3]
+
+    @property
+    def zipcode(self):
+        return self[4]
 
     @property
     def line(self):
@@ -42,28 +61,23 @@ class Address(tuple):
             lines.append(self.section)
         lines.append("{}, {}".format(self.city, self.state))
         lines.append(self.zipcode)
-        lines = "\n".join(self.lines)
+        lines = "\n".join(lines)
         return lines
 
     def __new__(cls, *values):
-        instance = super().__new__(cls, values)
+        return super().__new__(cls, values)
 
-        instance.street = values[0]
-        instance.section = values[1]
-        instance.city = values[2]
-        instance.state = values[3]
-        instance.zipcode = values[4]
+    def __getitem__(self, i):
+        if i == 5:
+            ret = self.line
 
-        return instance
+        elif i == 6:
+            ret = self.lines
 
-#     def __init__(self, *values):
-#         super().__init__(values)
-# 
-#         self.street = values[0]
-#         self.section = values[1]
-#         self.city = values[2]
-#         self.state = values[3]
-#         self.zipcode = values[4]
+        else:
+            ret = super().__getitem__(i)
+
+        return ret
 
     def __str__(self):
         return self.line
@@ -287,31 +301,14 @@ class UserData(TestData):
         state = self.get_usa_state(**kwargs)
         zipcode = self.get_usa_zipcode(state)
 
-#         line = street
-#         if section:
-#             line += " " + section
-#         line += ", " + city + ", " + state + " " + zipcode
-# 
-#         lines = [street]
-#         if section:
-#             lines.append(section)
-#         lines.append("{}, {}".format(city, state))
-#         lines.append(zipcode)
-#         lines = "\n".join(lines)
-
         address = Address(
             street,
             section,
             city,
             state,
             zipcode,
-#             line,
-#             lines,
         )
 
-        #address.line = line
-        #address.lines = lines
-        #address.__str__ = lambda: line
         return address
     get_us_address = get_usa_address
     get_us_addr = get_usa_address

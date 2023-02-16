@@ -144,13 +144,6 @@ class TempModulepath(TempFilepath):
             d = d.directory
         return d
 
-#     @property
-#     def parent(self):
-#         modparts = self.modparts
-#         if len(modparts) > 1:
-#             modparts.pop(-1)
-#         return self.tempmodule_class()(*modparts, dir=self.directory)
-
     @classmethod
     def normparts(cls, *parts, **kwargs):
         kwargs.setdefault("root", "")
@@ -187,7 +180,6 @@ class TempModulepath(TempFilepath):
     @classmethod
     def normvalue(cls, *parts, **kwargs):
         return ".".join(parts[1:])
-        #return super(TempModulepath, cls).normvalue(*parts, **kwargs)
 
     @classmethod
     def create_as(cls, instance, **kwargs):

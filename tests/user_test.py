@@ -25,8 +25,8 @@ class UserTest(TestCase):
         self.assertEqual(a[2], a.city)
         self.assertEqual(a[3], a.state)
         self.assertEqual(a[4], a.zipcode)
-#         self.assertEqual(a[5], a.line)
-#         self.assertEqual(a[6], a.lines)
+        self.assertEqual(a[5], a.line)
+        self.assertEqual(a[6], a.lines)
 
     def test_get_names(self):
         fname = testdata.get_first_name()

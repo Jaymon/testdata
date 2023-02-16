@@ -176,12 +176,6 @@ class Command(object):
         ], 0)
         options["expected_returncodes"] = set(make_list(retcode))
 
-#         options["expected_returncode"] = 0
-#         for k in ["code", "ret_code", "returncode", "expected_ret_code", "expected_returncode"]:
-#             if k in kwargs:
-#                 options["expected_returncode"] = kwargs.pop(k)
-#                 break
-
         # any kwargs with all capital letters should be considered environment
         # variables
         environ = self.environ

@@ -19,7 +19,7 @@ Or, with Pip using Github:
 
 ## Functionality
 
-This is an overview of some of the functions and classes found in the Testdata module, there are other functions (like `get_birthday`) that aren't listed here, for the complete list just look at the [source](https://github.com/Jaymon/testdata/blob/master/testdata.py).
+This is an overview of some of the functions and classes found in the Testdata module, there are other functions (like `get_birthday`) that aren't listed here, for the complete list just look at the [source](https://github.com/Jaymon/testdata/tree/master/testdata). Any methods on any child class that extends `testdata.base.TestData` will be available at `testdata.<METHOD-NAME>`.
 
 
 ### patch
@@ -140,7 +140,7 @@ if "foo" in c:
 
 ### Threading
 
-A wrapper around python's builtin `threading.Thread` class that bubbles errors up to the main thread because, by default, python's threading classes suppress errors, this makes it annoying when using threads for testing.
+A wrapper around python's builtin `threading.Thread` class that bubbles errors up to the main thread because, by default, python's threading classes suppress errors, this makes it annoying when using threads for testing. __NOTE__ - This is buggier than I would like.
 
 ```python
 def run():
@@ -199,7 +199,7 @@ print(d["FOO"]) # raises KeyError
 ### create_dir
 
 ```python
-create_dir(path, tmpdir="")
+create_dir(path="", tmpdir="")
 ```
 
 create a directory hierarchy
@@ -210,19 +210,38 @@ d = testdata.create_dir("/foo/bar", base_dir)
 print d # /tmp/foo/bar
 ```
 
+
+### create_dirs
+
+```python
+create_dirs(dirs, tmpdir="")
+```
+
+Create a bunch of files and folders
+
+```python
+testdata.create_dirs({
+  "foo": {
+    "bar": {
+      "che.txt": ["line 1", "line 2"],
+    }
+  }
+})
+```
+
 -------------------------------------------------------------------------------
 
 ### create_file
 
 ```python
-create_file(path, contents="", tmpdir="", encoding="")
+create_file(data="", path="", tmpdir="", encoding="")
 ```
 
 create a file with contents
 
 ```python
 base_dir = "/tmp"
-f = testdata.create_file("/foo/bar.txt", "The file contents", base_dir)
+f = testdata.create_file(path="/foo/bar.txt", data="The file contents", tmpdir=base_dir)
 print f # /tmp/foo/bar.txt
 ```
 
@@ -231,7 +250,7 @@ print f # /tmp/foo/bar.txt
 ### create_files
 
 ```python
-create_files(file_dict, tmpdir="", encoding="")
+create_files(file_dict, tmpdir="")
 ```
 
 Create a whole bunch of files, the `file_dict` key is the filename, the value is the contents of the file.
@@ -261,14 +280,14 @@ This will return a `Filepath` instance that you can manipulate but unlike `creat
 ### create_module
 
 ```python
-create_module(module_name, contents="", tmpdir="", make_importable=True)
+create_module(data="", modpath="", tmpdir="", make_importable=True)
 ```
 
 create a module with python contents that can be imported
 
 ```python
 base_dir = "/tmp"
-f = testdata.create_module("foo.bar", "class Che(object): pass", base_dir)
+f = testdata.create_module(modpath="foo.bar", data="class Che(object): pass", tmpdir=base_dir)
 print f # /tmp/foo/bar.py
 ```
 
@@ -479,23 +498,20 @@ return a datetime guaranteed to be in the future from `start` and in the past fr
     >>> testdata.get_between_datetime(start)
     datetime.datetime(2017, 8, 3, 15, 54, 58, 670249)
 
+-------------------------------------------------------------------------------
 
 ## Development
 
 ### Testing
 
-Testing in 2.7 on most systems:
+Testing on MacOS:
 
     $ python -m unittest testdata_test
-
-Testing in 3.5 on MacOS:
-
-    $ python3.5 -m unittest testdata_test
 
 
 ### Dependencies
 
-Development needs [datatypes](https://github.com/Jaymon/datatypes) on the path. This is kind of a strange thing because datatypes depends on testdata for testing. Making datatypes available to testdata for development should be as easy as:
+Development needs [datatypes](https://github.com/Jaymon/datatypes) on the path. This is kind of a strange thing because datatypes depends on `testdata` for testing. Making `datatypes` available to `testdata` for development should be as easy as:
 
 ```
 export PYTHONPATH=$PYTHONPATH:/path/to/dir/containing/datatypes

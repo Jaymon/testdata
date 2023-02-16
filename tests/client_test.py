@@ -151,5 +151,3 @@ class ClientTest(TestCase):
             self.assertEqual(200, res.code)
             self.assertEqual("PUT", res.body)
 
-
-

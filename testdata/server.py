@@ -181,6 +181,8 @@ class ServerData(TestData):
         path = self.create_files(file_dict, tmpdir=tmpdir, encoding=encoding)
         return Server(PathServer(path, server_address=(hostname, port), encoding=encoding))
     create_file_server = create_fileserver
+    create_pathserver = create_fileserver
+    create_path_server = create_fileserver
 
     def create_cookieserver(self, cookies, hostname="", port=0):
         """create a fileserver that can be used to test remote file retrieval

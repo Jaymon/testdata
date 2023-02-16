@@ -165,7 +165,7 @@ class NumberData(TestData):
     get_posinteger = get_posint
     get_pint = get_posint
 
-    def get_int(self, min_size=1, max_size=None):
+    def get_int(self, min_size=1, max_size=2**31-1):
         return self.get_full_int(min_size=min_size, max_size=max_size)
     get_integer=get_int
 

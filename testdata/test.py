@@ -14,6 +14,7 @@ import importlib
 
 from .compat import *
 from .config import environ
+from .base import TestData
 
 
 # https://docs.python.org/3/library/unittest.html#unittest.skip
@@ -29,15 +30,16 @@ def get_testdata_module():
 
     :returns: module, the testdata module that should be used
     """
-    td = None
-    if environ.TESTDATA_MODULEPATH:
-        td = importlib.import_module(environ.TESTDATA_MODULEPATH)
-
-    if not td:
-        path = __name__.split(".")[0]
-        td = sys.modules[path]
-
-    return td
+    return TestData.module()
+#     td = None
+#     if environ.TESTDATA_MODULEPATH:
+#         td = importlib.import_module(environ.TESTDATA_MODULEPATH)
+# 
+#     if not td:
+#         path = __name__.split(".")[0]
+#         td = sys.modules[path]
+# 
+#     return td
 
 
 class _TestCaseMixin(object):
