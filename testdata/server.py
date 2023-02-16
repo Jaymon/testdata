@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
-import os
-import json
 import logging
-from wsgiref.simple_server import WSGIServer as WSGIHTTPServer, WSGIRequestHandler
-import runpy
-import weakref
 
-from datatypes.url import Url, Host
+from datatypes.url import Host
 from datatypes.server import (
     ServerThread,
     PathServer,
@@ -15,9 +10,8 @@ from datatypes.server import (
 )
 
 from .compat import *
-from .threading import Thread
-from . import environ
-from .path import create_files, Filepath, Dirpath
+from .config import environ
+from .base import TestData
 
 
 logger = logging.getLogger(__name__)
@@ -32,10 +26,10 @@ class Server(ServerThread):
     is the url scheme://hostname:port but adds helper methods to manage the webserver
 
     :Example:
-        s = Server()
+        s = Server(PathServer("<SOME-PATH>"))
         with s:
             # make an http request to <SERVER-HOST>/foo/bar.txt
-            requests.get(s.url("foo", "bar.txt"))
+            requests.get(s.child("foo", "bar.txt"))
     """
     @classmethod
     def get_server_address(self, hostname, port):
@@ -54,6 +48,7 @@ class Server(ServerThread):
         :param *parts: list, the path parts you will add to the scheme://netloc
         :returns: the full url scheme://netloc/parts
         """
+        # DEPRECATED? this extends Url so you can use al Url's helper methods
         return self.child(*parts, **kwargs)
 
 
@@ -163,44 +158,66 @@ class CookieServer(CallbackServer):
 ###############################################################################
 # testdata functions
 ###############################################################################
+class ServerData(TestData):
+    def create_fileserver(self, file_dict, tmpdir="", hostname="", port=0, encoding=""):
+        """create a fileserver that can be used to test remote file retrieval
 
-def create_fileserver(file_dict, tmpdir="", hostname="", port=0, encoding=""):
-    """
-    create a fileserver that can be used to test remote file retrieval
+        :Example:
+            c = testdata.create_fileserver({
+                "foo.txt": "foo text body",
+                "bar/che.txt": "che text body",
+            })
 
-    :Example:
-        c = testdata.create_fileserver({
-            "foo.txt": "foo text body",
-            "bar/che.txt": "che text body",
-        })
+        :param file_dict: dict|list|str, same as create_files
+        :param tmpdir: str, same as create_files
+        :param hostname: str, usually leave this alone and it will use localhost
+        :param port: int, the port you want to use
+        """
+        if not isinstance(file_dict, Mapping):
+            file_dict = {
+                "index.html": file_dict
+            }
 
-    :param file_dict: dict|list|str, same as create_files
-    :param tmpdir: str, same as create_files
-    :param hostname: str, usually leave this alone and it will use localhost
-    :param port: int, the port you want to use
-    """
-    if not isinstance(file_dict, Mapping):
-        file_dict = {
-            "index.html": file_dict
-        }
+        path = self.create_files(file_dict, tmpdir=tmpdir, encoding=encoding)
+        return Server(PathServer(path, server_address=(hostname, port), encoding=encoding))
+    create_file_server = create_fileserver
 
-    path = create_files(file_dict, tmpdir=tmpdir, encoding=encoding)
-    return Server(PathServer(path, server_address=(hostname, port), encoding=encoding))
+    def create_cookieserver(self, cookies, hostname="", port=0):
+        """create a fileserver that can be used to test remote file retrieval
 
+        :Example:
+            c = testdata.create_cookieserver({
+                "foo-cookie-name": "foo cookie value",
+                "bar-cookie-name": "bar cookie value",
+            })
 
-def create_cookieserver(cookies, hostname="", port=0):
-    """
-    create a fileserver that can be used to test remote file retrieval
+        :param cookies: a dict of name: val or a list ot tuples(name, val)
+        :param hostname: str, usually leave this alone and it will use localhost
+        :param port: int, the port you want to use
+        """
+        return Server(CookieServer(cookies, server_address=(hostname, port)))
+    create_cookie_server = create_cookieserver
 
-    :Example:
-        c = testdata.create_cookieserver({
-            "foo-cookie-name": "foo cookie value",
-            "bar-cookie-name": "bar cookie value",
-        })
+    def create_callbackserver(self, cb_dict, hostname="", port=0):
+        """Create a callback server
 
-    :param cookies: a dict of name: val or a list ot tuples(name, val)
-    :param hostname: str, usually leave this alone and it will use localhost
-    :param port: int, the port you want to use
-    """
-    return Server(CookieServer(cookies, server_address=(hostname, port)))
+        :Example:
+            def do_PUT(handler):
+                return "PUT"
+
+            c = testdata.create_callbackserver({
+                "PUT": do_PUT,
+            })
+
+        https://github.com/Jaymon/testdata/issues/79
+
+        :param cb_dict: dict, key is the http method and value is the callback, the
+            callback should have a signature of (handler)
+        :param hostname: str, usually leave this alone and it will use localhost
+        :param port: int, the port you want to use
+        """
+        return Server(CallbackServer(cb_dict, server_address=(hostname, port)))
+    create_callback_server = create_callbackserver
+    create_cb_server = create_callbackserver
+    create_cbserver = create_callbackserver
 

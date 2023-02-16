@@ -9,6 +9,7 @@ import time
 import os
 
 from .compat import queue, _thread, reraise, is_py2
+from .base import TestData
 
 
 logger = logging.getLogger(__name__)
@@ -323,4 +324,26 @@ class Tail(object):
     def flush(self, line):
         """flush the line to the stream"""
         self.stream.write("{}{}".format(self.prefix, line))
+
+
+###############################################################################
+# testdata functions
+###############################################################################
+class ThreadingData(TestData):
+    def tail(self, path, stream=None, encoding="UTF-8", **kwargs):
+        """Tail/follow path in a separate thread
+
+        :Example:
+            testdata.tail("/path/to/tail")
+
+        :param path: string, the path of the file you want to tail/follow
+        :param stream: io.IOBase, a file object with a write method
+        :param encoding: string, the encoding of lines
+        :param **kwargs:
+            prefix -- by default prefix is the path basename, but you can set
+                something custom here
+        """
+        t = Tail(path, stream, encoding, **kwargs)
+        t.start()
+        return t
 

@@ -3,9 +3,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import time
 
 from testdata.threading import Thread, Deque, Tail
-from testdata import threading
 from testdata.compat import *
-from testdata.utils import ByteString, String
 from testdata.client import Command
 
 from . import TestCase, testdata

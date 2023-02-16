@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
-import os
 
 from testdata.compat import *
-from testdata import environ
 
 from . import TestCase, testdata
 
@@ -263,18 +261,24 @@ class PatchTest(TestCase):
         self.assertTrue(isinstance(f2, Foo))
 
     def test_patch_module(self):
-        m = testdata.patch_module(environ, {"FOO": 1, "BAR": 2})
+        mpath = testdata.create_module()
+        morig = mpath.module()
+
+        m = testdata.patch_module(morig, {"FOO": 1, "BAR": 2})
         with self.assertRaises(AttributeError):
-            environ.FOO
+            morig.FOO
         self.assertEqual(1, m.FOO)
 
-        m = testdata.patch_module(environ.__name__, {"FOO": 1, "BAR": 2})
+        m = testdata.patch_module(mpath, {"FOO": 1, "BAR": 2})
         with self.assertRaises(AttributeError):
-            environ.FOO
+            morig.FOO
         self.assertEqual(1, m.FOO)
 
     def test_patch_module_nested(self):
-        m = testdata.patch_module(environ, {"foo.bar.che": 1, "os.getcwd": "/foo/bar"})
+        mpath = testdata.create_module()
+        morig = mpath.module()
+
+        m = testdata.patch_module(morig, {"foo.bar.che": 1, "os.getcwd": "/foo/bar"})
         self.assertEqual(1, m.foo.bar.che)
         self.assertEqual("/foo/bar", m.os.getcwd())
 

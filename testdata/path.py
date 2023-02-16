@@ -2,18 +2,10 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 import os
 import re
-import tempfile
-import codecs
-import shutil
 import sys
 import pkgutil
 import importlib
-import stat
 import inspect
-#import glob
-import fnmatch
-import hashlib
-from collections import deque
 import random
 from contextlib import contextmanager
 import zlib
@@ -28,8 +20,8 @@ from datatypes.path import (
 from datatypes.csv import CSV
 
 from .compat import *
-from . import environ
-from .client import ModuleCommand, FileCommand
+from .config import environ
+from .base import TestData
 
 
 ###############################################################################
@@ -130,6 +122,9 @@ class TempFilepath(Path, BaseTempFilepath):
         :param arg_str: string, flags you want to pass into the execution of the script
         :returns: string, the output of running the file/script
         """
+        # avoid circular dependency
+        from .client import FileCommand
+
         cwd = cwd if cwd else self.basedir
         cmd = FileCommand(self, cwd=cwd, environ=environ)
         return cmd.run(arg_str, **kwargs)
@@ -148,6 +143,13 @@ class TempModulepath(TempFilepath):
         if self.is_package():
             d = d.directory
         return d
+
+#     @property
+#     def parent(self):
+#         modparts = self.modparts
+#         if len(modparts) > 1:
+#             modparts.pop(-1)
+#         return self.tempmodule_class()(*modparts, dir=self.directory)
 
     @classmethod
     def normparts(cls, *parts, **kwargs):
@@ -277,10 +279,16 @@ class TempModulepath(TempFilepath):
         :param arg_str: string, flags you want to pass into the execution of this module
         :returns: string, the output of running the file/script
         """
+        # avoid circular dependency
+        from .client import ModuleCommand
+
         mod = self
         cwd = cwd if cwd else mod.basedir
         if self.endswith("__main__") or self.endswith("__init__"):
-            mod = self.parent
+            modparts = self.modparts
+            modparts.pop(-1)
+            mod = ".".join(modparts)
+
         cmd = ModuleCommand(mod, cwd=cwd, environ=environ)
         return cmd.run(arg_str, **kwargs)
 
@@ -388,512 +396,486 @@ def make_jpg(width, height, color=None):
 ###############################################################################
 # testdata functions
 ###############################################################################
+class PathData(TestData):
+    def create_dir(self, path="", tmpdir=""):
+        '''
+        create a directory path using a tempdir as the root
 
-def create_dir(path="", tmpdir=""):
-    '''
-    create a directory path using a tempdir as the root
+        so, if you pass in "/foo/bar" that will be combined with a tempdir, so you end 
+        up with the final path: /tmp/python/dir/foo/bar
 
-    so, if you pass in "/foo/bar" that will be combined with a tempdir, so you end 
-    up with the final path: /tmp/python/dir/foo/bar
+        :param path: string, the temp dir path
+        :param tmpdir: string, the temp directory to use as the base
+        :returns: Dirpath, the full directory path
+        '''
+        return TempDirpath(path, dir=tmpdir)
+    create_directory = create_dir
+    create_d = create_dir
 
-    :param path: string, the temp dir path
-    :param tmpdir: string, the temp directory to use as the base
-    :returns: Dirpath, the full directory path
-    '''
-    return TempDirpath(path, dir=tmpdir)
-create_directory = create_dir
-create_d = create_dir
+    def create_dirs(self, dirs, tmpdir=""):
+        """
+        create a whole bunch of directories all at once
 
+        :param dirs: list, the directories to create relative to tmpdir
+        :param tmpdir: string, the base directory
+        :returns: Dirpath instance pointing to the base directory all of dirs were
+            created in
+        """
+        base_dir = TempDirpath(dir=tmpdir)
+        base_dir.add(dirs)
+        return base_dir
+    create_ds = create_dirs
 
-def create_dirs(dirs, tmpdir=""):
-    """
-    create a whole bunch of directories all at once
+    def get_dir(self, path="", tmpdir="", **kwargs):
+        """
+        return a directory path
 
-    :param dirs: list, the directories to create relative to tmpdir
-    :param tmpdir: string, the base directory
-    :returns: Dirpath instance pointing to the base directory all of dirs were
-        created in
-    """
-    base_dir = TempDirpath(dir=tmpdir)
-    base_dir.add(dirs)
-    return base_dir
-create_ds = create_dirs
+        :param path: string, the path to a real directory
+        :returns: Dirpath, the path wrapped with all the Dirpath functionality
+        """
+        if not path:
+            # we have to create a filename because otherwise the temp directory will exist
+            path = self.get_filename()
+        kwargs.setdefault("touch", False)
+        return TempDirpath(path, dir=tmpdir, **kwargs)
+    get_directory = get_dir
+    get_d = get_dir
 
+    def create_file(self, data="", path="", tmpdir="", encoding="", **kwargs):
+        '''
+        create a file and return the full path to that file
 
-def get_dir(path="", tmpdir="", **kwargs):
-    """
-    return a directory path
+        :param path: string, the path to the file
+        :param data: string, the file contents
+        :param tmpdir: string, the temp directory to use as the base
+        :param encoding: string, whatever encoding you want the file to have
+        :param **kwargs: anything else will be passed to constructor
 
-    :param path: string, the path to a real directory
-    :returns: Dirpath, the path wrapped with all the Dirpath functionality
-    """
-    if not path:
-        # we have to create a filename because otherwise the temp directory will exist
-        path = get_filename()
-    kwargs.setdefault("touch", False)
-    return TempDirpath(path, dir=tmpdir, **kwargs)
-get_directory = get_dir
-get_d = get_dir
+        :returns: Filepath, the full file path
+        '''
+        return TempFilepath(path, data=data, encoding=encoding, dir=tmpdir, **kwargs)
+    create_f = create_file
 
+    def create_files(self, file_dict, tmpdir="", **kwargs):
+        """
+        create a whole bunch of files all at once
 
-def create_file(data="", path="", tmpdir="", encoding="", **kwargs):
-    '''
-    create a file and return the full path to that file
+        :param file_dict: dict, keys are the filepath relative to tmpdir, values are the
+            file contents
+        :param tmpdir: Dirpath, same as create_module() tmpdir
+        :param **kwargs:
+            encoding -- the encoding for any files
+            errors -- what to do if encoding encounters an error
+        """
+        base_dir = TempDirpath(dir=tmpdir)
+        base_dir.add(file_dict, **kwargs)
+        return base_dir
+    create_fs = create_files
 
-    :param path: string, the path to the file
-    :param data: string, the file contents
-    :param tmpdir: string, the temp directory to use as the base
-    :param encoding: string, whatever encoding you want the file to have
-    :param **kwargs: anything else will be passed to constructor
+    def get_file(self, path="", tmpdir="", encoding="", **kwargs):
+        """
+        :param **kwargs: key/vals will be passed to get_filename()
+        """
+        kwargs.setdefault("touch", False)
+        return TempFilepath(path, encoding=encoding, dir=tmpdir, **kwargs)
+    get_f = get_file
 
-    :returns: Filepath, the full file path
-    '''
-    return TempFilepath(path, data=data, encoding=encoding, dir=tmpdir, **kwargs)
-create_f = create_file
+    def create_script(self, *args, **kwargs):
+        """Similar to create_file() but will set permission to 777"""
+        mode = kwargs.pop("mode", 777)
+        path = self.create_file(*args, **kwargs)
+        path.chmod(mode)
+        return path
 
+    def create_csv(self, columns, count=0, path="", tmpdir="", encoding="", header=True, **kwargs):
+        """Create a csv file using the generators/callbacks found in columns
 
-def create_files(file_dict, tmpdir="", **kwargs):
-    """
-    create a whole bunch of files all at once
+        :param columns: dict, in the format of key: callback where the callback can
+            generate a value for the row, so something like "foo": testdata.get_name
+            would work
+        :param count: int, how many rows you want, will be randomly created between 
+            1 and 50 if not specified
+        :param path: string, the path relative to tmpdir, default is randomly generated
+        :param tmpdir: string, the temp directory to use as a base/prefix
+        :param encoding: string, the encoding to use for the csv file
+        :param **kwargs: dict, these will get passed to csv.DictWriter,
+            https://docs.python.org/3/library/csv.html#csv.DictWriter
+        :returns: testdata.path.CSVpath instance
+        """
+        if not count:
+            if any((callable(c) for c in columns.values())):
+                count = random.randint(1, 50)
+            else:
+                count = 1
 
-    :param file_dict: dict, keys are the filepath relative to tmpdir, values are the
-        file contents
-    :param tmpdir: Dirpath, same as create_module() tmpdir
-    :param **kwargs:
-        encoding -- the encoding for any files
-        errors -- what to do if encoding encounters an error
-    """
-    base_dir = TempDirpath(dir=tmpdir)
-    base_dir.add(file_dict, **kwargs)
-    return base_dir
-create_fs = create_files
+        kwargs.setdefault("ext", "csv")
+        path = TempFilepath(path, dir=tmpdir, encoding=encoding, **kwargs)
+        csv = CSV(path, fieldnames=list(columns.keys()))
+        with csv:
+            if not header:
+                csv.writer.has_header = True
 
+            for i in range(count):
+                d = {}
+                for field_name, callback in columns.items():
+                    if callable(callback):
+                        d[field_name] = callback()
+                    else:
+                        d[field_name] = callback
 
-def get_file(path="", tmpdir="", encoding="", **kwargs):
-    """
-    :param **kwargs: key/vals will be passed to get_filename()
-    """
-    kwargs.setdefault("touch", False)
-    return TempFilepath(path, encoding=encoding, dir=tmpdir, **kwargs)
-get_f = get_file
+                csv.add(d)
 
+        return csv
 
-def create_script(*args, **kwargs):
-    """Similar to create_file() but will set permission to 777"""
-    mode = kwargs.pop("mode", 777)
-    path = create_file(*args, **kwargs)
-    path.chmod(mode)
-    return path
+    def create_image(self, image_type="", path="", tmpdir=""):
+        """Creates an image using the images founc in the data/ directory
 
+        :param image_type: string, the type of image you want, one of jpg, png, gif, agif, ico
+        :param path: string, the path or basename (eg, foo/bar.jpg or che) of the image
+        :param tmpdir: Dirpath, same as create_module() tmpdir
+        :returns: Filepath, the path to the image file
+        """
+        images = [
+            (set(["jpg", "jpeg"]), ".jpg", "static.jpg"),
+            (set(["png"]), ".png", "static.png"),
+            (set(["gif"]), ".gif", "static.gif"),
+            (set(["agif", "animated_gif"]), ".gif", "animated.gif"),
+            (set(["ico", "favicon", "ico"]), ".ico", "favicon.ico"),
+        ]
 
-def create_csv(columns, count=0, path="", tmpdir="", encoding="", header=True, **kwargs):
-    """Create a csv file using the generators/callbacks found in columns
+        if image_type:
+            image_type = image_type.lower()
+            for itypes, ext, image in images:
+                if image_type in itypes:
+                    break
 
-    :param columns: dict, in the format of key: callback where the callback can
-        generate a value for the row, so something like "foo": testdata.get_name
-        would work
-    :param count: int, how many rows you want, will be randomly created between 
-        1 and 50 if not specified
-    :param path: string, the path relative to tmpdir, default is randomly generated
-    :param tmpdir: string, the temp directory to use as a base/prefix
-    :param encoding: string, the encoding to use for the csv file
-    :param **kwargs: dict, these will get passed to csv.DictWriter,
-        https://docs.python.org/3/library/csv.html#csv.DictWriter
-    :returns: testdata.path.CSVpath instance
-    """
-    if not count:
-        if any((callable(c) for c in columns.values())):
-            count = random.randint(1, 50)
         else:
-            count = 1
+            image_type, ext, image = random.choice(images)
 
-    kwargs.setdefault("ext", "csv")
-    path = TempFilepath(path, dir=tmpdir, encoding=encoding, **kwargs)
-    csv = CSV(path, fieldnames=list(columns.keys()))
-    with csv:
-        if not header:
-            csv.writer.has_header = True
+        # https://docs.python.org/2/library/pkgutil.html#pkgutil.get_data
+        data = pkgutil.get_data(__name__.split(".")[0], "data/{}".format(image))
 
-        for i in range(count):
-            d = {}
-            for field_name, callback in columns.items():
-                if callable(callback):
-                    d[field_name] = callback()
-                else:
-                    d[field_name] = callback
-
-            csv.add(d)
-
-    return csv
-
-
-def create_image(image_type="", path="", tmpdir=""):
-    """Creates an image using the images founc in the data/ directory
-
-    :param image_type: string, the type of image you want, one of jpg, png, gif, agif, ico
-    :param path: string, the path or basename (eg, foo/bar.jpg or che) of the image
-    :param tmpdir: Dirpath, same as create_module() tmpdir
-    :returns: Filepath, the path to the image file
-    """
-    images = [
-        (set(["jpg", "jpeg"]), ".jpg", "static.jpg"),
-        (set(["png"]), ".png", "static.png"),
-        (set(["gif"]), ".gif", "static.gif"),
-        (set(["agif", "animated_gif"]), ".gif", "animated.gif"),
-        (set(["ico", "favicon", "ico"]), ".ico", "favicon.ico"),
-    ]
-
-    if image_type:
-        image_type = image_type.lower()
-        for itypes, ext, image in images:
-            if image_type in itypes:
-                break
-
-    else:
-        image_type, ext, image = random.choice(images)
-
-    # https://docs.python.org/2/library/pkgutil.html#pkgutil.get_data
-    data = pkgutil.get_data(__name__.split(".")[0], "data/{}".format(image))
-
-    if path:
-        if not path.lower().endswith(ext):
-            path += ext
-    else:
-        path = get_filename(ext=ext)
-
-    return create_file(
-        data=data,
-        path=path,
-        tmpdir=tmpdir,
-        encoding=None
-    )
-
-
-def create_jpg(path="", tmpdir=""):
-    """create a jpeg image"""
-    return create_image(image_type="jpg", path=path, tmpdir=tmpdir)
-create_jpeg=create_jpg
-
-
-def create_png(path="", tmpdir="", width=0, height=0, color=None):
-    """create a png image"""
-    if width and height:
-        ext = ".png"
         if path:
             if not path.lower().endswith(ext):
                 path += ext
         else:
-            path = get_filename(ext=ext)
+            path = self.get_filename(ext=ext)
 
-        return create_file(
+        return self.create_file(
+            data=data,
             path=path,
-            data=make_png(width, height, color=color),
             tmpdir=tmpdir,
             encoding=None
         )
 
-    else:
-        return create_image(image_type="png", path=path, tmpdir=tmpdir)
+    def create_jpg(self, path="", tmpdir=""):
+        """create a jpeg image"""
+        return self.create_image(image_type="jpg", path=path, tmpdir=tmpdir)
+    create_jpeg=create_jpg
 
+    def create_png(self, path="", tmpdir="", width=0, height=0, color=None):
+        """create a png image"""
+        if width and height:
+            ext = ".png"
+            if path:
+                if not path.lower().endswith(ext):
+                    path += ext
+            else:
+                path = self.get_filename(ext=ext)
 
-def create_gif(path="", tmpdir=""):
-    """create a static gif image"""
-    return create_image(image_type="gif", path=path, tmpdir=tmpdir)
+            return self.create_file(
+                path=path,
+                data=make_png(width, height, color=color),
+                tmpdir=tmpdir,
+                encoding=None
+            )
 
+        else:
+            return self.create_image(image_type="png", path=path, tmpdir=tmpdir)
 
-def create_animated_gif(path="", tmpdir=""):
-    """create an animated gif image"""
-    return create_image(image_type="agif", path=path, tmpdir=tmpdir)
-create_agif=create_animated_gif
+    def create_gif(self, path="", tmpdir=""):
+        """create a static gif image"""
+        return self.create_image(image_type="gif", path=path, tmpdir=tmpdir)
 
+    def create_animated_gif(self, path="", tmpdir=""):
+        """create an animated gif image"""
+        return self.create_image(image_type="agif", path=path, tmpdir=tmpdir)
+    create_agif=create_animated_gif
 
-def create_ico(path="", tmpdir=""):
-    """create an icon image"""
-    return create_image(image_type="ico", path=path, tmpdir=tmpdir)
-create_icon=create_ico
-create_favicon=create_ico
+    def create_ico(self, path="", tmpdir=""):
+        """create an icon image"""
+        return self.create_image(image_type="ico", path=path, tmpdir=tmpdir)
+    create_icon=create_ico
+    create_favicon=create_ico
 
+    def get_filename(self, ext="", name="", **kwargs):
+        """return just a valid file name
 
-def get_filename(ext="", name="", **kwargs):
-    """return just a valid file name
+        :param ext: string, the extension you want the file to have
+        :param prefix: string, this will be the first part of the file's name
+        :param name: string, the name you want to use (prefix will be added to the front
+            of the name and ext will be added to the end of the name)
+        :returns: string, the random filename
+        """
+        return TempFilepath.get_basename(ext=ext, name=name, **kwargs)
+    get_file_name = get_filename
+    filename = get_filename
+    file_name = get_filename
+    get_basename = get_filename
 
-    :param ext: string, the extension you want the file to have
-    :param prefix: string, this will be the first part of the file's name
-    :param name: string, the name you want to use (prefix will be added to the front
-        of the name and ext will be added to the end of the name)
-    :returns: string, the random filename
-    """
-    return TempFilepath.get_basename(ext=ext, name=name, **kwargs)
-get_file_name = get_filename
-filename = get_filename
-file_name = get_filename
-get_basename = get_filename
+    def get_module_name(self, count=1, name="", **kwargs):
+        """Returns just a valid module name or module path
 
+        :param count: int, how many parts you want in your module path (1 is foo, 2 is foo.bar, etc)
+        :param prefix: string, if you want the last bit to be prefixed with something
+        :param postfix: string, if you want the last bit to be posfixed with something (eg, ".py")
+        :param name: string, the name you want to use for the last bit
+            (prefix will be added to the front of the name and postfix will be added to
+            the end of the name)
+        :returns: string, the modulepath
+        """
+        parts = TempModulepath.get_parts(count=count, name=name, **kwargs)
+        return ".".join(parts)
+    get_package_name = get_module_name
+    get_modulename = get_module_name
+    get_modname = get_module_name
+    get_modpath = get_module_name
+    get_modulepath = get_module_name
+    get_module_path = get_module_name
+    modulename = get_module_name
+    module_name = get_module_name
 
-def get_module_name(count=1, name="", **kwargs):
-    """Returns just a valid module name or module path
+    def get_classname(self, name=""):
+        n = self.get_filename(name=name)
+        return n if name else n.title()
+    get_class_name = get_classname
+    classname = get_classname
+    class_name = get_classname
 
-    :param count: int, how many parts you want in your module path (1 is foo, 2 is foo.bar, etc)
-    :param prefix: string, if you want the last bit to be prefixed with something
-    :param postfix: string, if you want the last bit to be posfixed with something (eg, ".py")
-    :param name: string, the name you want to use for the last bit
-        (prefix will be added to the front of the name and postfix will be added to
-         the end of the name)
-    :returns: string, the modulepath
-    """
-    parts = TempModulepath.get_parts(count=count, name=name, **kwargs)
-    return ".".join(parts)
-get_package_name = get_module_name
-get_modulename = get_module_name
-get_modname = get_module_name
-get_modpath = get_module_name
-get_modulepath = get_module_name
-get_module_path = get_module_name
-modulename = get_module_name
-module_name = get_module_name
+    def get_source_filepath(self, v):
+        """Returns the full filepath of a given python object
 
+        :param v: mixed, a python object to find the source file for
+        :returns: Filepath
+        """
+        try:
+            ret = inspect.getsourcefile(v)
+        except TypeError:
+            ret = inspect.getsourcefile(v.__class__)
+        return TempFilepath(ret)
+    get_source_file = get_source_filepath
+    get_source_path = get_source_filepath
+    get_sourcepath = get_source_filepath
+    get_sourcefilepath = get_source_filepath
+    get_sourcefile = get_source_filepath
 
-def get_classname(name=""):
-    n = get_filename(name=name)
-    return n if name else n.title()
-get_class_name = get_classname
-classname = get_classname
-class_name = get_classname
+    def create_module(self, data="", modpath="", tmpdir="", make_importable=True, **kwargs):
+        '''
+        create a python module folder structure so that the module can be imported
 
+        :param data: str, the contents of the module
+        :param modpath: str, something like foo.bar
+        :param tmpdir: str, the temp directory that will be added to the syspath if make_importable is True
+        :param make_importable: bool, if True, then tmpdir will be added to the python path so it can be imported
+        :return: Modulepath instance
+        '''
+        if not data:
+            data = kwargs.pop("contents", kwargs.pop("content", kwargs.pop("text", "")))
 
-def get_source_filepath(v):
-    """Returns the full filepath of a given python object
-
-    :param v: mixed, a python object to find the source file for
-    :returns: Filepath
-    """
-    try:
-        ret = inspect.getsourcefile(v)
-    except TypeError:
-        ret = inspect.getsourcefile(v.__class__)
-    return TempFilepath(ret)
-get_source_file = get_source_filepath
-get_source_path = get_source_filepath
-get_sourcepath = get_source_filepath
-get_sourcefilepath = get_source_filepath
-get_sourcefile = get_source_filepath
-
-
-def create_module(data="", modpath="", tmpdir="", make_importable=True, **kwargs):
-    '''
-    create a python module folder structure so that the module can be imported
-
-    :param data: str, the contents of the module
-    :param modpath: str, something like foo.bar
-    :param tmpdir: str, the temp directory that will be added to the syspath if make_importable is True
-    :param make_importable: bool, if True, then tmpdir will be added to the python path so it can be imported
-    :return: Modulepath instance
-    '''
-    if not data:
-        data = kwargs.pop("contents", kwargs.pop("content", kwargs.pop("text", "")))
-
-    return TempModulepath(
-        modpath,
-        data=data,
-        dir=tmpdir,
-        make_importable=make_importable,
-        **kwargs
-    )
-
-
-def create_modules(module_dict, modpath="", tmpdir="", make_importable=True, **kwargs):
-    """
-    create a whole bunch of modules all at once
-
-    :param module_dict: dict, keys are the module_name, values are the module contents
-    :param modpath: string, if you want all the modules in module_dict to have a prefix, you
-        can pass this in, so if you did prefix is "foo.bar" then all the keys in module_dict
-        will be prepended with "foo.bar"
-    :param tmpdir: string, same as create_module() tmpdir
-    :param make_importable: boolean, same as create_module() tmpdir
-    :returns: Dirpath
-    """
-    module_base_dir = create_dir(tmpdir=tmpdir)
-    module_list = TempDirpath.normpaths(module_dict, modpath, regex=r"[\.\\/]+", root="")
-    for modname, data in module_list:
-        m = create_module(
+        return TempModulepath(
+            modpath,
             data=data,
-            modpath=modname,
-            tmpdir=module_base_dir,
+            dir=tmpdir,
             make_importable=make_importable,
             **kwargs
         )
-        make_importable = False
 
-    return module_base_dir
-create_packages = create_module
+    def create_modules(self, module_dict, modpath="", tmpdir="", make_importable=True, **kwargs):
+        """
+        create a whole bunch of modules all at once
 
+        :param module_dict: dict, keys are the module_name, values are the module contents
+        :param modpath: string, if you want all the modules in module_dict to have a prefix, you
+            can pass this in, so if you did prefix is "foo.bar" then all the keys in module_dict
+            will be prepended with "foo.bar"
+        :param tmpdir: string, same as create_module() tmpdir
+        :param make_importable: boolean, same as create_module() tmpdir
+        :returns: Dirpath
+        """
+        module_base_dir = self.create_dir(tmpdir=tmpdir)
+        module_list = TempDirpath.normpaths(module_dict, modpath, regex=r"[\.\\/]+", root="")
+        for modname, data in module_list:
+            m = self.create_module(
+                data=data,
+                modpath=modname,
+                tmpdir=module_base_dir,
+                make_importable=make_importable,
+                **kwargs
+            )
+            make_importable = False
 
-def create_package(data="", modpath="", tmpdir="", make_importable=True, **kwargs):
-    '''
-    create a python package folder structure so that the package can be imported
+        return module_base_dir
+    create_packages = create_module
 
-    a package is different than a module in that it is a module_name folder with
-    an __init__.py instead of module_name.py
+    def create_package(self, data="", modpath="", tmpdir="", make_importable=True, **kwargs):
+        '''
+        create a python package folder structure so that the package can be imported
 
-    module_name -- string -- something like foo.bar
-    data -- string -- the contents of the module
-    tmpdir -- string -- the temp directory that will be added to the syspath if make_importable is True
-    make_importable -- boolean -- if True, then tmpdir will be added to the python path so it can be imported
+        a package is different than a module in that it is a module_name folder with
+        an __init__.py instead of module_name.py
 
-    return -- Module -- the module file path
-    '''
-    kwargs.setdefault("is_package", True)
-    return create_module(
-        data=data,
-        modpath=modpath,
-        tmpdir=tmpdir,
-        make_importable=make_importable,
-        **kwargs
-    )
+        module_name -- string -- something like foo.bar
+        data -- string -- the contents of the module
+        tmpdir -- string -- the temp directory that will be added to the syspath if make_importable is True
+        make_importable -- boolean -- if True, then tmpdir will be added to the python path so it can be imported
 
+        return -- Module -- the module file path
+        '''
+        kwargs.setdefault("is_package", True)
+        return self.create_module(
+            data=data,
+            modpath=modpath,
+            tmpdir=tmpdir,
+            make_importable=make_importable,
+            **kwargs
+        )
 
-def find_data_file(fileroot, basedir="", encoding=""):
-    """find and return a file
+    def find_data_file(self, fileroot, basedir="", encoding=""):
+        """find and return a file
 
-    this is primarily used by find_data(), find_data_text(), and find_data_bytes()
+        this is primarily used by find_data(), find_data_text(), and find_data_bytes()
 
-    :param fileroot: string, if dirpath + fileroot is actually a full filepath then
-        that will be returned, if not then dirpath/fileroot.* will be searched for
-    :param basedir: string, the base directory used to search for fileroot
-    :returns: Path, the found file
-    """
-    f = None
+        :param fileroot: string, if dirpath + fileroot is actually a full filepath then
+            that will be returned, if not then dirpath/fileroot.* will be searched for
+        :param basedir: string, the base directory used to search for fileroot
+        :returns: Path, the found file
+        """
+        f = None
 
-    filepath = Filepath(fileroot, dir=basedir)
-    if filepath.exists():
-        f = filepath
+        filepath = Filepath(fileroot, dir=basedir)
+        if filepath.exists():
+            f = filepath
 
-    else:
-        basedir = basedir or environ.CONTENTS_DIR
-        if not basedir:
-            basedir = os.getcwd()
+        else:
+            basedir = basedir or environ.CONTENTS_DIR
+            if not basedir:
+                basedir = os.getcwd()
 
-        if not basedir:
-            raise IOError("Could not find a testdata data directory")
+            if not basedir:
+                raise IOError("Could not find a testdata data directory")
 
-        basedir = Dirpath(basedir)
-        patterns = [fileroot, "{}.*".format(fileroot)]
-        for pattern in patterns:
-            for f in basedir.rglob(pattern):
-                if f:
-                    break
+            basedir = Dirpath(basedir)
+            patterns = [fileroot, "{}.*".format(fileroot)]
+            for pattern in patterns:
+                for f in basedir.rglob(pattern):
+                    if f:
+                        break
 
-        if not f:
-            raise IOError("Could not find a testdata data file matching {}".format(fileroot))
+            if not f:
+                raise IOError("Could not find a testdata data file matching {}".format(fileroot))
 
-    if encoding:
-        f.encoding = encoding
-    return f
-get_content_file = find_data_file
-get_content_path = find_data_file
-get_path = find_data_file
-get_data_path = find_data_file
+        if encoding:
+            f.encoding = encoding
+        return f
+    get_content_file = find_data_file
+    get_content_path = find_data_file
+    get_path = find_data_file
+    get_data_path = find_data_file
 
+    def find_data_text(self, fileroot, basedir="", encoding=""):
+        f = self.find_data_file(fileroot, basedir, encoding)
+        return f.read_text()
 
-def find_data_text(fileroot, basedir="", encoding=""):
-    f = find_data_file(fileroot, basedir, encoding)
-    return f.read_text()
+    def find_data_bytes(self, fileroot, basedir=""):
+        f = self.find_data_file(fileroot, basedir)
+        return f.read_bytes()
 
+    def find_data(self, fileroot, basedir="", encoding=""):
+        """Returns the contents of a file matching basedir/fileroot.*
 
-def find_data_bytes(fileroot, basedir=""):
-    f = find_data_file(fileroot, basedir)
-    return f.read_bytes()
+        :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
+            in which case basedir/fileroot.* will be searched for and first file matched
+            will be used
+        :param basedir: string, the directory to search for fileroot.*, if not passed
+            in then os.getcwd()/*/testdata will be searched for
+        :returns: string, the contents of the found file
+        """
+        if encoding:
+            return self.find_data_text(fileroot, basedir, encoding)
+        else:
+            return self.find_data_bytes(fileroot, basedir)
+    get_content_body = find_data
+    get_contents = find_data
+    get_content_contents = find_data
+    get_content_data = find_data
+    get_data = find_data
 
+    @contextmanager
+    def chdir(self, curdir, **kwargs):
+        """Change the directory for the current context
 
-def find_data(fileroot, basedir="", encoding=""):
-    """Returns the contents of a file matching basedir/fileroot.*
-
-    :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
-        in which case basedir/fileroot.* will be searched for and first file matched
-        will be used
-    :param basedir: string, the directory to search for fileroot.*, if not passed
-        in then os.getcwd()/*/testdata will be searched for
-    :returns: string, the contents of the found file
-    """
-    if encoding:
-        return find_data_text(fileroot, basedir, encoding)
-    else:
-        return find_data_bytes(fileroot, basedir)
-get_content_body = find_data
-get_contents = find_data
-get_content_contents = find_data
-get_content_data = find_data
-get_data = find_data
-
-
-@contextmanager
-def chdir(curdir, **kwargs):
-    """Change the directory for the current context
-
-    :Example:
-        with testdata.chdir("/new/current/directory"):
+        :Example:
+            with testdata.chdir("/new/current/directory"):
+                print(os.getcwd())
             print(os.getcwd())
-        print(os.getcwd())
 
-    :param curdir: str, the directory you want to now be the current directory
-    """
-    # backup the current directory to restore it when context resets
-    cwd = os.getcwd()
+        :param curdir: str, the directory you want to now be the current directory
+        """
+        # backup the current directory to restore it when context resets
+        cwd = os.getcwd()
 
-    os.chdir(curdir)
-    yield curdir
+        os.chdir(curdir)
+        yield curdir
 
-    # restore the original current directory 
-    os.chdir(cwd)
-cwd = chdir
-curdir = chdir
+        # restore the original current directory 
+        os.chdir(cwd)
+    cwd = chdir
+    curdir = chdir
 
+    def get_interpreter(self):
+        """Return the best python interpreter
 
-def get_interpreter():
-    """Return the best python interpreter
+        :returns: a Filepath
+        """
 
-    :returns: a Filepath
-    """
+        exe = sys.executable
+        version_info = sys.version_info
 
-    exe = sys.executable
-    version_info = sys.version_info
-
-    if re.search(r"\d+\.\d+", exe):
-        ret = exe
-
-    elif re.search(r"\d+", exe):
-        ret = "{}.{}".format(exe, version_info[1])
-        f = Filepath(ret)
-        if not f.exists():
+        if re.search(r"\d+\.\d+", exe):
             ret = exe
 
-    else:
-        # try major.minor
-        version = ".".join(map(String, version_info[0:2]))
-        ret = "{}{}".format(exe, version)
-        f = Filepath(ret)
-
-        if not f.exists():
-            # try major
+        elif re.search(r"\d+", exe):
             ret = "{}.{}".format(exe, version_info[1])
             f = Filepath(ret)
             if not f.exists():
-                # just return the found interpreter
                 ret = exe
 
-    f = Filepath(ret)
+        else:
+            # try major.minor
+            version = ".".join(map(String, version_info[0:2]))
+            ret = "{}{}".format(exe, version)
+            f = Filepath(ret)
 
-    # https://semver.org/
-    f.major = version_info[0]
-    f.minor = version_info[1]
-    f.patch = version_info[2]
-    f.release = version_info[3]
-    f.version = "{}.{}.{}".format(f.major, f.minor, f.patch)
+            if not f.exists():
+                # try major
+                ret = "{}.{}".format(exe, version_info[1])
+                f = Filepath(ret)
+                if not f.exists():
+                    # just return the found interpreter
+                    ret = exe
 
-    return f
-get_exe = get_interpreter
-get_exec = get_interpreter
-get_executable = get_interpreter
-get_python = get_interpreter
+        f = Filepath(ret)
+
+        # https://semver.org/
+        f.major = version_info[0]
+        f.minor = version_info[1]
+        f.patch = version_info[2]
+        f.release = version_info[3]
+        f.version = "{}.{}.{}".format(f.major, f.minor, f.patch)
+
+        return f
+    get_exe = get_interpreter
+    get_exec = get_interpreter
+    get_executable = get_interpreter
+    get_python = get_interpreter
 

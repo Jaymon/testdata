@@ -3,22 +3,20 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import os
 import subprocess
 import sys
-from collections import deque
-import base64
-import socket
 import re
-import json
-import email.message
 import signal
 import time
 import logging
 
-from datatypes import HTTPClient as HTTP
+from datatypes import (
+    HTTPClient as HTTP,
+    Dict,
+    make_list,
+)
 
 from .compat import *
-from . import environ
-from .utils import String
 from .threading import Thread, Deque
+from .base import TestData
 
 
 logger = logging.getLogger(__name__)
@@ -159,11 +157,30 @@ class Command(object):
 
         options = {}
         options["quiet"] = quiet = kwargs.pop("quiet", self.quiet)
-        options["expected_returncode"] = 0
-        for k in ["code", "ret_code", "returncode", "expected_ret_code", "expected_returncode"]:
-            if k in kwargs:
-                options["expected_returncode"] = kwargs.pop(k)
-                break
+
+        kwargs = Dict(kwargs)
+
+        retcode = kwargs.pops([
+            "code",
+            "ret_code",
+            "returncode",
+            "retcode",
+            "expected_ret_code",
+            "expected_returncode",
+            "codes",
+            "ret_codes",
+            "returncodes",
+            "retcodes",
+            "expected_ret_codes",
+            "expected_returncodes",
+        ], 0)
+        options["expected_returncodes"] = set(make_list(retcode))
+
+#         options["expected_returncode"] = 0
+#         for k in ["code", "ret_code", "returncode", "expected_ret_code", "expected_returncode"]:
+#             if k in kwargs:
+#                 options["expected_returncode"] = kwargs.pop(k)
+#                 break
 
         # any kwargs with all capital letters should be considered environment
         # variables
@@ -315,12 +332,12 @@ class Command(object):
 
         process.wait()
 
-        expected_ret_code = process.options.get("expected_returncode", 0)
-        if process.returncode != expected_ret_code:
+        expected_retcodes = process.options["expected_returncodes"]
+        if process.returncode not in expected_retcodes:
             raise RuntimeError("{} returned {}, expected {}".format(
                 self.process.cmd,
                 process.returncode,
-                expected_ret_code
+                expected_retcodes
             ))
 
         # we wrap the output in a String so we can set returncode
@@ -428,4 +445,66 @@ class FileCommand(ModuleCommand):
             path += self.script_postfix
 
         super(FileCommand, self).__init__(path, cwd=cwd, environ=environ)
+
+
+###############################################################################
+# testdata functions
+###############################################################################
+class ClientData(TestData):
+    def run(self, cmd, arg_str="", cwd="", environ=None, **kwargs):
+        """Run a command on the command line
+
+        :param cmd: mixed, the command you want to run
+        :param arg_str: string, extra flags that will be appended to the cmd
+        :param **kwargs: allows you to pass into underlying Command.run() method
+        :returns: string, the output from the command
+        """
+        if hasattr(cmd, "run"):
+            ret = cmd.run(arg_str, cwd=cwd, environ=environ, **kwargs)
+
+        else:
+            cmd = Command(cmd, cwd=cwd, environ=environ)
+            ret = cmd.run(arg_str, **kwargs)
+
+        return ret
+
+    def fetch(self, url, body=None, query=None, **kwargs):
+        """fetch a url
+
+        :Example:
+            # make a simple get request
+            c = testdata.fetch("http://example.com/foo/bar")
+
+            # make a request with a cookie
+            c = testdata.fetch("http://example.com/foo/bar", cookies={"foo": "1"})
+
+            # make a request with a different method
+            c = testdata.fetch("http://example.com/foo/bar", method="PUT")
+
+            # make a POST request
+            c = testdata.fetch("http://example.com/foo/bar", {"foo": 1})
+
+            # make a json POST request
+            c = testdata.fetch("http://example.com/foo/bar", {"foo": 1}, json=True)
+
+        :param url: string, the full url you want to request
+        :param body: dict, the body you want to POST, pass None for GET request
+        :param query: dict, if you want to attach query params with ?
+        :param **kwargs: anything else you want to pass to the underlying HTTP object
+            method -- string, things like HEAD, or PUT
+            cookies -- dict, the cookies you want to pass to the server
+        :returns: HTTPResponse, has .code, .body, and other properties and methods
+        """
+        c = HTTP(url, **kwargs)
+        method = kwargs.pop("method", "")
+        if method:
+            ret = c.fetch(method, url, query, body, **kwargs)
+
+        else:
+            if body is None:
+                ret = c.get(url, query, **kwargs)
+            else:
+                ret = c.post(url, body, query=query, **kwargs)
+
+        return ret
 

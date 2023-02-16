@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
-import logging
 
-from testdata import environ
+from testdata.config import environ
 from testdata.compat import *
-from testdata.client import HTTP, Command
 
 from . import TestCase, testdata
 
@@ -60,7 +58,7 @@ class FileserverTest(TestCase):
         })
         with server:
             res = testdata.fetch(server.url(name))
-            self.assertEqual(environ.ENCODING.upper(), res.encoding.upper())
+            self.assertEqual(environ.ENCODING, res.encoding.upper())
             self.assertEqual(content, res.body)
 
         server = testdata.create_fileserver({

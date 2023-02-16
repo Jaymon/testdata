@@ -9,9 +9,8 @@ from testdata.path import (
     TempModulepath,
 )
 from testdata.compat import *
-from testdata.utils import ByteString, String
 
-from . import TestCase, testdata, SkipTest
+from . import TestCase, testdata
 
 
 class CSVTest(TestCase):

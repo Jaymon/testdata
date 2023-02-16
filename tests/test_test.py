@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
+import logging
+import time
 
 from testdata.compat import *
-from testdata.path import Modulepath
-from testdata import environ
 
 from . import TestCase, testdata
 
@@ -29,7 +28,6 @@ class TestCaseTest(TestCase):
         ])
 
         type(self).testdata = modpath.module()
-        #environ.TESTDATA_MODULEPATH = modpath
         with self.assertRaises(AttributeError):
             self.get_words()
         r = self.get_foo(1, 2)
@@ -49,5 +47,80 @@ class TestCaseTest(TestCase):
 
         type(self).testdata = None
 
+
+class TC1Test(TestCase):
+    def test_assert_logs(self):
+
+        name = "test_assert_logs"
+        logger = logging.getLogger(name)
+
+        with self.assertLogs(name):
+            logger.info("boom1")
+
+        with self.assertRaises(AssertionError):
+            with self.assertLogs(name, logging.INFO):
+                logger.debug("boom2")
+
+        with self.assertLogs(name, logging.INFO) as cm:
+            logger.error("boom3")
+
+        with self.assertRaises(AssertionError):
+            with self.assertLogs(name, logging.INFO):
+                pass
+
+    def test_assert_within(self):
+        with self.assertRaises(AssertionError):
+            with self.assertWithin(0.25):
+                time.sleep(0.3)
+
+    def test_assert_regex(self):
+        self.assertRegex("foo", r"^foo$")
+        self.assertNotRegex("bar", r"^foo$")
+
+    @testdata.expectedFailure
+    def test_failure_1(self):
+        raise RuntimeError()
+
+    @testdata.expected_failure
+    def test_failure_2(self):
+        raise RuntimeError()
+
+    @testdata.expect_failure
+    def test_failure_3(self):
+        raise RuntimeError()
+
+    @testdata.skipUnless(False, "this is the required reason")
+    def test_skip_1(self):
+        self.assertTrue(True)
+
+    def test_skip_2(self):
+        self.skip()
+
+    def test_skip_3(self):
+        self.skipTest()
+
+    def test_skip_unless(self):
+        self.skipUnless(False)
+
+    def test_skip_if(self):
+        self.skipIf(False)
+
+
+class TC2Test(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.skip_test()
+
+    def test_this_test_should_never_run(self):
+        raise RuntimeError()
+
+
+class TC3Test(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.skipTest()
+
+    def test_this_test_should_never_run(self):
+        raise RuntimeError()
 
 

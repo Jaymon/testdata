@@ -3,16 +3,17 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 
 import sys
 import logging
-from collections import defaultdict
 from contextlib import contextmanager
-from .compat import StringIO, is_py2
+from .compat import is_py2
 import inspect
-import heapq
-from heapq import heappush as hpush, heappop as hpop, merge as hmerge
+from heapq import heappush as hpush, merge as hmerge
 import time
 
-from . import environ
-from .utils import ByteString, String
+import datatypes
+
+from .config import environ
+from .compat import *
+from .base import TestData
 
 
 logger = logging.getLogger(__name__)
@@ -269,4 +270,43 @@ class Capture(Base):
         self.capturing = False
         self.release()
 
+
+###############################################################################
+# testdata functions
+###############################################################################
+class OutputData(TestData):
+    def basic_logging(self, **kwargs):
+        """Lots of times, in tests, I have to add a basic logger, it's basically the
+        same code over and over again, this will just make that a little easier to do
+
+        :example:
+            import testdata
+            testdata.basic_logging() # near top of file
+
+        :param **kwargs: key/val, these will be passed into logger.basicConfig method
+        """
+        datatypes.logging.quick_config(**kwargs)
+
+    def capture(stdout=True, stderr=True, loggers=True, *args, **kwargs):
+        """Capture stdout and stderr so you can inspect it
+
+        this is handy for tests when you are trying to figure out if logging or whatnot
+        is doing the correct thing
+
+        I'd always wanted something similar to php's output buffering ob_start() method
+        http://www.php.net/manual/en/function.ob-start.php
+
+        :example:
+            with testdata.capture() as c:
+                print("foo")
+            if "foo" in c:
+                print("foo was captured")
+
+        :param stdout: capture stdout streams
+        :param stderr: capture stderr streams
+        :param loggers: capture stdout and stderr streams of loggers
+        :returns: output.Capture instance
+        """
+        c = Capture(stdout=stdout, stderr=stderr, loggers=loggers)
+        return c(*args, **kwargs)
 

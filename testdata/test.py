@@ -8,18 +8,12 @@ from unittest import(
     skipUnless,
     expectedFailure,
 )
-from unittest._log import (
-    _AssertLogsContext,
-)
 from contextlib import contextmanager
 import time
-import collections
-import logging
 import importlib
 
 from .compat import *
-from .utils import String
-from . import environ
+from .config import environ
 
 
 # https://docs.python.org/3/library/unittest.html#unittest.skip

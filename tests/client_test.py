@@ -4,12 +4,9 @@ import os
 import time
 
 from testdata.compat import *
-from testdata.service import Systemd
-from testdata.utils import ByteString, String
-from testdata.server import CallbackServer
 from testdata.client import HTTP, Command
 
-from . import TestCase, testdata, SkipTest
+from . import TestCase, testdata
 
 
 class CommandTest(TestCase):
@@ -92,7 +89,7 @@ class ClientTest(TestCase):
         self.assertTrue((stop - start) < 4.0)
 
     def test_unicode_output(self):
-        mod1 = testdata.create_module("foo.bar.__main__", [
+        mod1 = testdata.create_module(modpath="foo.bar.__main__", data=[
             "import testdata",
             "print(testdata.get_unicode_words().encode('utf8'))",
         ])
@@ -100,7 +97,7 @@ class ClientTest(TestCase):
         r = testdata.run(mod1)
 
     def test_return_code(self):
-        path1 = testdata.create_file("foo.py", ["print('foo')", "exit(1)"])
+        path1 = testdata.create_file(data=["print('foo')", "exit(1)"])
         r = testdata.run(path1, code=1)
         self.assertTrue("foo" in r)
 
@@ -128,7 +125,7 @@ class ClientTest(TestCase):
         self.assertEqual(r1, r2)
 
     def test_run_file(self):
-        path1 = testdata.create_file("foo.py", "print(1)")
+        path1 = testdata.create_file(data="print(1)")
         path2 = testdata.get_file(path1.fileroot, tmpdir=path1.basedir)
 
         r1 = testdata.run(path1)
@@ -138,18 +135,15 @@ class ClientTest(TestCase):
         self.assertTrue(r1 == r2 == r3 == r4)
 
     def test_run_module(self):
-        mod1 = testdata.create_module("foo.bar.__main__", "print(1)")
+        mod1 = testdata.create_module(modpath="foo.bar.__main__", data="print(1)")
         #pout.v(mod1.parent, mod1.relpath, mod1)
         r1 = testdata.run(mod1)
         r2 = mod1.run()
         self.assertEqual(r1, r2)
 
     def test_alternative_method(self):
-        def do_PUT(handler):
-            return "PUT"
-
-        server = CallbackServer({
-            "PUT": do_PUT,
+        server = testdata.create_callbackserver({
+            "PUT": lambda handler: "PUT",
         })
         with server:
             c = HTTP(server)
