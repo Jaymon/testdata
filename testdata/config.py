@@ -28,5 +28,3 @@ environ.setdefault("ENCODING", "UTF-8", type=lambda x: x.upper())
 # unique values
 environ.setdefault("MAX_UNIQUE", 1000000, type=int)
 
-environ.setdefault("TESTDATA_MODULEPATH", "") # DEPRECATED
-

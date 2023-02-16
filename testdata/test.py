@@ -24,24 +24,6 @@ expected_failure = expectedFailure # Mark the test as an expected failure.
 expect_failure = expectedFailure
 
 
-def get_testdata_module():
-    """Find and return the testdata module that will be used to proxy testdata
-    methods through this class
-
-    :returns: module, the testdata module that should be used
-    """
-    return TestData.module()
-#     td = None
-#     if environ.TESTDATA_MODULEPATH:
-#         td = importlib.import_module(environ.TESTDATA_MODULEPATH)
-# 
-#     if not td:
-#         path = __name__.split(".")[0]
-#         td = sys.modules[path]
-# 
-#     return td
-
-
 class _TestCaseMixin(object):
     """The mixin for both the TestCase and the TestCase metaclass that provides the
     passthrough to the testdata functions if the called method doesn't exist"""
@@ -69,7 +51,7 @@ class _TestCaseMeta(_TestCaseMixin, type):
 
 
 class _TestCase(_TestCaseMixin, BaseTestCase):
-    testdata = get_testdata_module()
+    testdata = TestData.module()
     """Set this to whatever tesdata module you want to proxy"""
 
     @staticmethod
