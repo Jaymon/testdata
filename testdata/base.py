@@ -72,7 +72,7 @@ class TestData(object):
 
         module = cls.module()
 
-        data_instance = data_class()
+        data_instance = cls()
 
         rc = ReflectClass(cls)
         cls._data_instances[rc.classpath] = data_instance
@@ -80,8 +80,6 @@ class TestData(object):
         # clear any parents since this class will supercede them
         for rp in rc.reflect_parents(TestData):
             cls._data_instances.pop(rp.classpath, None)
-
-        data_instance._insert()
 
     def __getattr__(self, name):
         """This allows child classes to reference any other registered class's

@@ -52,18 +52,9 @@ class Base(object):
         """support bool(self)"""
         return bool(self.read())
 
-    __nonzero__ = __bool__ # py2
-
-    def __bytes__(self):
-        """Return b"" string of self's contents"""
-        return ByteString(self.read(), encoding=sys.getdefaultencoding())
-        #return self.read().encode(sys.getdefaultencoding()) #"utf-8")
-
-    def __unicode__(self):
+    def __str__(self):
         """Return "" string of self's contents"""
         return String(self.read())
-
-    __str__ = __bytes__ if is_py2 else __unicode__
 
     def __eq__(self, other):
         """Defines behavior for the equality operator, ==."""
@@ -108,7 +99,11 @@ class Stream(Base):
         self.stream = stream
 
     def write(self, s):
-        t = time.time()
+        # I originally was using time.time() and sometimes that would return the
+        # same value on subsequent calls
+        # https://stackoverflow.com/questions/1938048/
+        # https://stackoverflow.com/a/38256446
+        t = time.process_time_ns()
         hpush(self.heap, (t, s))
         if self.stream:
             self.stream.write(s)
