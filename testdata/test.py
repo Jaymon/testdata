@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 from unittest import(
-    TestCase as BaseTestCase,
+    TestCase as _TestCase,
     SkipTest,
     skip,
     skipIf,
@@ -24,24 +24,39 @@ expected_failure = expectedFailure # Mark the test as an expected failure.
 expect_failure = expectedFailure
 
 
+# https://docs.python.org/3/library/unittest.html#setupmodule-and-teardownmodule
+# def setUpModule():
+#     pass
+# 
+# def tearDownModule():
+#     pass
+
+
 class _TestCaseMixin(object):
     """The mixin for both the TestCase and the TestCase metaclass that provides the
-    passthrough to the testdata functions if the called method doesn't exist"""
+    passthrough to the testdata functions if the called method doesn't exist
+    """
+    td = TestData.module()
+    """Set this to whatever tesdata module you want to proxy, this was originally
+    names testdata but I noticed the TestCase always contained it as an error, because
+    it was thinking it was a test because it started with test*"""
 
     def __getattr__(self, k):
         """If the attribute isn't defined on this class try and proxy k to a testdata
         module function, if that fails then an AttributeError is raised like normal
 
-        this allows self.<TESTDATA_FUNCTION_NAME>(*args, **kwargs) to be called from
-        any method. If the method is a class method, you'll have to use cls.get_testdata()
-        to get the testdata module since this only works with instance methods
+        this allows self.<TESTDATA_FUNCTION>(*args, **kwargs) and
+        cls.<TESTDATA_FUNCTION> to work from within any child class that extends
+        this
         """
-        td = self.testdata
-        if td:
-            return getattr(td, k)
-
-        else:
-            raise AttributeError(k)
+        #return TestData.__getattr_subclasses__(k)
+        return getattr(self.td, k)
+#         td = self.td
+#         if td:
+#             return getattr(td, k)
+# 
+#         else:
+#             raise AttributeError(k)
 
 
 class _TestCaseMeta(_TestCaseMixin, type):
@@ -50,10 +65,13 @@ class _TestCaseMeta(_TestCaseMixin, type):
     pass
 
 
-class _TestCase(_TestCaseMixin, BaseTestCase):
-    testdata = TestData.module()
-    """Set this to whatever tesdata module you want to proxy"""
-
+class TestCase(_TestCaseMixin, _TestCase, metaclass=_TestCaseMeta):
+    """
+    From the docs:
+        A new TestCase instance is created as a unique test fixture used to execute each
+        individual test method. Thus setUp(), tearDown(), and __init__() will be called
+        once per test
+    """
     @staticmethod
     def skip(reason=""):
         raise SkipTest(reason)
@@ -82,6 +100,37 @@ class _TestCase(_TestCaseMixin, BaseTestCase):
     def skipTest(cls, *args, **kwargs):
         """This overrides the default skipTest method to work in things like setUpClass()"""
         raise SkipTest(*args, **kwargs)
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        https://docs.python.org/3/library/unittest.html#unittest.TestCase.setUpClass
+        """
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        """
+        https://docs.python.org/3/library/unittest.html#unittest.TestCase.setUpClass
+        """
+        pass
+
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls)
+        TestData.__update_subclasses__()
+        return instance
+
+    def setUp(self):
+        """
+        https://docs.python.org/3/library/unittest.html#unittest.TestCase.setUp
+        """
+        pass
+
+    def tearDown(self):
+        """
+        https://docs.python.org/3/library/unittest.html#unittest.TestCase.tearDown
+        """
+        pass
 
     def assertEventuallyEqual(self, v1, callback, msg="", count=30, wait=0.25):
         """Will run callback up to count times waiting wait seconds between each
@@ -163,8 +212,4 @@ class _TestCase(_TestCaseMixin, BaseTestCase):
             else:
                 if total > seconds[0]:
                     self.fail("Runtime of {:.2f} seconds > {} seconds".format(total, seconds[0]))
-
-
-class TestCase(_TestCase, metaclass=_TestCaseMeta):
-    pass
 

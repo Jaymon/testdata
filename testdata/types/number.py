@@ -65,6 +65,10 @@ class NumberData(TestData):
 
         return (start, stop)
 
+    def randint(self, *args, **kwargs):
+        """passthrough to random.ranint to make it so other TestData subclasses
+        don't have to import random"""
+        return random.randint(*args, **kwargs)
 
     def get_size(self, *args, **kwargs):
         start, stop = self.get_bounds(*args, **kwargs)

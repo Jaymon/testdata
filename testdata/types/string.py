@@ -161,16 +161,19 @@ class StringData(TestData):
         uuid use get_uuid()"""
         return self.get_ascii(str_size=str_size, **kwargs)
 
-    def get_md5(self, val=""):
+    def get_md5(self, *val):
         """Return an md5 hash of val, if no val then return a random md5 hash
 
         :param val: string, the value you want to md5 hash
         :returns: string, the md5 hash as a 32 char hex string
         """
-        if not val:
-            val = self.get_uuid()
+        if val:
+            val = map(String, filter(None, val))
 
-        return hashlib.md5(ByteString(val)).hexdigest()
+        else:
+            val = [self.get_uuid()]
+
+        return hashlib.md5(ByteString("".join(val))).hexdigest()
 
     def get_uuid(self):
         """Generate a random UUID"""

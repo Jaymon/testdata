@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 import random
-from random import randint, choice # expose common random functions so testdata.function works
 import os
 import logging
 import time
@@ -37,12 +36,22 @@ from .user import *
 from .base import TestData
 
 
-__version__ = '6.0'
+__version__ = '6.1'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
 # DEPRECATED 7-15-2022, doesn't seem to be needed in python3
 logging.getLogger(__name__).addHandler(logging.NullHandler())
+
+
+def __getattr__(k):
+    """Allow module level magic attribute access
+
+    python 3.7+
+        * https://peps.python.org/pep-0562/
+        * https://stackoverflow.com/a/48916205/5006
+    """
+    return TestData.__getattr_subclasses__(k)
 
 
 ###############################################################################

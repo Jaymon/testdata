@@ -9,7 +9,7 @@ from . import TestCase, testdata
 
 class TestCaseTest(TestCase):
     def test_self_testdata(self):
-        td = type(self).testdata
+        td = type(self).td
 
         s = type(self).get_string()
         self.assertTrue(s)
@@ -25,25 +25,25 @@ class TestCaseTest(TestCase):
             "    return (args, kwargs)"
         ])
 
-        type(self).testdata = modpath.module()
+        type(self).td = modpath.module()
         with self.assertRaises(AttributeError):
             self.get_words()
         r = self.get_foo(1, 2)
         self.assertEqual((1, 2), r[0])
-        self.assertEqual(self.testdata.__name__, modpath)
+        self.assertEqual(self.td.__name__, modpath)
 
-        type(self).testdata = td
+        type(self).td = td
 
         w = type(self).get_words()
         self.assertTrue(w)
 
-        type(self).testdata = modpath.module()
+        type(self).td = modpath.module()
         with self.assertRaises(AttributeError):
             self.get_words()
         r = self.get_foo(1, 3)
         self.assertEqual((1, 3), r[0])
 
-        type(self).testdata = None
+        type(self).td = None
 
 
 class TC1Test(TestCase):

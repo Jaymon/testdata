@@ -105,6 +105,8 @@ class DatetimeData(TestData):
     def get_past_date(self, now=None):
         dt = self.get_past_datetime(now)
         return datetime.date(dt.year, dt.month, dt.day)
+    get_passed_date = get_past_date
+    get_before_date = get_past_date
 
     def get_future_datetime(self, now=None):
         """return a datetime guaranteed to be in the future from now"""
