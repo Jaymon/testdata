@@ -44,14 +44,14 @@ __version__ = '6.1'
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
-def __getattr__(k):
+def __getattr__(name):
     """Allow module level magic attribute access
 
     python 3.7+
         * https://peps.python.org/pep-0562/
         * https://stackoverflow.com/a/48916205/5006
     """
-    return TestData.__getattr_subclasses__(k)
+    return TestData.__getattr_subclasses__(name)
 
 
 ###############################################################################

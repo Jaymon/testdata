@@ -31,13 +31,15 @@ class TestData(object):
         testdata.foobar() # foobar
         tetdata.get_int() # 1
     """
-#     data_classes = OrderedSubclasses()
-
     data_instances = {}
     """Holds an active instance of each data class"""
 
-#     register_methods = []
-#     has_registered = False
+    __getting_attr__ = 0
+
+    def __init__(self):
+        self._missing_cache = set()
+
+
 
     @classmethod
     @functools.cache
@@ -45,37 +47,43 @@ class TestData(object):
         """Get the testdata module"""
         return ReflectModule(__name__).basemodule()
 
+
     @classmethod
     def __getattr_subclasses__(cls, name):
+        #logger.debug(f"Checking all TestData classes for {name}")
         for data_instance in cls.data_instances.values():
-            try:
-                return getattr(data_instance, name)
+            if name not in data_instance._missing_cache:
+                try:
+                    return getattr(data_instance, name)
 
-            except AttributeError:
-                pass
+                except AttributeError:
+                    pass
 
+        #logger.debug(f"TestData classes do not have attribute {name}")
         raise AttributeError(name)
 
 
 
-#         module = cls.module()
+#     @classmethod
+#     def __getattr_subclasses__(cls, name):
+#         #logger.debug(f"Checking all TestData classes for {name}")
 #         for data_instance in cls.data_instances.values():
+#             #if data_instance.__class__ is not cls:
+#             #logger.debug(f"{cls.__name__} checking for {data_instance.__class__.__name__}.{name} ({data_instance.__getting_attr__})")
+#             #pout.v(f"Checking {data_instance.__class__.__name__} ({data_instance.__getting_attr__})")
 #             try:
-#                 attr = getattr(data_instance, k)
-#                 # let's cache this in the testdata module
-#                 setattr(module, k, attr)
-#                 return attr
+#                 return getattr(data_instance, name)
 # 
 #             except AttributeError:
 #                 pass
 # 
-#         raise AttributeError(k)
+#         #logger.debug(f"TestData classes do not have attribute {name}")
+#         raise AttributeError(name)
 
     @classmethod
     def __update_subclasses__(cls):
-        module = cls.module()
         for data_instance in cls.data_instances.values():
-            data_instance._inject_update(module)
+            data_instance._update()
 
     @classmethod
     def __insert_subclass__(cls, data_class):
@@ -89,18 +97,10 @@ class TestData(object):
 
         :param data_class: class, a class that extends TestData
         """
-#         if not cls.data_classes:
-#             cls.data_classes = OrderedSubclasses(TestData)
-
-#         instance = data_class()
-#         cls.data_classes.append(data_class)
-
         module = cls.module()
+
         data_instance = data_class()
 
-#         reclass = ReflectClass(cls)
-#         for rc in reclass.reflect_classes(TestData):
-#             cls.data_instances[rc.classpath] = instance
         rc = ReflectClass(cls)
         cls.data_instances[rc.classpath] = data_instance
 
@@ -108,65 +108,7 @@ class TestData(object):
         for rp in rc.reflect_parents(TestData):
             cls.data_instances.pop(rp.classpath, None)
 
-        data_instance._inject_insert(module)
-
-#         cls.data_instances[reclass.classpath] = instance
-
-#         classpath = rc.classpath
-#         if classpath not in cls.data_instances:
-#             instance = data_class()
-#             cls.data_instances[classpath] = instance
-#             instance.inject_into(module)
-
-
-
-
-
-
-
-#         reclass = ReflectClass(cls)
-#         for rc in reclass.reflect_classes(TestData):
-#             cls.data_instances[rc.classpath] = instance
-# 
-#         module = cls.module()
-#         for method_name, method in inspect.getmembers(instance, inspect.ismethod):
-#             if method_name == "register":
-#                 cls.register_methods.append(method)
-# 
-#             if not method_name.startswith("_"):
-#                 setattr(module, method_name, method)
-
-#     @classmethod
-#     def inject(cls):
-#         module = cls.module()
-# 
-#         for data_class in cls.data_classes.edges():
-#             reclass = ReflectClass(cls)
-#             classpath = rc.classpath
-#             if classpath not in cls.data_instances:
-#                 instance = data_class()
-#                 cls.data_instances[classpath] = instance
-#                 instance.inject_into(module)
-
-
-#         module = cls.module()
-#         for method_name, method in inspect.getmembers(instance, inspect.ismethod):
-#             if method_name == "register":
-#                 cls.register_methods.append(method)
-# 
-#             if not method_name.startswith("_"):
-#                 setattr(module, method_name, method)
-
-
-
-#     @classmethod
-#     def register_module(cls):
-#         if not cls.has_registered:
-#             for register_method in cls.register_methods:
-#                 logger.debug(f"Registering TestData class with {register_method.__qualname__}")
-#                 register_method()
-# 
-#             cls.has_registered = True
+        data_instance._insert()
 
     def __init_subclass__(cls, *args, **kwargs):
         """This is where all the magic happens, when a class is read into memory
@@ -174,67 +116,63 @@ class TestData(object):
 
         https://peps.python.org/pep-0487/
         """
-        #pout.v(cls.__name__)
         super().__init_subclass__(*args, **kwargs)
         cls.__insert_subclass__(cls)
 
-    def _inject_insert(self, module):
-        return
-
-        ignore_methods = set(["module"])
-#         ignore_methods = set(["inject_into", "inject_insert", "inject_update", "module"])
-        for method_name, method in inspect.getmembers(self, inspect.ismethod):
-            if not method_name.startswith("_") and method_name not in ignore_methods:
-                setattr(module, method_name, method)
-
-        # update should be guarranteed to be called at least once during
-        # execution, this will allow child classes to run their update code even
-        # if they don't use testdata.test.TestCase that calls
-        # __update_subclass__
-        self._inject_update(module)
-
-    def _inject_update(self, module):
+    def _insert(self):
         pass
 
-#     def register(self):
-#         module = cls.module()
-#         for method_name, method in inspect.getmembers(instance, inspect.ismethod):
-#             if method_name == "register":
-#                 cls.register_methods.append(method)
-# 
-#             if not method_name.startswith("_"):
-#                 setattr(module, method_name, method)
-
+    def _update(self):
+        pass
 
     def __getattr__(self, name):
-        """This allows child classes to reference any other registered class's
-        methods"""
-        for data_instance in self.data_instances.values():
-            data_class = type(data_instance)
-            if name in data_class.__dict__:
-                return getattr(data_instance, name)
-
-        raise AttributeError(name)
+        self._missing_cache.add(name)
+        return self.__getattr_subclasses__(name)
 
 
 
 
-#         if name.startswith("_"):
-#             return super().__getattr__(name)
+#         if name in self._missing_cache:
+#             raise AttributeError(name)
 # 
 #         else:
-#             for data_instance in self.data_instances.values():
-#                 if not (self is data_instance):
-#                     try:
-#                         return getattr(data_instance, name)
-#                         # let's cache this in the testdata module
-#                         #setattr(module, k, attr)
-#                         #return attr
-# 
-#                     except AttributeError:
-#                         pass
-# 
-#             raise AttributeError(name)
+#             self._missing_cache.add(name)
+#             return self.__getattr_subclasses__(name)
 
-            #return getattr(self.module(), name)
 
+
+#     def __getattr__(self, name):
+#         """This allows child classes to reference any other registered class's
+#         methods"""
+# 
+#         #pout.v(f"{self.__class__.__name__}.{name} ({self.__getting_attr__})")
+# 
+#         if self.__getting_attr__ > 0:
+#             #logger.debug(f"{self.__class__.__name__}.__getting_attr__ = {self.__getting_attr__}")
+#             raise AttributeError(f"{self.__class__.__name__} is already checking for {name}")
+# 
+#         else:
+#             # if we get to here then this object doesn't have the attribute
+#             self.__getting_attr__ += 1
+# 
+#             try:
+#                 return self.__getattr_subclasses__(name)
+# 
+#             finally:
+#                 self.__getting_attr__ -= 1
+# 
+#             # if we get to here then this object doesn't have the attribute
+# #             for di in self.data_instances.values():
+# #                 if self is not di:
+# #                     try:
+# #                         ret = getattr(di, name)
+# # 
+# #                     except AttributeError:
+# #                         pass
+# # 
+# #                     else:
+# #                         self.__getting_attr = False
+# #                         return ret
+# 
+#         #raise AttributeError(name)
+# 

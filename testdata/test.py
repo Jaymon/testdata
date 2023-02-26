@@ -41,7 +41,7 @@ class _TestCaseMixin(object):
     names testdata but I noticed the TestCase always contained it as an error, because
     it was thinking it was a test because it started with test*"""
 
-    def __getattr__(self, k):
+    def __getattr__(self, name):
         """If the attribute isn't defined on this class try and proxy k to a testdata
         module function, if that fails then an AttributeError is raised like normal
 
@@ -49,14 +49,7 @@ class _TestCaseMixin(object):
         cls.<TESTDATA_FUNCTION> to work from within any child class that extends
         this
         """
-        #return TestData.__getattr_subclasses__(k)
-        return getattr(self.td, k)
-#         td = self.td
-#         if td:
-#             return getattr(td, k)
-# 
-#         else:
-#             raise AttributeError(k)
+        return getattr(self.td, name)
 
 
 class _TestCaseMeta(_TestCaseMixin, type):
