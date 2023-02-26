@@ -108,10 +108,10 @@ class TestCase(_TestCaseMixin, _TestCase, metaclass=_TestCaseMeta):
         """
         pass
 
-    def __new__(cls, *args, **kwargs):
-        instance = super().__new__(cls)
-        TestData.__update_subclasses__()
-        return instance
+#     def __new__(cls, *args, **kwargs):
+#         instance = super().__new__(cls)
+#         TestData.__update_subclasses__()
+#         return instance
 
     def setUp(self):
         """
@@ -154,10 +154,9 @@ class TestCase(_TestCaseMixin, _TestCase, metaclass=_TestCaseMeta):
         """will run callback every interval until timeout is exceeded or until callback
         returns True
 
-        see testdata.wait()
+        see testdata.TestdataData.wait()
         """
-        td = self.get_testdata()
-        td.wait(callback, cb_args, cb_kwargs, timeout, interval)
+        self.td.wait(callback, cb_args, cb_kwargs, timeout, interval)
 
     def assertAscii(self, s):
         """checks if the entire string only contains ASCII characters

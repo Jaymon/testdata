@@ -47,11 +47,14 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 def __getattr__(name):
     """Allow module level magic attribute access
 
+    Any method defined in a TestData subclass will be available on the module
+    through this function
+
     python 3.7+
         * https://peps.python.org/pep-0562/
         * https://stackoverflow.com/a/48916205/5006
     """
-    return TestData.__getattr_subclasses__(name)
+    return TestData.__findattr__(name)
 
 
 ###############################################################################
