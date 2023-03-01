@@ -183,6 +183,7 @@ class ServerData(TestData):
     create_file_server = create_fileserver
     create_pathserver = create_fileserver
     create_path_server = create_fileserver
+    get_fileserver = create_fileserver
 
     def create_cookieserver(self, cookies, hostname="", port=0):
         """create a fileserver that can be used to test remote file retrieval
@@ -199,6 +200,7 @@ class ServerData(TestData):
         """
         return Server(CookieServer(cookies, server_address=(hostname, port)))
     create_cookie_server = create_cookieserver
+    get_cookieserver = create_cookieserver
 
     def create_callbackserver(self, cb_dict, hostname="", port=0):
         """Create a callback server
@@ -222,4 +224,5 @@ class ServerData(TestData):
     create_callback_server = create_callbackserver
     create_cb_server = create_callbackserver
     create_cbserver = create_callbackserver
+    get_callbackserver = create_callbackserver
 
