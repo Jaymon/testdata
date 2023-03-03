@@ -36,7 +36,7 @@ from .user import *
 from .base import TestData
 
 
-__version__ = '6.1'
+__version__ = '6.1.0'
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
