@@ -46,6 +46,12 @@ class ServiceData(TestData):
                 failures while starting the service
         :returns: Service instance
         """
-        stop_service(service_name, kwargs.get("ignore_stop_failure", ignore_failure))
-        return start_service(service_name, get("ignore_start_failure", ignore_failure))
+        self.stop_service(
+            service_name,
+            kwargs.get("ignore_stop_failure", ignore_failure)
+        )
+        return self.start_service(
+            service_name,
+            kwargs.get("ignore_start_failure", ignore_failure)
+        )
 

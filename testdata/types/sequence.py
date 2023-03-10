@@ -37,9 +37,16 @@ class SequenceData(TestData):
         exclude = kwargs.pop("exclude", None)
         exclude = set(exclude) if exclude else set()
         vals = make_list(args)
+
+        if exclude:
+            vals = list(set(vals).difference(exclude))
+            if not vals:
+                raise ValueError("No more choices left")
+
         ret = random.choice(vals)
-        while ret in exclude:
-            ret = random.choice(vals)
+
+#         while ret in exclude:
+#             ret = random.choice(vals)
         return ret
     choose = choice
     get_choice = choice
@@ -60,7 +67,7 @@ class SequenceData(TestData):
         """
         kwargs = Dict(kwargs)
         k = kwargs.pops(["k", "count"], 1)
-        population = mak_list(args)
+        population = make_list(args)
         weights = kwargs.pop("weights", None)
         cum_weights = kwargs.pop("cum_weights", None)
         return random.choices(

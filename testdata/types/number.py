@@ -72,6 +72,9 @@ class NumberData(TestData):
 
     def get_size(self, *args, **kwargs):
         start, stop = self.get_bounds(*args, **kwargs)
+        if start == 0 and stop == 0:
+            start = 1
+            stop = self.get_int(start, 50)
         return random.randint(start, stop)
 
     def get_full_float(self, min_size=None, max_size=None):
