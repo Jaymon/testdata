@@ -11,7 +11,7 @@ from ..base import TestData
 # testdata functions
 ###############################################################################
 class SequenceData(TestData):
-    def get_list(self, callback, max_size=100):
+    def get_list(self, callback, max_size=100, **kwargs):
         """Create a list filled with values returned from callback
 
         https://github.com/Jaymon/testdata/issues/73
@@ -21,7 +21,7 @@ class SequenceData(TestData):
         :returns: list, the randomly generated list
         """
         ret = []
-        for x in self.get_range(max_size):
+        for x in self.get_range(max_size, **kwargs):
             ret.append(callback())
         return ret
 
@@ -45,8 +45,6 @@ class SequenceData(TestData):
 
         ret = random.choice(vals)
 
-#         while ret in exclude:
-#             ret = random.choice(vals)
         return ret
     choose = choice
     get_choice = choice

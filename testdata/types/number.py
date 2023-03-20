@@ -242,7 +242,7 @@ class NumberData(TestData):
         counter = itertools.count(start, step)
         return lambda: next(counter)
 
-    def get_range(self, max_size=10):
+    def get_range(self, max_size=10, **kwargs):
         """Because sometimes you just want a random range
 
         https://github.com/Jaymon/testdata/issues/74
@@ -250,13 +250,19 @@ class NumberData(TestData):
         :param max_size: int, the max range stop value you want
         :returns: range that can be iterated
         """
-        if self.yes():
-            start = 1
-            stop = self.get_int(1, max_size + 1)
+        start, stop = self.get_bounds(
+            max_size=max_size,
+            default_min_size=1 if self.yes() else 0,
+            **kwargs
+        )
 
-        else:
-            start = 0
-            stop = self.get_int(max_size=max_size)
+#         if self.yes():
+#             start = 1
+#             stop = self.get_int(1, max_size + 1)
+# 
+#         else:
+#             start = 0
+#             stop = self.get_int(max_size=max_size)
 
         return range(start, stop)
 
