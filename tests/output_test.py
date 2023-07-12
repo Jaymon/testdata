@@ -65,9 +65,9 @@ class CaptureTest(TestCase):
         capture = Capture(loggers=False)
         with capture():
             print("foo stdout")
-            print('bar stderr', file=sys.stderr)
+            print("bar stderr", file=sys.stderr)
             print("baz stdout")
-            print('che stderr', file=sys.stderr)
+            print("che stderr", file=sys.stderr)
 
         output = "foo stdout\nbar stderr\nbaz stdout\nche stderr\n"
         self.assertTrue(output in capture)

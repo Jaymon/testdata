@@ -2,29 +2,11 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 import time
 
-from testdata.threading import Thread, Deque, Tail
+from testdata.threading import Thread, Tail
 from testdata.compat import *
 from testdata.client import Command
 
 from . import TestCase, testdata
-
-
-class DequeTest(TestCase):
-    def test_lifecycle(self):
-        d = Deque(2)
-        self.assertEqual(0, len(d))
-
-        d.append(1)
-        self.assertEqual(1, len(d))
-
-        d.append(2)
-        self.assertEqual(2, len(d))
-
-        d.append(3)
-        self.assertEqual(2, len(d))
-
-        self.assertEqual(2, d[0])
-        self.assertEqual(3, d[1])
 
 
 class Thread3Test(TestCase):

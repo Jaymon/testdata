@@ -48,7 +48,7 @@ class Server(ServerThread):
         :param *parts: list, the path parts you will add to the scheme://netloc
         :returns: the full url scheme://netloc/parts
         """
-        # DEPRECATED? this extends Url so you can use al Url's helper methods
+        # DEPRECATED? this class extends Url so you can use all Url's helper methods
         return self.child(*parts, **kwargs)
 
 

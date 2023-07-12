@@ -96,14 +96,19 @@ class Stream(Base):
             to this stream
         """
         self.heap = []
+        self.heaptimes = set()
         self.stream = stream
 
     def write(self, s):
-        # I originally was using time.time() and sometimes that would return the
-        # same value on subsequent calls
+        # I originally was using time.time_ns() and sometimes that would return
+        # the same value on subsequent calls
         # https://stackoverflow.com/questions/1938048/
         # https://stackoverflow.com/a/38256446
-        t = time.process_time_ns()
+        #t = time.process_time_ns()
+        t = time.time_ns()
+        while t in self.heaptimes:
+            t += 1
+        self.heaptimes.add(t)
         hpush(self.heap, (t, s))
         if self.stream:
             self.stream.write(s)
@@ -271,24 +276,27 @@ class Capture(Base):
 ###############################################################################
 class OutputData(TestData):
     def basic_logging(self, **kwargs):
-        """Lots of times, in tests, I have to add a basic logger, it's basically the
-        same code over and over again, this will just make that a little easier to do
+        """Lots of times, in tests, I have to add a basic logger, it's basically
+        the same code over and over again, this will just make that a little
+        easier to do
 
         :example:
             import testdata
             testdata.basic_logging() # near top of file
 
-        :param **kwargs: key/val, these will be passed into logger.basicConfig method
+        :param **kwargs: key/val, these will be passed into logger.basicConfig
+            method
         """
         datatypes.logging.quick_config(**kwargs)
 
     def capture(stdout=True, stderr=True, loggers=True, *args, **kwargs):
         """Capture stdout and stderr so you can inspect it
 
-        this is handy for tests when you are trying to figure out if logging or whatnot
-        is doing the correct thing
+        this is handy for tests when you are trying to figure out if logging or
+        whatnot is doing the correct thing
 
-        I'd always wanted something similar to php's output buffering ob_start() method
+        I'd always wanted something similar to php's output buffering ob_start()
+        method
         http://www.php.net/manual/en/function.ob-start.php
 
         :example:
