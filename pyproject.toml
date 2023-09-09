@@ -38,11 +38,11 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 exclude = [
-  "tests.*",
+  "tests*",
   "example*"
 ]
 include = [
-  "testdata.*"
+  "testdata*"
 ]
 namespaces = true
 

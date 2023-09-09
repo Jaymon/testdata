@@ -35,12 +35,7 @@ from .user import *
 from .base import TestData
 
 
-__version__ = '6.3.0'
-
-
-# get rid of "No handler found" warnings (cribbed from requests)
-# DEPRECATED 7-15-2022, doesn't seem to be needed in python3
-logging.getLogger(__name__).addHandler(logging.NullHandler())
+__version__ = '6.3.1'
 
 
 def __getattr__(name):
