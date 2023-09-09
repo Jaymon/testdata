@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
+import os
 
 from testdata.compat import *
 
@@ -43,7 +44,10 @@ class MockTest(TestCase):
         self.assertEqual(1, instance.bar().che().foo())
 
     def test_mock_error(self):
-        instance = testdata.mock(foo=AttributeError, bar=RuntimeError("bar is bad"))
+        instance = testdata.mock(
+            foo=AttributeError,
+            bar=RuntimeError("bar is bad")
+        )
 
         with self.assertRaises(AttributeError):
             instance.foo()
@@ -71,6 +75,56 @@ class MockTest(TestCase):
         self.assertEqual("two", m.bar.foo[1])
         self.assertEqual("one", m.foo()[0])
         self.assertEqual("two", m.bar.foo()[1])
+
+    def test_mock_async_instance(self):
+        class MockObject(object):
+            async def foo(self):
+                return 1
+
+            async def foov(self, v):
+                return v
+
+            def bar(self):
+                return 2
+
+            def barv(self, v):
+                return v
+
+        o = self.mock_async(MockObject())
+
+        self.assertEqual(1, o.foo())
+        self.assertEqual(5, o.foov(5))
+        self.assertEqual(6, o.foov(v=6))
+        self.assertEqual(2, o.bar())
+        self.assertEqual(5, o.barv(5))
+        self.assertEqual(6, o.barv(v=6))
+
+    def test_mock_async_function(self):
+        async def foo():
+            return 1
+
+        async def foov(v):
+            return v
+
+        def bar():
+            return 2
+
+        def barv(v):
+            return v
+
+        afoo = self.mock_async(foo)
+        self.assertEqual(1, afoo())
+
+        afoov = self.mock_async(foov)
+        self.assertEqual(5, afoov(5))
+        self.assertEqual(5, afoov(v=5))
+
+        abar = self.mock_async(bar)
+        self.assertEqual(2, abar())
+
+        abarv = self.mock_async(barv)
+        self.assertEqual(5, abarv(5))
+        self.assertEqual(5, abarv(v=5))
 
 
 class PatchTest(TestCase):
@@ -152,7 +206,8 @@ class PatchTest(TestCase):
         self.assertEqual(1, f2.bar)
 
     def test_patch_class_self(self):
-        """a class that creates itself should create a copy of the patched class"""
+        """a class that creates itself should create a copy of the patched class
+        """
         contents = [
             "class PatchFactory(object):",
             "    def clone(self): return type(self)()",
@@ -278,7 +333,10 @@ class PatchTest(TestCase):
         mpath = testdata.create_module()
         morig = mpath.module()
 
-        m = testdata.patch_module(morig, {"foo.bar.che": 1, "os.getcwd": "/foo/bar"})
+        m = testdata.patch_module(
+            morig,
+            {"foo.bar.che": 1, "os.getcwd": "/foo/bar"}
+        )
         self.assertEqual(1, m.foo.bar.che)
         self.assertEqual("/foo/bar", m.os.getcwd())
 
@@ -317,4 +375,25 @@ class PatchTest(TestCase):
         self.assertEqual("barmethod 2", m.barmethod())
         self.assertEqual("barclass 2", m.barclass())
         self.assertEqual("barstatic 2", m.barstatic())
+
+    def test_environment(self):
+        self.assertFalse("TDT_ENVIRON_VAL" in os.environ)
+        with testdata.environment(TDT_ENVIRON_VAL="foobar"):
+            self.assertEqual("foobar", os.environ["TDT_ENVIRON_VAL"])
+        self.assertFalse("TDT_ENVIRON_VAL" in os.environ)
+
+        self.assertFalse(hasattr(testdata, "TDT_ENVIRON_VAL"))
+        with testdata.environment(testdata, TDT_ENVIRON_VAL="foobar"):
+            self.assertEqual("foobar", testdata.TDT_ENVIRON_VAL)
+        self.assertFalse(hasattr(testdata, "TDT_ENVIRON_VAL"))
+
+        class Foo(object):
+            bar = 1
+            che = 2
+
+        f = Foo()
+        with testdata.environment(f, bar=3):
+            self.assertEqual(3, f.bar)
+        self.assertEqual(1, f.bar)
+        self.assertEqual(2, f.che)
 
