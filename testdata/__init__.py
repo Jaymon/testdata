@@ -9,6 +9,7 @@ from time import sleep
 from .compat import *
 from .test import (
     TestCase,
+    IsolatedAsyncioTestCase,
     skip,
     SkipTest,
     skipIf,

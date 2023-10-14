@@ -2,6 +2,7 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 from unittest import(
     TestCase as _TestCase,
+    IsolatedAsyncioTestCase as _IsolatedAsyncioTestCase,
     SkipTest,
     skip,
     skipIf,
@@ -32,7 +33,7 @@ expect_failure = expectedFailure
 #     pass
 
 
-class _TestCaseMixin(object):
+class _TestDataMixin(object):
     """The mixin for both the TestCase and the TestCase metaclass that provides the
     passthrough to the testdata functions if the called method doesn't exist
     """
@@ -52,13 +53,13 @@ class _TestCaseMixin(object):
         return getattr(self.td, name)
 
 
-class _TestCaseMeta(_TestCaseMixin, type):
+class _TestCaseMeta(_TestDataMixin, type):
     """The MetaClass needs a __getattr__ in order for the testdata passthrough to
     work in both class methods and instance methods"""
     pass
 
 
-class TestCase(_TestCaseMixin, _TestCase, metaclass=_TestCaseMeta):
+class _TestCaseMixin(object):
     """
     From the docs:
         A new TestCase instance is created as a unique test fixture used to execute each
@@ -93,37 +94,6 @@ class TestCase(_TestCaseMixin, _TestCase, metaclass=_TestCaseMeta):
     def skipTest(cls, *args, **kwargs):
         """This overrides the default skipTest method to work in things like setUpClass()"""
         raise SkipTest(*args, **kwargs)
-
-    @classmethod
-    def setUpClass(cls):
-        """
-        https://docs.python.org/3/library/unittest.html#unittest.TestCase.setUpClass
-        """
-        pass
-
-    @classmethod
-    def tearDownClass(cls):
-        """
-        https://docs.python.org/3/library/unittest.html#unittest.TestCase.setUpClass
-        """
-        pass
-
-#     def __new__(cls, *args, **kwargs):
-#         instance = super().__new__(cls)
-#         TestData.__update_subclasses__()
-#         return instance
-
-    def setUp(self):
-        """
-        https://docs.python.org/3/library/unittest.html#unittest.TestCase.setUp
-        """
-        pass
-
-    def tearDown(self):
-        """
-        https://docs.python.org/3/library/unittest.html#unittest.TestCase.tearDown
-        """
-        pass
 
     def assertEventuallyEqual(self, v1, callback, msg="", count=30, wait=0.25):
         """Will run callback up to count times waiting wait seconds between each
@@ -205,3 +175,53 @@ class TestCase(_TestCaseMixin, _TestCase, metaclass=_TestCaseMeta):
                 if total > seconds[0]:
                     self.fail("Runtime of {:.2f} seconds > {} seconds".format(total, seconds[0]))
 
+
+class TestCase(_TestDataMixin, _TestCaseMixin, _TestCase, metaclass=_TestCaseMeta):
+    """
+    From the docs:
+        A new TestCase instance is created as a unique test fixture used to execute each
+        individual test method. Thus setUp(), tearDown(), and __init__() will be called
+        once per test
+    """
+    @classmethod
+    def setUpClass(cls):
+        """
+        https://docs.python.org/3/library/unittest.html#unittest.TestCase.setUpClass
+        """
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        """
+        https://docs.python.org/3/library/unittest.html#unittest.TestCase.setUpClass
+        """
+        pass
+
+    def setUp(self):
+        """
+        https://docs.python.org/3/library/unittest.html#unittest.TestCase.setUp
+        """
+        pass
+
+    def tearDown(self):
+        """
+        https://docs.python.org/3/library/unittest.html#unittest.TestCase.tearDown
+        """
+        pass
+
+
+class IsolatedAsyncioTestCase(_TestDataMixin, _TestCaseMixin, _IsolatedAsyncioTestCase, metaclass=_TestCaseMeta):
+    """
+    https://docs.python.org/3/library/unittest.html#unittest.IsolatedAsyncioTestCase
+    """
+    async def asyncSetUp(self):
+        """
+        https://docs.python.org/3/library/unittest.html#unittest.IsolatedAsyncioTestCase.asyncSetUp
+        """
+        pass
+
+    async def asyncTearDown(self):
+        """
+        https://docs.python.org/3/library/unittest.html#unittest.IsolatedAsyncioTestCase.asyncTearDown
+        """
+        pass

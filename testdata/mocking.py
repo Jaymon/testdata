@@ -57,7 +57,48 @@ class AsyncRunner(object):
                 ret = asyncio.run(ret)
 
             else:
+                pout.v(loop, show_methods=True)
                 ret = loop.run_until_complete(ret)
+
+#                 try:
+#                     ret = loop.run_until_complete(ret)
+# 
+#                 except RuntimeError as e:
+#                     future = asyncio.ensure_future(ret, loop=loop)
+#                     while not future.done():
+#                         loop._run_once()
+#                         if loop._stopping:
+#                             break
+#                     if not future.done():
+#                         raise RuntimeError("Sigh") from e
+# 
+#                     ret = future.result()
+
+#                     if not task.done():
+#                         task.cancel()
+#                         try:
+#                             ret = loop.run_until_complete(task)
+# 
+#                         except asyncio.CancelledError:
+#                             pass
+
+
+
+
+#                 try:
+#                     ret = loop.run_until_complete(ret)
+# 
+#                 except RuntimeError:
+#                     #task = loop.create_task(ret)
+#                     task = asyncio.create_task(ret)
+#                     import time
+#                     while not task.done():
+#                         time.sleep(0.1)
+#                         #asyncio.sleep(0.1)
+#                     ret = task.result()
+#                     #ret = task.result()
+#                     #future = asyncio.run_coroutine_threadsafe(ret, loop)
+#                     #ret = future.result(1)
 
         return ret
 
