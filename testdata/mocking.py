@@ -57,7 +57,7 @@ class AsyncRunner(object):
                 ret = asyncio.run(ret)
 
             else:
-                pout.v(loop, show_methods=True)
+#                 pout.v(loop, show_methods=True)
                 ret = loop.run_until_complete(ret)
 
 #                 try:

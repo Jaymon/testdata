@@ -225,3 +225,4 @@ class IsolatedAsyncioTestCase(_TestDataMixin, _TestCaseMixin, _IsolatedAsyncioTe
         https://docs.python.org/3/library/unittest.html#unittest.IsolatedAsyncioTestCase.asyncTearDown
         """
         pass
+
