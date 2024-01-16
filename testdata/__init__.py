@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import random
 import os
 import logging
@@ -50,6 +49,21 @@ def __getattr__(name):
         * https://stackoverflow.com/a/48916205/5006
     """
     return TestData.__findattr__(name)
+
+
+# def testcase_get(testcase, name):
+#     """This is the entrypoint when using self.<NAME> in an actual TestCase
+#     method, that's really the only time it should be used and its purpose is
+#     to allow TestData classes to attempt to use defined methods in TestCase
+#     when trying to find the correct value to return
+# 
+#     :param testcase: TestCase, this can be an instance or class/type, it
+#         will be set into self.testcase and then cleared when this method is
+#         done
+#     :param name: str, the attribute testcase is looking for
+#     :returns: Any
+#     """
+#     return TestData.__findattr__(name, testcase=testcase)
 
 
 ###############################################################################

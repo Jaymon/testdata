@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 from unittest import(
     TestCase as _TestCase,
     IsolatedAsyncioTestCase as _IsolatedAsyncioTestCase,
@@ -34,37 +33,45 @@ expect_failure = expectedFailure
 
 
 class _TestDataMixin(object):
-    """The mixin for both the TestCase and the TestCase metaclass that provides the
-    passthrough to the testdata functions if the called method doesn't exist
+    """The mixin for both the TestCase and the TestCase metaclass that provides
+    the passthrough to the testdata functions if the called method doesn't exist
     """
-    td = TestData.module()
-    """Set this to whatever tesdata module you want to proxy, this was originally
-    names testdata but I noticed the TestCase always contained it as an error, because
-    it was thinking it was a test because it started with test*"""
+    data = TestData
+
+
+#     data = TestData.module()
+#     td = data # DEPRECATED 2024-01-15 in favor of .data
+    """Set this to whatever tesdata module you want to proxy, this was
+    originally names testdata but I noticed the TestCase always contained it as
+    an error, because it was thinking it was a test because it started with
+    test*"""
 
     def __getattr__(self, name):
-        """If the attribute isn't defined on this class try and proxy k to a testdata
-        module function, if that fails then an AttributeError is raised like normal
+        """If the attribute isn't defined on this class try and proxy name to a
+        testdata module function, if that fails then an AttributeError is
+        raised like normal
 
         this allows self.<TESTDATA_FUNCTION>(*args, **kwargs) and
         cls.<TESTDATA_FUNCTION> to work from within any child class that extends
         this
         """
-        return getattr(self.td, name)
+        return self.data.__findattr__(name, testcase=self)
+#         return self.data.testcase_get(self, name)
+#         return getattr(self.td, name)
 
 
 class _TestCaseMeta(_TestDataMixin, type):
-    """The MetaClass needs a __getattr__ in order for the testdata passthrough to
-    work in both class methods and instance methods"""
+    """The MetaClass needs a __getattr__ in order for the testdata passthrough
+    to work in both class methods and instance methods"""
     pass
 
 
 class _TestCaseMixin(object):
     """
     From the docs:
-        A new TestCase instance is created as a unique test fixture used to execute each
-        individual test method. Thus setUp(), tearDown(), and __init__() will be called
-        once per test
+        A new TestCase instance is created as a unique test fixture used to
+        execute each individual test method. Thus setUp(), tearDown(), and
+        __init__() will be called once per test
     """
     @staticmethod
     def skip(reason=""):
@@ -92,7 +99,8 @@ class _TestCaseMixin(object):
 
     @classmethod
     def skipTest(cls, *args, **kwargs):
-        """This overrides the default skipTest method to work in things like setUpClass()"""
+        """This overrides the default skipTest method to work in things like
+        setUpClass()"""
         raise SkipTest(*args, **kwargs)
 
     def assertEventuallyEqual(self, v1, callback, msg="", count=30, wait=0.25):
@@ -102,8 +110,8 @@ class _TestCaseMixin(object):
         Moved here from morp's base test interface class on 2-6-2023
 
         :param v1: mixed, the value to check against callback
-        :param callback: callable, this will be called up to count times or until
-            the return value equals v1
+        :param callback: callable, this will be called up to count times or
+            until the return value equals v1
         :param msg: str, the message to print on failure
         :param count: int, how many times to run callback
         :param wait: float, how many seconds to wait before attempts
@@ -120,13 +128,20 @@ class _TestCaseMixin(object):
         if not ret:
             self.assertEqual(v1, callback(), msg)
 
-    def assertUntilTrue(self, callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1): 
-        """will run callback every interval until timeout is exceeded or until callback
-        returns True
+    def assertUntilTrue(
+        self,
+        callback,
+        cb_args=None,
+        cb_kwargs=None,
+        timeout=30.0,
+        interval=0.1
+    ): 
+        """will run callback every interval until timeout is exceeded or until
+        callback returns True
 
         see testdata.TestdataData.wait()
         """
-        self.td.wait(callback, cb_args, cb_kwargs, timeout, interval)
+        self.data.wait(callback, cb_args, cb_kwargs, timeout, interval)
 
     def assertAscii(self, s):
         """checks if the entire string only contains ASCII characters
@@ -147,14 +162,14 @@ class _TestCaseMixin(object):
 
         :Example:
             with self.assertWithin(1):
-                foo() # if returns within 1 second we're good, otherwise AssertError
+                foo() # good if returns within 1 second, otherwise AssertError
 
             with self.assertWithin(.75, 1.25):
                 foo() # if returns between .75-1.25 seconds then it's good
 
-        :param *seconds: float(s), how many seconds before considered a failure, if
-            only one is passed in then it is max seconds, if two values are passed
-            in then it is min, max and the value has to be between them
+        :param *seconds: float(s), how many seconds before considered a failure,
+            if only one is passed in then it is max seconds, if two values are
+            passed in then it is min, max and the value has to be between them
         """
         try:
             start = time.time()
@@ -165,23 +180,29 @@ class _TestCaseMixin(object):
             total = stop - start
             if len(seconds) > 1:
                 if total <= seconds[0] or total >= seconds[1]:
-                    self.fail("Runtime of {:.2f} seconds was not within {} - {} seconds".format(
-                        total,
-                        seconds[0],
-                        seconds[1]
-                    ))
+                    m = "Runtime {:.2f} seconds was not within {} - {} seconds"
+                    self.fail(
+                        m.format(
+                            total,
+                            seconds[0],
+                            seconds[1]
+                        )
+                    )
 
             else:
                 if total > seconds[0]:
-                    self.fail("Runtime of {:.2f} seconds > {} seconds".format(total, seconds[0]))
+                    self.fail("Runtime {:.2f} seconds > {} seconds".format(
+                        total,
+                        seconds[0]
+                    ))
 
 
 class TestCase(_TestDataMixin, _TestCaseMixin, _TestCase, metaclass=_TestCaseMeta):
     """
     From the docs:
-        A new TestCase instance is created as a unique test fixture used to execute each
-        individual test method. Thus setUp(), tearDown(), and __init__() will be called
-        once per test
+        A new TestCase instance is created as a unique test fixture used to
+        execute each individual test method. Thus setUp(), tearDown(), and
+        __init__() will be called once per test
     """
     @classmethod
     def setUpClass(cls):
