@@ -123,58 +123,67 @@ class TC3Test(TestCase):
         raise RuntimeError()
 
 
-class TCDefinedCalledFromDataWithInstanceTest(TestCase):
-    @classmethod
-    def setUpClass(cls):
-#         pout.v("setupClass")
-        class Data(TestData):
-            def get_foo(self, **kwargs):
-                return self.get_bar(**kwargs)
+class DataClassTest(TestCase):
+    class DataClass(TestData):
+        def get_foo(self, **kwargs):
+            return 1
 
-            def get_bar(self, **kwargs):
-                return 1
-
-    def get_bar(self, **kwargs):
-        return 2
-
-    def test_resolution(self):
-#         pout.v(dir(self)[90:])
-        pout.b()
+    def test_private_data_class(self):
         r = self.get_foo()
-        self.assertEqual(2, r)
-        pout.v(r)
+        self.assertEqual(1, r)
 
-#     def test_resolution_2(self):
-#         pout.v("resolution_2")
-#         pass
-#     def test_resolution_3(self):
-#         pout.v("resolution_3")
-#         pass
+# class TCDefinedCalledFromDataWithInstanceTest(TestCase):
+#     @classmethod
+#     def setUpClass(cls):
+#         class Data(TestData):
+#             def get_foo(self, **kwargs):
+#                 return self.get_bar(**kwargs)
 # 
-#     def run(self, *args, **kwargs):
-#         pout.v("start run")
-#         r = super().run(*args, **kwargs)
-#         pout.v("stop run")
-#         return r
-
-class TCDefinedCalledFromDataWithClassTest(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        class Data(TestData):
-            def get_foo(self, **kwargs):
-                return self.get_bar(**kwargs)
-
-            def get_bar(self, **kwargs):
-                return 1
-
-        r = cls.get_foo()
-        assert(r == 2)
-
-    @classmethod
-    def get_bar(cls, **kwargs):
-        return 2
-
-    def test_resolution(self):
-        r = self.get_foo()
-        self.assertEqual(2, r)
+#             def get_bar(self, **kwargs):
+#                 return 1
+# 
+#     def get_bar(self, **kwargs):
+#         return 2
+# 
+#     def test_resolution(self):
+#         r = self.get_foo()
+#         self.assertEqual(2, r)
+# 
+# 
+# class TCDefinedCalledFromDataWithClassTest(TestCase):
+#     @classmethod
+#     def setUpClass(cls):
+#         class Data(TestData):
+#             def get_foo(self, **kwargs):
+#                 return self.get_bar(**kwargs)
+# 
+#             def get_bar(self, **kwargs):
+#                 return 1
+# 
+#         r = cls.get_foo()
+#         assert(r == 2)
+# 
+#     @classmethod
+#     def get_bar(cls, **kwargs):
+#         return 2
+# 
+#     def test_resolution(self):
+#         r = self.get_foo()
+#         self.assertEqual(2, r)
+# 
+# 
+# # class TCResolutionSuperTest(TestCase):
+# #     @classmethod
+# #     def setUpClass(cls):
+# #         class Data(TestData):
+# #             def get_foo(self, **kwargs):
+# #                 return 1
+# # 
+# #     def get_foo(self, **kwargs):
+# #         return super().get_foo(**kwargs)
+# # 
+# #     def test_resolution(self):
+# #         r = self.get_foo()
+# 
+# 
 

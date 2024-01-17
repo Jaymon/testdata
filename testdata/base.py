@@ -5,18 +5,57 @@ import logging
 from datatypes import (
     ReflectClass,
     ReflectModule,
+    OrderedSubclasses,
 )
 
 
 logger = logging.getLogger(__name__)
 
 
+class DataInstances(object):
+    """Holds TestData children that are used for attribute resolution
+
+    This is an internal class used by TestData and shouldn't be messed with
+    unless you really know what you're doing
+    """
+    def __init__(self):
+        self.data_classes = OrderedSubclasses()
+        self.data_instances = {}
+
+    def add(self, data_class):
+        """Add a TestData child
+
+        :param data_class: TestData, the child class to add to the attribute
+            resolution list
+        """
+        self.data_classes.insert(data_class)
+        self.data_instances[data_class] = data_class()
+
+    def delete(self, data_class):
+        """Removes data_class from the method resolution list, this means it
+        will no longer be checked when resolving attributes
+
+        :param data_class: the TestData child to remove
+        """
+        self.data_classes.remove(data_class)
+        self.data_instances.pop(data_class)
+
+    def items(self):
+        """Iterate through all the TestData children that should be checked to
+        resolve an attribute
+
+        :returns: generator[str, TestData]
+        """
+        for data_name, data_class in self.data_classes.edges(names=True):
+            yield data_name, self.data_instances[data_class]
+
+
 class TestData(object):
-    """Any testdata sources should extend this class, this will register them with
-    the testdata module without you having to do anything else
+    """Any testdata sources should extend this class, this will register them
+    with the testdata module without you having to do anything else
 
     :Example:
-        from testdata.base import TestData
+        from testdata import TestData
 
         class CustomData(TestData):
             def foobar(self):
@@ -28,8 +67,46 @@ class TestData(object):
 
         testdata.foobar() # foobar
         tetdata.get_int() # 1
+
+    If you want to override certain methods just for a specific TestCase, the
+    best way to do that would be to embed a class in your TestCase
+
+    :Example:
+        from testdata import TestData, TestCase
+
+        class FooTest(TestCase):
+
+            class ClassData(TestData):
+                def get_foo(self):
+                    return 1
+
+            def test_foo(self):
+                # you can call .get_foo just like it was defined on the class
+                self.assertEqual(1, self.get_foo())
+
+                # if you want to be more explicit about what .get_foo is you can
+                # use the .data attribute
+                self.assertEqual(1, self.data.get_foo())
+
+    This class, and all its children, have very complicated method resolution,
+    with each child class able to call methods from every other class.
+
+    A method of a subclass can call a method from another subclass using
+    self.<NAME>. The secret to this working is .__getattr__ and .__findattr__
+
+    Methods should be named globally unique across the entire set of child
+    classes. If two child unrelated classes have a .get_foo() method the
+    resolution is undefined
+
+    To override methods, you should extend that specific child class, since
+    the absolute child is the only TestData subclass that will be checked.
+
+    If you call a TestData method from a test using self.<NAME> or
+    self.data.<NAME> then you should have access to a .testcase attribute inside
+    the TestData method. If you call that same method using testdata.<NAME> then
+    you won't have access to .testcase
     """
-    _data_instances = {}
+    _data_instances = DataInstances()
     """Holds an active instance of each data class"""
 
     def __init__(self):
@@ -42,13 +119,7 @@ class TestData(object):
         # holds the current TestCase class that is running. This should never
         # be messed with outside of .__findattr__, check out .__runattr__ and 
         # __getattribute__ to also to see how this is used in practice
-        self._testcase = None
-
-#     @classmethod
-#     @functools.cache
-#     def module(cls):
-#         """Get the testdata module"""
-#         return ReflectModule(__name__).basemodule()
+        self.testcase = None
 
     @classmethod
     def __findattr__(cls, name, testcase=None):
@@ -66,9 +137,10 @@ class TestData(object):
         :param name: str, the method/attribute name to check all the subclasses
             for
         :param testcase: TestCase, this can be an instance or class/type, it
-            will be set into ._testcase for each data instance looked at and
+            will be set into .testcase for each data instance looked at and
             then cleared when that data instance is done being checked
-        :returns: mixed
+        :returns: Any, this will return a partial wrapped .__runattr__ method
+            if testcase is not None
         """
         logger.debug("{}.__findattr__ looking for {} with {}".format(
             cls.__name__,
@@ -77,17 +149,10 @@ class TestData(object):
         ))
 
         for data_name, data_instance in cls._data_instances.items():
-
-#             pout.v(data_name, data_instance._missing_cache, id(data_instance))
-
-#             if name == "get_foo":
-#                 pout.v(data_instance.__class__.__name__)
-
-#             if name not in data_instance._missing_cache:
             if name not in data_instance._missing_cache:
-                data_instance._testcase = testcase
+                data_instance.testcase = testcase
 
-                logger.debug("{}.__findattr__ checking {} for {}".format(
+                logger.debug("{}.__findattr__ checking {}.{}".format(
                     cls.__name__,
                     data_name,
                     name
@@ -96,12 +161,11 @@ class TestData(object):
                 try:
                     attribute = getattr(data_instance, name)
 
-                    logger.debug("{}.__findattr__ found {} in {}".format(
+                    logger.debug("{}.__findattr__ found {}.{}".format(
                         cls.__name__,
-                        name,
-                        data_name
+                        data_name,
+                        name
                     ))
-
 
                 except AttributeError:
                     data_instance._missing_cache.add(name)
@@ -114,32 +178,33 @@ class TestData(object):
                             testcase
                         )
 
-#                         def testcase_resolve(*args, **kwargs):
-#                             pout.v(attribute, data_instance)
-#                             data_instance._testcase = testcase
-#                             try:
-#                                 return attribute(*args, **kwargs)
-# 
-#                             finally:
-#                                 data_instance._testcase = None
-# 
-#                         return testcase_resolve
-
                     else:
                         return attribute
 
                 finally:
-                    data_instance._testcase = None
+                    data_instance.testcase = None
 
         raise AttributeError(name)
 
     def __runattr__(self, callback, testcase, *args, **kwargs):
-        self._testcase = testcase
+        """Run callback(*args, **kwargs) with testcase. This is only used when
+        testcase is passed to .__findattr__, it exists so attribute resulution
+        can use testcase also when resolving things
+
+        This is an internal method
+
+        :param callback: callable, the attribute found in .__findattr__
+        :param testcase: unittest.TestCase
+        :param *args: passed to callback
+        :param **kwargs: passed to callback
+        :returns: Any, whatever callback returns
+        """
+        self.testcase = testcase
         try:
             return callback(*args, **kwargs)
 
         finally:
-            self._testcase = None
+            self.testcase = None
 
     def __init_subclass__(cls, *args, **kwargs):
         """This is where all the magic happens, when a class is read into memory
@@ -149,14 +214,16 @@ class TestData(object):
         """
         super().__init_subclass__(*args, **kwargs)
 
-        data_instance = cls()
-        rc = ReflectClass(cls)
+        cls.add_class(cls)
 
-        cls._data_instances[rc.classpath] = data_instance
-
-        # clear any parents since this class will supercede them
-        for rp in rc.reflect_parents(TestData):
-            cls._data_instances.pop(rp.classpath, None)
+#         data_instance = cls()
+#         rc = ReflectClass(cls)
+# 
+#         cls._data_instances[rc.classpath] = data_instance
+# 
+#         # clear any parents since this class will supercede them
+#         for rp in rc.reflect_parents(TestData):
+#             cls._data_instances.pop(rp.classpath, None)
 
     def __getattr__(self, name):
         """This allows child classes to reference any other registered class's
@@ -165,12 +232,13 @@ class TestData(object):
         if we get to this __getattr__ then this object doesn't have the
         attribute, but to allow instances to reference TestData methods found
         in other instances we need to passthrough to the other instances, but
-        we keep track of name so we won't have to check this instance again
+        we keep track of name so we won't have to check this instance again.
 
-        :param name: str, the requested attribute name. This will only ever be
-            requested once if it makes it this far, see __findattr__ to
-            see where self._missing_cache is checked
+        We don't passthrough anything that begins with a double underscore.
+
+        :param name: str, the requested attribute name
         """
+        # see __findattr__ to see where self._missing_cache is checked
         self._missing_cache.add(name)
 
         if name.startswith("__"):
@@ -179,24 +247,53 @@ class TestData(object):
         else:
             # magic resolution is only supported for non magic/private
             # attributes
-            return self.__findattr__(name, testcase=self._testcase)
+            return self.__findattr__(name, testcase=self.testcase)
 
-    def __getattribute__(self, name):
-        if name == "_testcase" or name.startswith("__"):
-            return super().__getattribute__(name)
+#     def __getattribute__(self, name):
+#         """This is where the magic method resolution using testcase classes
+#         exists. Basically, this will check testcase (if it exists) for any
+#         attribute, even attributes defined on this class and use the testcase
+#         version if it exists.
+# 
+#         Like everything else, any double underscored attributes won't invoke the
+#         magic resolution
+# 
+#         :param name: str, the attribute name
+#         :returns: Any, if self._testcase exists then there is a chance that
+#             testcase.<NAME> is returned instead of self.<NAME>
+#         """
+#         if name == "_testcase" or name.startswith("__"):
+#             return super().__getattribute__(name)
+# 
+#         else:
+#             try:
+#                 testcase = super().__getattribute__("_testcase")
+# 
+#             except AttributeError:
+#                 testcase = None
+# 
+#             finally:
+#                 if testcase:
+#                     methods = dir(testcase)
+#                     if name in methods:
+#                         return getattr(testcase, name)
+# 
+#         return super().__getattribute__(name)
 
-        else:
-            try:
-                testcase = super().__getattribute__("_testcase")
+    @classmethod
+    def add_class(cls, data_class):
+        cls._data_instances.add(data_class)
 
-            except AttributeError:
-                testcase = None
+#         data_instance = data_class()
+#         rc = ReflectClass(data_class)
+# 
+#         cls._data_instances[rc.classpath] = data_instance
+# 
+#         # clear any parents since this class will supercede them
+#         for rp in rc.reflect_parents(TestData):
+#             cls._data_instances.pop(rp.classpath, None)
 
-            finally:
-                if testcase:
-                    methods = dir(testcase)
-                    if name in methods:
-                        return getattr(testcase, name)
-
-        return super().__getattribute__(name)
+    @classmethod
+    def delete_class(cls, data_class):
+        cls._data_instances.delete(data_class)
 

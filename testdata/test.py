@@ -11,6 +11,7 @@ from unittest import(
 from contextlib import contextmanager
 import time
 import importlib
+import inspect
 
 from .compat import *
 from .config import environ
@@ -38,14 +39,6 @@ class _TestDataMixin(object):
     """
     data = TestData
 
-
-#     data = TestData.module()
-#     td = data # DEPRECATED 2024-01-15 in favor of .data
-    """Set this to whatever tesdata module you want to proxy, this was
-    originally names testdata but I noticed the TestCase always contained it as
-    an error, because it was thinking it was a test because it started with
-    test*"""
-
     def __getattr__(self, name):
         """If the attribute isn't defined on this class try and proxy name to a
         testdata module function, if that fails then an AttributeError is
@@ -61,9 +54,6 @@ class _TestDataMixin(object):
 
         else:
             return self.data.__findattr__(name, testcase=self)
-
-#         return self.data.testcase_get(self, name)
-#         return getattr(self.td, name)
 
 
 class _TestCaseMeta(_TestDataMixin, type):
@@ -202,8 +192,25 @@ class _TestCaseMixin(object):
                         seconds[0]
                     ))
 
+    @classmethod
+    def doClassCleanups(cls):
+        """We override this so we can remove any class specific TestData classes
+        since we don't want them messing up tests ran in different classes
+        """
+        super().doClassCleanups()
 
-class TestCase(_TestDataMixin, _TestCaseMixin, _TestCase, metaclass=_TestCaseMeta):
+        # Remove any testcase specific data classes
+        for name, data_class in inspect.getmembers(cls, inspect.isclass):
+            if data_class is not cls.data and issubclass(data_class, TestData):
+                cls.data.delete_class(data_class)
+
+
+class TestCase(
+    _TestDataMixin,
+    _TestCaseMixin,
+    _TestCase,
+    metaclass=_TestCaseMeta
+):
     """
     https://github.com/python/cpython/blob/3.11/Lib/unittest/case.py
 
@@ -238,23 +245,16 @@ class TestCase(_TestDataMixin, _TestCaseMixin, _TestCase, metaclass=_TestCaseMet
         """
         pass
 
-#     def __new__(cls, *args, **kwargs):
-#         pout.v("__new__")
-#         return super().__new__(cls)
-# 
-#     def __init__(self, *args, **kwargs):
-#         pout.v("__init__")
-#         return super().__init__(*args, **kwargs)
-# 
-#     @classmethod
-#     def enterClassContext(cls, cm):
-#         pout.v("enterClassContext")
-#         return super().enterClassContext(cm)
 
-
-class IsolatedAsyncioTestCase(_TestDataMixin, _TestCaseMixin, _IsolatedAsyncioTestCase, metaclass=_TestCaseMeta):
+class IsolatedAsyncioTestCase(
+    _TestDataMixin,
+    _TestCaseMixin,
+    _IsolatedAsyncioTestCase,
+    metaclass=_TestCaseMeta
+):
     """
     https://docs.python.org/3/library/unittest.html#unittest.IsolatedAsyncioTestCase
+    https://github.com/python/cpython/blob/3.11/Lib/unittest/async_case.py
     """
     async def asyncSetUp(self):
         """

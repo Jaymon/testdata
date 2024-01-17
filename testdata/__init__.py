@@ -35,7 +35,7 @@ from .user import *
 from .base import TestData
 
 
-__version__ = '6.3.1'
+__version__ = "7.0.0"
 
 
 def __getattr__(name):
@@ -51,26 +51,18 @@ def __getattr__(name):
     return TestData.__findattr__(name)
 
 
-# def testcase_get(testcase, name):
-#     """This is the entrypoint when using self.<NAME> in an actual TestCase
-#     method, that's really the only time it should be used and its purpose is
-#     to allow TestData classes to attempt to use defined methods in TestCase
-#     when trying to find the correct value to return
-# 
-#     :param testcase: TestCase, this can be an instance or class/type, it
-#         will be set into self.testcase and then cleared when this method is
-#         done
-#     :param name: str, the attribute testcase is looking for
-#     :returns: Any
-#     """
-#     return TestData.__findattr__(name, testcase=testcase)
-
-
 ###############################################################################
 # testdata functions
 ###############################################################################
 class TestdataData(TestData):
-    def wait(self, callback, cb_args=None, cb_kwargs=None, timeout=30.0, interval=0.1): 
+    def wait(
+        self,
+        callback,
+        cb_args=None,
+        cb_kwargs=None,
+        timeout=30.0,
+        interval=0.1
+    ):
         """
         keep running callback(*cb_args, **cb_kwargs) until it returns True or
         timeout is reached
