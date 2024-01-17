@@ -252,7 +252,15 @@ class IsolatedAsyncioTestCase(
     _IsolatedAsyncioTestCase,
     metaclass=_TestCaseMeta
 ):
-    """
+    """This is a terrible name, but I guess there is a method to the madness,
+    from the docblock on the class definition
+
+        Names intentionally have a long prefix to reduce a chance of clashing
+        with user-defined attributes from inherited test case
+
+    That's referring to the actual methods but I think the test was named with
+    the same mindset. Either way, I've shortened it to AsyncTestCase below
+
     https://docs.python.org/3/library/unittest.html#unittest.IsolatedAsyncioTestCase
     https://github.com/python/cpython/blob/3.11/Lib/unittest/async_case.py
     """
@@ -267,4 +275,9 @@ class IsolatedAsyncioTestCase(
         https://docs.python.org/3/library/unittest.html#unittest.IsolatedAsyncioTestCase.asyncTearDown
         """
         pass
+
+
+class AsyncTestCase(IsolatedAsyncioTestCase):
+    """Alias for IsolatedAsyncioTestCase that is easier to remember"""
+    pass
 

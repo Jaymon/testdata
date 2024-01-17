@@ -66,7 +66,7 @@ class TestData(object):
                 return 1
 
         testdata.foobar() # foobar
-        tetdata.get_int() # 1
+        testdata.get_int() # 1
 
     If you want to override certain methods just for a specific TestCase, the
     best way to do that would be to embed a class in your TestCase
@@ -120,6 +120,24 @@ class TestData(object):
         # be messed with outside of .__findattr__, check out .__runattr__ and 
         # __getattribute__ to also to see how this is used in practice
         self.testcase = None
+
+    @classmethod
+    def add_class(cls, data_class):
+        """Add a TestData child to the resolution list, this should mainly only
+        be called from the TestData class itself
+
+        :param data_class: TestData
+        """
+        cls._data_instances.add(data_class)
+
+    @classmethod
+    def delete_class(cls, data_class):
+        """Remove a TestData child to the resolution list, this should mainly
+        only be called from the TestData class itself
+
+        :param data_class: TestData
+        """
+        cls._data_instances.delete(data_class)
 
     @classmethod
     def __findattr__(cls, name, testcase=None):
@@ -216,23 +234,13 @@ class TestData(object):
 
         cls.add_class(cls)
 
-#         data_instance = cls()
-#         rc = ReflectClass(cls)
-# 
-#         cls._data_instances[rc.classpath] = data_instance
-# 
-#         # clear any parents since this class will supercede them
-#         for rp in rc.reflect_parents(TestData):
-#             cls._data_instances.pop(rp.classpath, None)
-
     def __getattr__(self, name):
         """This allows child classes to reference any other registered class's
         methods
 
         if we get to this __getattr__ then this object doesn't have the
-        attribute, but to allow instances to reference TestData methods found
-        in other instances we need to passthrough to the other instances, but
-        we keep track of name so we won't have to check this instance again.
+        attribute, so we keep track of name so we won't have to check this
+        instance again.
 
         We don't passthrough anything that begins with a double underscore.
 
@@ -248,52 +256,4 @@ class TestData(object):
             # magic resolution is only supported for non magic/private
             # attributes
             return self.__findattr__(name, testcase=self.testcase)
-
-#     def __getattribute__(self, name):
-#         """This is where the magic method resolution using testcase classes
-#         exists. Basically, this will check testcase (if it exists) for any
-#         attribute, even attributes defined on this class and use the testcase
-#         version if it exists.
-# 
-#         Like everything else, any double underscored attributes won't invoke the
-#         magic resolution
-# 
-#         :param name: str, the attribute name
-#         :returns: Any, if self._testcase exists then there is a chance that
-#             testcase.<NAME> is returned instead of self.<NAME>
-#         """
-#         if name == "_testcase" or name.startswith("__"):
-#             return super().__getattribute__(name)
-# 
-#         else:
-#             try:
-#                 testcase = super().__getattribute__("_testcase")
-# 
-#             except AttributeError:
-#                 testcase = None
-# 
-#             finally:
-#                 if testcase:
-#                     methods = dir(testcase)
-#                     if name in methods:
-#                         return getattr(testcase, name)
-# 
-#         return super().__getattribute__(name)
-
-    @classmethod
-    def add_class(cls, data_class):
-        cls._data_instances.add(data_class)
-
-#         data_instance = data_class()
-#         rc = ReflectClass(data_class)
-# 
-#         cls._data_instances[rc.classpath] = data_instance
-# 
-#         # clear any parents since this class will supercede them
-#         for rp in rc.reflect_parents(TestData):
-#             cls._data_instances.pop(rp.classpath, None)
-
-    @classmethod
-    def delete_class(cls, data_class):
-        cls._data_instances.delete(data_class)
 

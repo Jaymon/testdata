@@ -9,6 +9,7 @@ from .compat import *
 from .test import (
     TestCase,
     IsolatedAsyncioTestCase,
+    AsyncTestCase,
     skip,
     SkipTest,
     skipIf,
