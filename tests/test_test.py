@@ -123,12 +123,12 @@ class TC3Test(TestCase):
         raise RuntimeError()
 
 
-class TCDefinedCalledFromDataTest(TestCase):
+class TCDefinedCalledFromDataWithInstanceTest(TestCase):
     @classmethod
     def setUpClass(cls):
+#         pout.v("setupClass")
         class Data(TestData):
             def get_foo(self, **kwargs):
-                pout.v(self.testcase)
                 return self.get_bar(**kwargs)
 
             def get_bar(self, **kwargs):
@@ -141,8 +141,40 @@ class TCDefinedCalledFromDataTest(TestCase):
 #         pout.v(dir(self)[90:])
         pout.b()
         r = self.get_foo()
+        self.assertEqual(2, r)
         pout.v(r)
 
+#     def test_resolution_2(self):
+#         pout.v("resolution_2")
+#         pass
+#     def test_resolution_3(self):
+#         pout.v("resolution_3")
+#         pass
+# 
+#     def run(self, *args, **kwargs):
+#         pout.v("start run")
+#         r = super().run(*args, **kwargs)
+#         pout.v("stop run")
+#         return r
 
+class TCDefinedCalledFromDataWithClassTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        class Data(TestData):
+            def get_foo(self, **kwargs):
+                return self.get_bar(**kwargs)
 
+            def get_bar(self, **kwargs):
+                return 1
+
+        r = cls.get_foo()
+        assert(r == 2)
+
+    @classmethod
+    def get_bar(cls, **kwargs):
+        return 2
+
+    def test_resolution(self):
+        r = self.get_foo()
+        self.assertEqual(2, r)
 

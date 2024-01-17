@@ -34,11 +34,15 @@ class TestData(object):
 
     def __init__(self):
         # holds attributes that were requested but aren't available on this
-        # instance
+        # instance. Since attribute resultion for these classes are so crazy and
+        # very recursive, this keeping track of non-existent attributes on the
+        # various TestData subclasses just speeds everything up
         self._missing_cache = set()
 
-        # holds the current TestCase class that is running
-        self.testcase = None
+        # holds the current TestCase class that is running. This should never
+        # be messed with outside of .__findattr__, check out .__runattr__ and 
+        # __getattribute__ to also to see how this is used in practice
+        self._testcase = None
 
 #     @classmethod
 #     @functools.cache
@@ -62,47 +66,35 @@ class TestData(object):
         :param name: str, the method/attribute name to check all the subclasses
             for
         :param testcase: TestCase, this can be an instance or class/type, it
-            will be set into .testcase for each data instance looked at and then
-            cleared when that data instance is done being checked
+            will be set into ._testcase for each data instance looked at and
+            then cleared when that data instance is done being checked
         :returns: mixed
         """
-        logger.debug("{}.__findattr__ looking for {} with testcase {}".format(
+        logger.debug("{}.__findattr__ looking for {} with {}".format(
             cls.__name__,
             name,
-            True if testcase else False
+            "testcase" if testcase else "no testcase"
         ))
 
         for data_name, data_instance in cls._data_instances.items():
+
+#             pout.v(data_name, data_instance._missing_cache, id(data_instance))
 
 #             if name == "get_foo":
 #                 pout.v(data_instance.__class__.__name__)
 
 #             if name not in data_instance._missing_cache:
-            if name in data_instance._missing_cache:
-                logger.debug("{}.__findattr__ ignoring {} for {}".format(
-                    cls.__name__,
-                    data_name,
-                    name
-                ))
+            if name not in data_instance._missing_cache:
+                data_instance._testcase = testcase
 
-            else:
                 logger.debug("{}.__findattr__ checking {} for {}".format(
                     cls.__name__,
                     data_name,
                     name
                 ))
 
-                data_instance.testcase = testcase
                 try:
-#                     r = getattr(data_instance, name)
-#                     if name == "get_foo":
-#                         pout.v(data_instance.__class__.__name__)
-#                         pout.v(testcase)
-#                         pout.v(cls)
-#                         pout.v(r)
-#                         return r
-
-                    r = getattr(data_instance, name)
+                    attribute = getattr(data_instance, name)
 
                     logger.debug("{}.__findattr__ found {} in {}".format(
                         cls.__name__,
@@ -110,23 +102,44 @@ class TestData(object):
                         data_name
                     ))
 
-                    return r
 
                 except AttributeError:
                     data_instance._missing_cache.add(name)
 
-                except Exception as e:
-                    pout.v(e)
-                    raise
+                else:
+                    if testcase and callable(attribute):
+                        return functools.partial(
+                            data_instance.__runattr__,
+                            attribute,
+                            testcase
+                        )
+
+#                         def testcase_resolve(*args, **kwargs):
+#                             pout.v(attribute, data_instance)
+#                             data_instance._testcase = testcase
+#                             try:
+#                                 return attribute(*args, **kwargs)
+# 
+#                             finally:
+#                                 data_instance._testcase = None
+# 
+#                         return testcase_resolve
+
+                    else:
+                        return attribute
 
                 finally:
-                    data_instance.testcase = None
-
-                    logger.debug("{} clearing testcase".format(
-                        data_name
-                    ))
+                    data_instance._testcase = None
 
         raise AttributeError(name)
+
+    def __runattr__(self, callback, testcase, *args, **kwargs):
+        self._testcase = testcase
+        try:
+            return callback(*args, **kwargs)
+
+        finally:
+            self._testcase = None
 
     def __init_subclass__(cls, *args, **kwargs):
         """This is where all the magic happens, when a class is read into memory
@@ -159,23 +172,31 @@ class TestData(object):
             see where self._missing_cache is checked
         """
         self._missing_cache.add(name)
-        return self.__findattr__(name, testcase=self.testcase)
 
-#     def __getattribute__(self, name):
-#         if not name.startswith("_"):
-#             try:
-#                 testcase = super().__getattribute__("testcase")
-# 
-#             except AttributeError:
-#                 pass
-# 
-# #             else:
-# #                 pout.v(name)
-# #                 pout.v(testcase.__class__.__name__)
-# #                 tcd = set(dir(testcase))
-# #                 if name in tcd:
-# #                     pout.v(name)
-# #                     return getattr(testcase, name)
-# 
-#         return super().__getattribute__(name)
+        if name.startswith("__"):
+            return super().__getattr__(name)
+
+        else:
+            # magic resolution is only supported for non magic/private
+            # attributes
+            return self.__findattr__(name, testcase=self._testcase)
+
+    def __getattribute__(self, name):
+        if name == "_testcase" or name.startswith("__"):
+            return super().__getattribute__(name)
+
+        else:
+            try:
+                testcase = super().__getattribute__("_testcase")
+
+            except AttributeError:
+                testcase = None
+
+            finally:
+                if testcase:
+                    methods = dir(testcase)
+                    if name in methods:
+                        return getattr(testcase, name)
+
+        return super().__getattribute__(name)
 

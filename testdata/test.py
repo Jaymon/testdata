@@ -55,7 +55,13 @@ class _TestDataMixin(object):
         cls.<TESTDATA_FUNCTION> to work from within any child class that extends
         this
         """
-        return self.data.__findattr__(name, testcase=self)
+        # magic resolution is only supported for non magic/private attributes
+        if name.startswith("__"):
+            return super().__getattr__(name)
+
+        else:
+            return self.data.__findattr__(name, testcase=self)
+
 #         return self.data.testcase_get(self, name)
 #         return getattr(self.td, name)
 
@@ -199,6 +205,8 @@ class _TestCaseMixin(object):
 
 class TestCase(_TestDataMixin, _TestCaseMixin, _TestCase, metaclass=_TestCaseMeta):
     """
+    https://github.com/python/cpython/blob/3.11/Lib/unittest/case.py
+
     From the docs:
         A new TestCase instance is created as a unique test fixture used to
         execute each individual test method. Thus setUp(), tearDown(), and
@@ -229,6 +237,19 @@ class TestCase(_TestDataMixin, _TestCaseMixin, _TestCase, metaclass=_TestCaseMet
         https://docs.python.org/3/library/unittest.html#unittest.TestCase.tearDown
         """
         pass
+
+#     def __new__(cls, *args, **kwargs):
+#         pout.v("__new__")
+#         return super().__new__(cls)
+# 
+#     def __init__(self, *args, **kwargs):
+#         pout.v("__init__")
+#         return super().__init__(*args, **kwargs)
+# 
+#     @classmethod
+#     def enterClassContext(cls, cm):
+#         pout.v("enterClassContext")
+#         return super().enterClassContext(cm)
 
 
 class IsolatedAsyncioTestCase(_TestDataMixin, _TestCaseMixin, _IsolatedAsyncioTestCase, metaclass=_TestCaseMeta):
