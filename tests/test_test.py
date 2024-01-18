@@ -93,3 +93,13 @@ class DataClassTest(TestCase):
         r = self.get_foo()
         self.assertEqual(1, r)
 
+
+class ChildDataClassTest(DataClassTest):
+    class DataClass(DataClassTest.DataClass):
+        def get_foo(self, **kwargs):
+            return 2
+
+    def test_private_data_class(self):
+        r = self.get_foo()
+        self.assertEqual(2, r)
+

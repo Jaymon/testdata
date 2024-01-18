@@ -200,9 +200,25 @@ class _TestCaseMixin(object):
         super().doClassCleanups()
 
         # Remove any testcase specific data classes
-        for name, data_class in inspect.getmembers(cls, inspect.isclass):
-            if data_class is not cls.data and issubclass(data_class, TestData):
-                cls.data.delete_class(data_class)
+        for testcase in inspect.getmro(cls):
+            for name, data_class in inspect.getmembers(
+                testcase,
+                inspect.isclass
+            ):
+                if (
+                    data_class is not cls.data
+                    and issubclass(data_class, TestData)
+                ):
+                    try:
+                        cls.data.delete_class(data_class)
+
+                    except ValueError:
+                        # if it can't be deleted it means it isn't an edge class
+                        # so we don't remove it because there are still classes
+                        # that depend on it
+                        pass
+
+        pout.v(list(cls.data._data_instances.items()))
 
 
 class TestCase(
