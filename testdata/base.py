@@ -55,52 +55,6 @@ class DataInstances(object):
                 yield data_name, self.data_instances[data_class]
 
 
-# class _BaseTestData(object):
-#     def __setattr__(self, name, value):
-#         if name.startswith("_"):
-#             return super().__setattr__(name, value)
-# 
-#         else:
-#             logger.debug("{}.__setattr__ looking for {}".format(
-#                 self.__class__.__name__,
-#                 name,
-#             ))
-# 
-#             found_count = 0
-#             for data_name, data_instance in self._data_instances.items():
-# 
-#                 logger.debug("{}.__setattr__ checking {}.{}".format(
-#                     self.__class__.__name__,
-#                     data_name,
-#                     name
-#                 ))
-# 
-# #                 if data_name.endswith("DataClass"):
-# #                     pout.v(data_instance)
-# #                     pout.v(data_instance.__dict__, vars(data_instance), dir(data_instance))
-# 
-#                 if name in dir(data_instance):
-#                     logger.debug("{}.__setattr__ found {}.{}".format(
-#                         self.__class__.__name__,
-#                         data_name,
-#                         name
-#                     ))
-#                     found_count += 1
-#                     data_instance.__dict__[name] = value
-#                     pout.v(data_instance.__dict__)
-# #                     setattr(data_instance, name, value)
-# 
-#             if not found_count:
-#                 super().__setattr__(name, value)
-# #                 setattr(TestData, name, value)
-# 
-# 
-# class _TestDataMeta(_BaseTestData, type):
-#     """The MetaClass needs a __getattr__ in order for the testdata passthrough
-#     to work in both class methods and instance methods"""
-#     pass
-
-
 class TestData(object):
 # class TestData(_BaseTestData, metaclass=_TestDataMeta):
     """Any testdata sources should extend this class, this will register them
@@ -219,7 +173,7 @@ class TestData(object):
         """
         super().__init_subclass__(*args, **kwargs)
 
-        TestData.add_class(cls)
+        cls.add_class(cls)
 
     def __getattr__(self, name):
         """This allows child classes to reference any other registered class's

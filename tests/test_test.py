@@ -84,21 +84,31 @@ class TC3Test(TestCase):
         raise RuntimeError()
 
 
-# class TCDataAttributeSet(TestCase):
-#     class DataClass(TestData):
-#         foobar = None
-# 
-#         def get_foobar(self):
-#             return self.foobar
-# 
-#     @classmethod
-#     def setUpClass(cls):
-#         cls.data.foobar = 1
-# 
-#     @classmethod
-#     def tearDownClass(cls):
-#         cls.data.foobar = None
-# 
-#     def test_attribute_set(self):
-#         pout.v(self.get_foobar())
+class TCDataAttributeSet(TestCase):
+    class DataClass(TestData):
+        def get_foobar(self):
+            return self.foobar
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.data.foobar
+
+        except AttributeError:
+            pass
+
+        cls.data.foobar = 1
+
+        assert cls.foobar == 1
+        assert cls.data.foobar == 1
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.data.foobar = None
+
+        assert cls.foobar is None
+        assert cls.data.foobar is None
+
+    def test_attribute_set(self):
+        self.assertEqual(1, self.get_foobar())
 
