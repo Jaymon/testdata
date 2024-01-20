@@ -49,7 +49,11 @@ def __getattr__(name):
         * https://peps.python.org/pep-0562/
         * https://stackoverflow.com/a/48916205/5006
     """
-    return TestData.__findattr__(name)
+    if name.startswith("_"):
+        raise AttributeError(name)
+
+    else:
+        return TestData.__findattr__(name)
 
 
 ###############################################################################

@@ -84,22 +84,21 @@ class TC3Test(TestCase):
         raise RuntimeError()
 
 
-class DataClassTest(TestCase):
-    class DataClass(TestData):
-        def get_foo(self, **kwargs):
-            return 1
-
-    def test_private_data_class(self):
-        r = self.get_foo()
-        self.assertEqual(1, r)
-
-
-class ChildDataClassTest(DataClassTest):
-    class DataClass(DataClassTest.DataClass):
-        def get_foo(self, **kwargs):
-            return 2
-
-    def test_private_data_class(self):
-        r = self.get_foo()
-        self.assertEqual(2, r)
+# class TCDataAttributeSet(TestCase):
+#     class DataClass(TestData):
+#         foobar = None
+# 
+#         def get_foobar(self):
+#             return self.foobar
+# 
+#     @classmethod
+#     def setUpClass(cls):
+#         cls.data.foobar = 1
+# 
+#     @classmethod
+#     def tearDownClass(cls):
+#         cls.data.foobar = None
+# 
+#     def test_attribute_set(self):
+#         pout.v(self.get_foobar())
 

@@ -48,12 +48,12 @@ class _TestDataMixin(object):
         cls.<TESTDATA_FUNCTION> to work from within any child class that extends
         this
         """
-        # magic resolution is only supported for non magic/private attributes
-        if name.startswith("__"):
+        # Try to be smart on when we should use TestData magic resolution
+        if name.startswith("_") or name == "runTest":
             return super().__getattr__(name)
 
         else:
-            return self.data.__findattr__(name, testcase=self)
+            return self.data.__findattr__(name)
 
 
 class _TestCaseMeta(_TestDataMixin, type):
@@ -191,34 +191,6 @@ class _TestCaseMixin(object):
                         total,
                         seconds[0]
                     ))
-
-    @classmethod
-    def doClassCleanups(cls):
-        """We override this so we can remove any class specific TestData classes
-        since we don't want them messing up tests ran in different classes
-        """
-        super().doClassCleanups()
-
-        # Remove any testcase specific data classes
-        for testcase in inspect.getmro(cls):
-            for name, data_class in inspect.getmembers(
-                testcase,
-                inspect.isclass
-            ):
-                if (
-                    data_class is not cls.data
-                    and issubclass(data_class, TestData)
-                ):
-                    try:
-                        cls.data.delete_class(data_class)
-
-                    except ValueError:
-                        # if it can't be deleted it means it isn't an edge class
-                        # so we don't remove it because there are still classes
-                        # that depend on it
-                        pass
-
-        pout.v(list(cls.data._data_instances.items()))
 
 
 class TestCase(

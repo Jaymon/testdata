@@ -48,7 +48,7 @@ testdata.get_int()
 
 ## Extending Testdata
 
-The testdata module has a ton of helpful methods, but you can also easily add your own methods by extending `testdata.TestData`:
+The testdata module has a ton of helpful methods, and you can also easily add your own custom methods by extending `testdata.TestData`:
 
 ```python
 from testdata import TestData, NumberData
@@ -67,32 +67,8 @@ testdata.foobar() # foobar
 testdata.get_int() # 1
 ```
 
-If you want to override certain functionality for a certain test case class only, you can do that with embedded `TestData` classes in the `TestCase`:
-
-```python
-from testdata import TestData, NumberData, TestCase
-
-class CustomTest(TestCase):
-    class ClassData(CustomTestData):
-        def foobar(self):
-            return "foobar 2"
-            
-    class ClassNumberData(CustomNumberData):
-        def get_int(self, *args, **kwargs):
-            return 2
-
-    def test_foo(self):
-        # you can call .foobar just like it was defined on the class
-        self.assertEqual("foobar 2", self.foobar())
-        self.assertEqual(2, self.get_int())
-
-        # if you want to be more explicit about what .foobar is you can
-        # use the .data attribute
-        self.assertEqual("foobar 2", self.data.foobar())
-        self.assertEqual(2, self.data.get_int())
-```
-
 The only catch to adding/overriding testdata methods is you have to make sure your custom `TestData` child classes are imported before you can call them since testdata makes use of [__init_subclass__](https://peps.python.org/pep-0487/) to add `TestData` classes to the resolver.
+
 
 ## Functionality
 
