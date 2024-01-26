@@ -52,7 +52,11 @@ class DataInstances(object):
     def items(self):
         for data_name, data_class in self.data_classes.items():
             if data_class is not object:
-                yield data_name, self.data_instances[data_class]
+                try:
+                    yield data_name, self.data_instances[data_class]
+
+                except KeyError:
+                    pass
 
 
 class TestData(object):
@@ -139,6 +143,8 @@ class TestData(object):
             name,
         ))
 
+        # go through all the absolute children classes and see if they have an
+        # attribute that matches name
         for data_name, data_instance in cls._data_instances.edges():
             if name not in data_instance._missing_cache:
 
@@ -162,6 +168,17 @@ class TestData(object):
 
                 else:
                     return attribute
+
+        # since we couldn't find an attribute in any of the classes, let's try
+        # and see if there is an actual class that matches the name, then return
+        # the class, this makes it easy to get a specific class
+        for data_name, data_instance in cls._data_instances.items():
+            if name == data_instance.__class__.__name__:
+                logger.debug("{}.__findattr__ found data class {}".format(
+                    cls.__name__,
+                    name
+                ))
+                return data_instance
 
         raise AttributeError(name)
 
