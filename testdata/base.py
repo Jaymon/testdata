@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 import functools
-import logging
 
 from datatypes import (
     ReflectClass,
     ReflectModule,
     OrderedSubclasses,
 )
+from datatypes import logging
 
 
+# this module is really verbose so we're going to raise its default level to be
+# a bit more quiet
+logging.setdefault(__name__, "INFO")
 logger = logging.getLogger(__name__)
 
 
