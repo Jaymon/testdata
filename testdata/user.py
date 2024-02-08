@@ -88,9 +88,15 @@ class Address(tuple):
 ###############################################################################
 class UserData(TestData):
     def get_username(self, name=""):
-        """Returns just a non-space ascii name, this is a very basic username generator"""
+        """Returns just a non-space ascii name, this is a very basic username
+        generator"""
         if not name:
-            name = self.get_ascii_first_name() if self.yes() else self.get_ascii_last_name()
+            if self.yes():
+                name = self.get_ascii_first_name()
+
+            else:
+                name = self.get_ascii_last_name()
+
         name = re.sub(r"['-]", "", name)
         return name
 

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 
-from testdata.config import environ
 from testdata.compat import *
+from testdata.config import environ
+from testdata.server import TestDataServer, Server
 
 from . import TestCase, testdata
 
@@ -92,5 +92,29 @@ class CookieServerTest(TestCase):
 
             # test with different case
             res = testdata.fetch(server, headers={"cookie": "foo=1234"})
-            self.assertEqual("1234", res.json()["unread_cookies"]["foo"]["value"])
+            self.assertEqual(
+                "1234",
+                res.json()["unread_cookies"]["foo"]["value"]
+            )
+
+
+class TestDataServerTest(TestCase):
+    def test_request(self):
+        s = Server(TestDataServer())
+        with s:
+            res = self.fetch(
+                s.child("get_int"),
+                query={"min_size": 1, "max_size": 10}
+            ).json()
+            self.assertTrue(1 <= res <= 10)
+
+            #res = self.fetch(s, query={"foo": 1, "bar": "two"})
+            res = self.fetch(s.child("get_int/1/10")).json()
+            self.assertTrue(1 <= res <= 10)
+
+            res = self.fetch(
+                s.child("get_int"),
+                body={"min_size": 1, "max_size": 10}
+            ).json()
+            self.assertTrue(1 <= res <= 10)
 

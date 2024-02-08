@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import logging
+import re
 
-from datatypes.url import Host
+from datatypes.url import Host, Url
 from datatypes.server import (
     ServerThread,
     PathServer,
     CallbackServer,
+    MethodServer,
 )
+from datatypes.utils import infer_type
 
 from .compat import *
 from .config import environ
@@ -22,8 +24,9 @@ logger = logging.getLogger(__name__)
 ###############################################################################
 
 class Server(ServerThread):
-    """This is the Webserver master class, it masquerades as a string whose value
-    is the url scheme://hostname:port but adds helper methods to manage the webserver
+    """This is the Webserver master class, it masquerades as a string whose
+    value is the url scheme://hostname:port but adds helper methods to manage
+    the webserver
 
     :Example:
         s = Server(PathServer("<SOME-PATH>"))
@@ -48,7 +51,8 @@ class Server(ServerThread):
         :param *parts: list, the path parts you will add to the scheme://netloc
         :returns: the full url scheme://netloc/parts
         """
-        # DEPRECATED? this class extends Url so you can use all Url's helper methods
+        # DEPRECATED? this class extends Url so you can use all Url's helper
+        # methods
         return self.child(*parts, **kwargs)
 
 
@@ -68,24 +72,12 @@ class CookieServer(CallbackServer):
         ret = []
         for name, val in handler.server.cookies:
             c = SimpleCookie()
-            if is_py2:
-                if isinstance(val, Mapping):
-                    # TODO: this isn't right :(
-                    c[bytes(name)] = val
-                else:
-                    # NOTE -- cookies can't really have unicode values
-                    if isinstance(val, basestring):
-                        val = val.encode("utf-8")
-                    else:
-                        val = bytes(val)
-                    c[name.encode("utf-8")] = val
+            if isinstance(val, Mapping):
+                # TODO: this isn't right :(
+                c[name] = val
 
             else:
-                if isinstance(val, Mapping):
-                    # TODO: this isn't right :(
-                    c[name] = val
-                else:
-                    c[str(name)] = str(val)
+                c[str(name)] = str(val)
 
             ret.extend(c.values())
         return ret
@@ -106,7 +98,9 @@ class CookieServer(CallbackServer):
             read_cookies = {}
             unread_cookies = {}
 
-            server_morsels = set(m.OutputString() for m in self.make_morsels(handler))
+            server_morsels = set(
+                m.OutputString() for m in self.make_morsels(handler)
+            )
             total_server_morsels = len(server_morsels)
             if is_py2:
                 req_c = SimpleCookie(b"\r\n".join(req_cookies.split(b", ")))
@@ -128,8 +122,9 @@ class CookieServer(CallbackServer):
             ret["unread_cookies"] = unread_cookies
 
         else:
-            # Turns out Chrome won't set a cookie on a 204, this might be a thing
-            # in the spec, but just to be safe we will send information down
+            # Turns out Chrome won't set a cookie on a 204, this might be a
+            # thing in the spec, but just to be safe we will send information
+            # down
             handler.send_response(200)
             count = 0
             sent_cookies = {}
@@ -155,11 +150,137 @@ class CookieServer(CallbackServer):
         super().__init__({"default": self.callback}, *args, **kwargs)
 
 
+class TestDataServer(MethodServer):
+    """Create a testdata server that basically turns all TestData children
+    methods into a json api
+
+    The server will answer requests in the form of:
+
+        <HOST>/<METHOD-NAME>/<ARGS>?<KWARGS>
+
+    :Example:
+        s = TestDataServer(("localhost", 4321)
+        testdata.fetch("http://localhost:4321/get_int/1/100")
+    """
+    def get_method_call(self, handler):
+        """From the path, query, and body figure out the method name and the
+        arguments that will be passed to it
+
+        :param handler: CallbackHandler, the handler that is handling the
+            request
+        :returns: tuple[str, list, dict]
+        """
+        kwargs = handler.query
+        if body := handler.body:
+            kwargs.update(body)
+        kwargs = infer_type(kwargs)
+
+        parts = Url(handler.path).parts
+        if len(parts) > 1:
+            method_name = parts[0]
+            args = infer_type(parts[1:])
+
+        else:
+            method_name = parts[0]
+            args = []
+
+        return method_name, args, kwargs
+
+    def get_object_json(self, o):
+        """If the testdata method that was ran returns an object then this will
+        try and figure out how to turn that object into json
+
+        :param o: object, the generic object whose json value couldn't be
+            inferred
+        :returns: dict
+        """
+        # https://stackoverflow.com/a/51055044
+        if hasattr(o, "jsonable"):
+            ret = o.jsonable()
+
+        elif hasattr(cbr, "to_json"):
+            ret = cbr.to_json()
+
+        elif hasattr(cbr, "toJSON"):
+            ret = cbr.toJSON()
+
+        elif hasattr(cbr, "tojson"):
+            ret = cbr.tojson()
+
+        elif hasattr(cbr, "json"):
+            ret = cbr.json()
+
+        elif hasattr(cbr, "__json__"):
+            ret = cbr.__json__()
+
+        else:
+            raise ValueError(f"No idea how to json encode {type(o)} object")
+
+        return ret
+
+    def run_method(self, handler):
+        """Internal method to figure out and run the testdata method that was
+        requested
+
+        :param handler: CallbackHandler, the handler that is handling the
+            request
+        :returns: Any, it will return whatever the ran method returned
+        """
+        method_name, args, kwargs = self.get_method_call(handler)
+        cb = TestData.__findattr__(method_name)
+        if callable(cb):
+            cbr = cb(*args, **kwargs)
+
+        else:
+            cbr = cb
+
+        if cbr is None:
+            ret = None
+
+        if isinstance(cbr, (basestring, float, int, bool)):
+            ret = cbr
+
+        elif isinstance(cbr, Mapping):
+            ret = cbr
+
+        elif isinstance(cbr, Sequence):
+            ret = []
+            for o in cbr:
+                try:
+                    ret.append(self.get_object_json(o))
+
+                except ValueError:
+                    ret.append(o)
+
+        elif isinstance(cbr, object):
+            ret = self.get_object_json(cbr)
+
+        else:
+            ret = cbr
+
+        return ret
+
+    def GET(self, handler):
+        """Answer GET requests"""
+        return self.run_method(handler)
+
+    def POST(self, handler):
+        """Answer POST requests"""
+        return self.run_method(handler)
+
+
 ###############################################################################
 # testdata functions
 ###############################################################################
 class ServerData(TestData):
-    def create_fileserver(self, file_dict, tmpdir="", hostname="", port=0, encoding=""):
+    def create_fileserver(
+        self,
+        file_dict,
+        tmpdir="",
+        hostname="",
+        port=0,
+        encoding=""
+    ):
         """create a fileserver that can be used to test remote file retrieval
 
         :Example:
@@ -179,7 +300,13 @@ class ServerData(TestData):
             }
 
         path = self.create_files(file_dict, tmpdir=tmpdir, encoding=encoding)
-        return Server(PathServer(path, server_address=(hostname, port), encoding=encoding))
+        return Server(
+            PathServer(
+                path,
+                server_address=(hostname, port),
+                encoding=encoding
+            )
+        )
     create_file_server = create_fileserver
     create_pathserver = create_fileserver
     create_path_server = create_fileserver
@@ -215,8 +342,8 @@ class ServerData(TestData):
 
         https://github.com/Jaymon/testdata/issues/79
 
-        :param cb_dict: dict, key is the http method and value is the callback, the
-            callback should have a signature of (handler)
+        :param cb_dict: dict, key is the http method and value is the callback,
+            the callback should have a signature of (handler)
         :param hostname: str, usually leave this alone and it will use localhost
         :param port: int, the port you want to use
         """
@@ -225,4 +352,13 @@ class ServerData(TestData):
     create_cb_server = create_callbackserver
     create_cbserver = create_callbackserver
     get_callbackserver = create_callbackserver
+
+    def serve(self, hostname="", port=0, server_class=TestDataServer):
+        """A wrapper around the TestDataServer class's .server_forever method
+
+        :param hostname: str, usually leave this alone and it will use localhost
+        :param port: int, the port you want to use
+        """
+        s = server_class(server_address=(hostname, port))
+        s.serve_forever()
 
