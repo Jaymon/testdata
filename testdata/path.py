@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import os
 import re
 import sys
@@ -17,6 +16,8 @@ from datatypes.path import (
     Dirpath as BaseDirpath,
     Filepath as BaseFilepath,
 )
+from datatypes.reflection import ReflectModule
+from datatypes.collections import Namespace
 from datatypes.csv import CSV
 
 from .compat import *
@@ -58,9 +59,22 @@ class Path(object):
         return Dirpath
 
     def prepare_text(self, data, **kwargs):
+        """Wraps parent's prepare_text to allow data and certain kwargs to be
+        lists instead of strings, if they are lists then the list will be
+        considered lines and will be joined with a newline.
+
+        It makes sense for the main datatype paths to not take lists but I've
+        really come to depend on this behavior in testdata
+        """
+        for k in ["header", "footer"]:
+            if v := kwargs.get(k, ""):
+                if not isinstance(v, basestring):
+                    kwargs[k] = "\n".join(v)
+
         if not isinstance(data, basestring):
             data = "\n".join(data)
-        return super(Path, self).prepare_text(data, **kwargs)
+
+        return super().prepare_text(data, **kwargs)
 
 
 class Filepath(Path, BaseFilepath):
@@ -73,8 +87,11 @@ class Dirpath(Path, BaseDirpath):
 
 class TempDirpath(Path, BaseTempDirpath):
     def module(self, module_path):
-        """similar to modpath but returns the actual module instead of Modulepath
-        instance
+        return self.get_module(module_path)
+
+    def get_module(self, module_path):
+        """similar to modpath but returns the actual module instead of
+        Modulepath instance
 
         Return the actual module imported via module_path
         """
@@ -91,6 +108,9 @@ class TempDirpath(Path, BaseTempDirpath):
         return module
 
     def modules(self):
+        return self.get_modules()
+
+    def get_modules(self):
         """iterate through all the modules under this directory"""
         for modpath in self.modpaths():
             yield modpath.module()
@@ -119,7 +139,8 @@ class TempFilepath(Path, BaseTempFilepath):
     def run(self, arg_str="", cwd="", environ=None, **kwargs):
         """Treat this file like a script and execute it
 
-        :param arg_str: string, flags you want to pass into the execution of the script
+        :param arg_str: string, flags you want to pass into the execution of the
+            script
         :returns: string, the output of running the file/script
         """
         # avoid circular dependency
@@ -131,7 +152,8 @@ class TempFilepath(Path, BaseTempFilepath):
 
 
 class TempModulepath(TempFilepath):
-    """create a python module folder structure so that the module can be imported"""
+    """create a python module folder structure so that the module can be
+    imported"""
     @property
     def modparts(self):
         return self.split('.')
@@ -174,7 +196,7 @@ class TempModulepath(TempFilepath):
             else:
                 parts.append("{}.py".format(basename))
 
-        path = super(TempModulepath, cls).normpath(*parts, **kwargs)
+        path = super().normpath(*parts, **kwargs)
         return path
 
     @classmethod
@@ -183,9 +205,10 @@ class TempModulepath(TempFilepath):
 
     @classmethod
     def create_as(cls, instance, **kwargs):
-        instance = super(TempModulepath, cls).create_as(instance, **kwargs)
+        instance = super().create_as(instance, **kwargs)
 
-        # add the path to the top of the sys path so importing the new module will work
+        # add the path to the top of the sys path so importing the new module
+        # will work
         make_importable = kwargs.pop("make_importable", True)
         if make_importable:
             sys.path.insert(0, instance.basedir) 
@@ -194,7 +217,9 @@ class TempModulepath(TempFilepath):
 
     def prepare_text(self, data, **kwargs):
         self.touch()
+
         data, encoding, errors = super().prepare_text(data, **kwargs)
+
         add_coding = kwargs.get("add_coding", not "# -*- coding:" in data)
         if kwargs.get("add_future", False):
             if "from __future__ import " not in data:
@@ -220,14 +245,18 @@ class TempModulepath(TempFilepath):
     def touch(self, mode=0o666, exist_ok=True):
         super(TempModulepath, self).touch(mode=mode, exist_ok=exist_ok)
 
-        # we need to make sure every part/directory of the module path is a valid
-        # python module with an __init__.py file
+        # we need to make sure every part/directory of the module path is a
+        # valid python module with an __init__.py file
 
         mod_parts = filter(lambda p: not p.endswith(".py"), self.relparts)
 
         base_dir = self.basedir
         for modname in mod_parts:
-            mod_file = self.create_file(base_dir, "{}.py".format(modname), touch=False)
+            mod_file = self.create_file(
+                base_dir,
+                "{}.py".format(modname),
+                touch=False
+            )
 
             # turn module.py into a package (module/__init__.py)
             base_dir = self.create_dir(base_dir, modname)
@@ -246,29 +275,39 @@ class TempModulepath(TempFilepath):
         return dp.modpaths()
 
     def classes(self):
+        return self.get_classes()
+
+    def get_classes(self):
         """Return all the classes this module contains"""
         for m in self.modules():
             for klass_name, klass in inspect.getmembers(m, inspect.isclass):
                 yield klass
 
     def module(self):
+        return self.get_module()
+
+    def get_module(self):
         """Return the actual module this Modulepath represents"""
         dp = self.tempdir_class()(dir=self.directory)
         return dp.module(self)
 
     def modules(self):
+        return self.get_modules()
+
+    def get_modules(self):
         dp = self.tempdir_class()(dir=self.directory)
         return dp.modules()
 
     def is_package(self):
-        """returns True if this module is a package (directory with __init__.py file
-        in it)"""
+        """returns True if this module is a package (directory with __init__.py
+        file in it)"""
         return self.path.endswith("__init__.py")
 
     def run(self, arg_str="", cwd="", environ=None, **kwargs):
         """Run this module on the command line
 
-        :param arg_str: string, flags you want to pass into the execution of this module
+        :param arg_str: string, flags you want to pass into the execution of
+            this module
         :returns: string, the output of running the file/script
         """
         # avoid circular dependency
@@ -288,8 +327,8 @@ class TempModulepath(TempFilepath):
 def make_png(width, height, color=None):
     """Make a png image of arbitrary width, height, and color
 
-    The mojority of this function comes from this great SO answer with public domain
-    code:
+    The majority of this function comes from this great SO answer with public
+    domain code:
 
         https://stackoverflow.com/a/25835368/5006
 
@@ -313,7 +352,7 @@ def make_png(width, height, color=None):
         return struct.pack("!I", value & (2**32-1))
 
     def B1(value):
-        return chr(value) if is_py2 else value
+        return value
 
     # PNG file header
     png = b"\x89" + "PNG\r\n\x1A\n".encode('ascii')
@@ -334,8 +373,8 @@ def make_png(width, height, color=None):
     png += I4(len(IHDR)) + block + I4(zlib.crc32(block))
 
     # IDAT block (the actual image)
-    # if we don't have a color then we just use a black pixel bit, but if we do have
-    # a color we use 4 bits (r, g, b, a) for each pixel
+    # if we don't have a color then we just use a black pixel bit, but if we do
+    # have a color we use 4 bits (r, g, b, a) for each pixel
     raw = bytearray()
 
     if color:
@@ -357,7 +396,7 @@ def make_png(width, height, color=None):
             raw.extend(c)
 
     compressor = zlib.compressobj()
-    compressed = compressor.compress(bytes(raw) if is_py2 else raw)
+    compressed = compressor.compress(raw)
     compressed += compressor.flush()
     block = "IDAT".encode('ascii') + compressed
     png += I4(len(compressed)) + block + I4(zlib.crc32(block))
@@ -393,8 +432,8 @@ class PathData(TestData):
         '''
         create a directory path using a tempdir as the root
 
-        so, if you pass in "/foo/bar" that will be combined with a tempdir, so you end 
-        up with the final path: /tmp/python/dir/foo/bar
+        so, if you pass in "/foo/bar" that will be combined with a tempdir, so
+        you end up with the final path: /tmp/python/dir/foo/bar
 
         :param path: string, the temp dir path
         :param tmpdir: string, the temp directory to use as the base
@@ -410,8 +449,8 @@ class PathData(TestData):
 
         :param dirs: list, the directories to create relative to tmpdir
         :param tmpdir: string, the base directory
-        :returns: Dirpath instance pointing to the base directory all of dirs were
-            created in
+        :returns: Dirpath instance pointing to the base directory all of dirs
+            were created in
         """
         base_dir = TempDirpath(dir=tmpdir)
         base_dir.add(dirs)
@@ -426,7 +465,8 @@ class PathData(TestData):
         :returns: Dirpath, the path wrapped with all the Dirpath functionality
         """
         if not path:
-            # we have to create a filename because otherwise the temp directory will exist
+            # we have to create a filename because otherwise the temp directory
+            # will exist
             path = self.get_filename()
         kwargs.setdefault("touch", False)
         return TempDirpath(path, dir=tmpdir, **kwargs)
@@ -445,15 +485,21 @@ class PathData(TestData):
 
         :returns: Filepath, the full file path
         '''
-        return TempFilepath(path, data=data, encoding=encoding, dir=tmpdir, **kwargs)
+        return TempFilepath(
+            path,
+            data=data,
+            encoding=encoding,
+            dir=tmpdir,
+            **kwargs
+        )
     create_f = create_file
 
     def create_files(self, file_dict, tmpdir="", **kwargs):
         """
         create a whole bunch of files all at once
 
-        :param file_dict: dict, keys are the filepath relative to tmpdir, values are the
-            file contents
+        :param file_dict: dict, keys are the filepath relative to tmpdir, values
+            are the file contents
         :param tmpdir: Dirpath, same as create_module() tmpdir
         :param **kwargs:
             encoding -- the encoding for any files
@@ -479,15 +525,25 @@ class PathData(TestData):
         path.chmod(mode)
         return path
 
-    def create_csv(self, columns, count=0, path="", tmpdir="", encoding="", header=True, **kwargs):
+    def create_csv(
+        self,
+        columns,
+        count=0,
+        path="",
+        tmpdir="",
+        encoding="",
+        header=True,
+        **kwargs
+    ):
         """Create a csv file using the generators/callbacks found in columns
 
-        :param columns: dict, in the format of key: callback where the callback can
-            generate a value for the row, so something like "foo": testdata.get_name
-            would work
-        :param count: int, how many rows you want, will be randomly created between 
-            1 and 50 if not specified
-        :param path: string, the path relative to tmpdir, default is randomly generated
+        :param columns: dict, in the format of key: callback where the callback
+            can generate a value for the row, so something like "foo":
+                testdata.get_name would work
+        :param count: int, how many rows you want, will be randomly created
+            between 1 and 50 if not specified
+        :param path: string, the path relative to tmpdir, default is randomly
+            generated
         :param tmpdir: string, the temp directory to use as a base/prefix
         :param encoding: string, the encoding to use for the csv file
         :param **kwargs: dict, these will get passed to csv.DictWriter,
@@ -522,8 +578,10 @@ class PathData(TestData):
     def create_image(self, image_type="", path="", tmpdir=""):
         """Creates an image using the images founc in the data/ directory
 
-        :param image_type: string, the type of image you want, one of jpg, png, gif, agif, ico
-        :param path: string, the path or basename (eg, foo/bar.jpg or che) of the image
+        :param image_type: string, the type of image you want, one of jpg, png,
+            gif, agif, ico
+        :param path: string, the path or basename (eg, foo/bar.jpg or che) of
+            the image
         :param tmpdir: Dirpath, same as create_module() tmpdir
         :returns: Filepath, the path to the image file
         """
@@ -605,8 +663,8 @@ class PathData(TestData):
 
         :param ext: string, the extension you want the file to have
         :param prefix: string, this will be the first part of the file's name
-        :param name: string, the name you want to use (prefix will be added to the front
-            of the name and ext will be added to the end of the name)
+        :param name: string, the name you want to use (prefix will be added to
+            the front of the name and ext will be added to the end of the name)
         :returns: string, the random filename
         """
         return TempFilepath.get_basename(ext=ext, name=name, **kwargs)
@@ -618,12 +676,15 @@ class PathData(TestData):
     def get_module_name(self, count=1, name="", **kwargs):
         """Returns just a valid module name or module path
 
-        :param count: int, how many parts you want in your module path (1 is foo, 2 is foo.bar, etc)
-        :param prefix: string, if you want the last bit to be prefixed with something
-        :param postfix: string, if you want the last bit to be posfixed with something (eg, ".py")
+        :param count: int, how many parts you want in your module path (1 is
+            foo, 2 is foo.bar, etc)
+        :param prefix: string, if you want the last bit to be prefixed with
+            something
+        :param postfix: string, if you want the last bit to be posfixed with
+            something (eg, ".py")
         :param name: string, the name you want to use for the last bit
-            (prefix will be added to the front of the name and postfix will be added to
-            the end of the name)
+            (prefix will be added to the front of the name and postfix will be
+            added to the end of the name)
         :returns: string, the modulepath
         """
         parts = TempModulepath.get_parts(count=count, name=name, **kwargs)
@@ -661,18 +722,31 @@ class PathData(TestData):
     get_sourcefilepath = get_source_filepath
     get_sourcefile = get_source_filepath
 
-    def create_module(self, data="", modpath="", tmpdir="", make_importable=True, **kwargs):
+    def create_module(
+        self,
+        data="",
+        modpath="",
+        tmpdir="",
+        make_importable=True,
+        **kwargs
+    ):
         '''
-        create a python module folder structure so that the module can be imported
+        create a python module folder structure so that the module can be
+        imported
 
         :param data: str, the contents of the module
         :param modpath: str, something like foo.bar
-        :param tmpdir: str, the temp directory that will be added to the syspath if make_importable is True
-        :param make_importable: bool, if True, then tmpdir will be added to the python path so it can be imported
+        :param tmpdir: str, the temp directory that will be added to the syspath
+            if make_importable is True
+        :param make_importable: bool, if True, then tmpdir will be added to the
+            python path so it can be imported
         :return: Modulepath instance
         '''
         if not data:
-            data = kwargs.pop("contents", kwargs.pop("content", kwargs.pop("text", "")))
+            data = kwargs.pop(
+                "contents",
+                kwargs.pop("content", kwargs.pop("text", ""))
+            )
 
         return TempModulepath(
             modpath,
@@ -682,63 +756,129 @@ class PathData(TestData):
             **kwargs
         )
 
-    def create_modules(self, module_dict, modpath="", tmpdir="", make_importable=True, **kwargs):
+    def create_modules(self, module_dict, modpath="", tmpdir="", **kwargs):
         """
         create a whole bunch of modules all at once
 
-        :param module_dict: dict, keys are the module_name, values are the module contents
-        :param modpath: string, if you want all the modules in module_dict to have a prefix, you
-            can pass this in, so if you did prefix is "foo.bar" then all the keys in module_dict
-            will be prepended with "foo.bar"
+        :param module_dict: dict, keys are the module_name, values are the
+            module contents
+        :param modpath: string, if you want all the modules in module_dict to
+            have a prefix, you can pass this in, so if you did prefix is
+            "foo.bar" then all the keys in module_dict will be prepended with
+            "foo.bar"
         :param tmpdir: string, same as create_module() tmpdir
-        :param make_importable: boolean, same as create_module() tmpdir
         :returns: Dirpath
         """
         module_base_dir = self.create_dir(tmpdir=tmpdir)
-        module_list = TempDirpath.normpaths(module_dict, modpath, regex=r"[\.\\/]+", root="")
+        module_list = TempDirpath.normpaths(
+            module_dict,
+            modpath,
+            regex=r"[\.\\/]+",
+            root=""
+        )
+
         for modname, data in module_list:
             m = self.create_module(
                 data=data,
                 modpath=modname,
                 tmpdir=module_base_dir,
-                make_importable=make_importable,
                 **kwargs
             )
-            make_importable = False
+            kwargs["make_importable"] = False
 
         return module_base_dir
     create_packages = create_module
 
-    def create_package(self, data="", modpath="", tmpdir="", make_importable=True, **kwargs):
-        '''
-        create a python package folder structure so that the package can be imported
+    def create_module_classes(self, data="", modpath="", tmpdir="", **kwargs):
+        """Create a python module using data and then return all the classes
+        that were defined in that module
 
-        a package is different than a module in that it is a module_name folder with
-        an __init__.py instead of module_name.py
+        :param data: str, the contents of the module
+        :param modpath: str, something like foo.bar
+        :param tmpdir: str, the temp directory where the module will reside
+        :return: dict[str, type], the key is the class name and the value is
+            the actual class object
+        """
+        d = Namespace()
+        modpath = self.create_module(
+            data=data,
+            modpath=modpath,
+            tmpdir=tmpdir,
+            **kwargs
+        )
 
-        module_name -- string -- something like foo.bar
-        data -- string -- the contents of the module
-        tmpdir -- string -- the temp directory that will be added to the syspath if make_importable is True
-        make_importable -- boolean -- if True, then tmpdir will be added to the python path so it can be imported
+        rm = ReflectModule(modpath.get_module())
 
-        return -- Module -- the module file path
+        for c in rm.get_classes(ignore_imported=True):
+            d[c.__qualname__] = c
+
+        return d
+
+    def create_module_class(
+        self,
+        data="",
+        class_name="",
+        modpath="",
+        tmpdir="",
+        **kwargs
+    ):
+        """Create a python module using data and then return the class defined
+        in that module
+
+        :param data: str, the contents of the module
+        :param class_name: str, the name of the class defined in data that you
+            want returned, if empty then the first class will be returned, so
+            if there is more than one class defined in data then the class
+            returned is undefined, but it won't be a class that starts with
+            an underscore or has a period in the class's __qualname__ attribute
+        :param modpath: str, something like foo.bar
+        :param tmpdir: str, the temp directory where the module will reside
+        :return: type, the class defined in the created module using data
+        """
+        classes = self.create_module_classes(
+            data=data,
+            modpath=modpath,
+            tmpdir=tmpdir,
+            **kwargs
+        )
+
+        if not class_name:
+            for class_name in classes.keys():
+                if not class_name.startswith("_") and "." not in class_name:
+                    break
+
+        return classes[class_name]
+
+    def create_package(self, data="", modpath="", tmpdir="", **kwargs):
+        '''create a python package folder structure so that the package can be
+        imported
+
+        a package is different than a module in that it is a module_name folder
+        with an __init__.py instead of module_name.py
+
+        :param module_name: str, something like foo.bar
+        :param data: str, the contents of the module
+        :param tmpdir: str, the temp directory that will be added to the syspath
+            if make_importable is True
+        :returns: TempModulepath, the module file path
         '''
         kwargs.setdefault("is_package", True)
         return self.create_module(
             data=data,
             modpath=modpath,
             tmpdir=tmpdir,
-            make_importable=make_importable,
             **kwargs
         )
 
     def find_data_file(self, fileroot, basedir="", encoding=""):
         """find and return a file
 
-        this is primarily used by find_data(), find_data_text(), and find_data_bytes()
+        this is primarily used by find_data(), find_data_text(), and
+        find_data_bytes()
 
-        :param fileroot: string, if dirpath + fileroot is actually a full filepath then
-            that will be returned, if not then dirpath/fileroot.* will be searched for
+        :param fileroot: string, if dirpath + fileroot is actually a full
+            filepath then that will be returned, if not then dirpath/fileroot.*
+            will be searched for
         :param basedir: string, the base directory used to search for fileroot
         :returns: Path, the found file
         """
@@ -764,7 +904,11 @@ class PathData(TestData):
                         break
 
             if not f:
-                raise IOError("Could not find a testdata data file matching {}".format(fileroot))
+                raise IOError(
+                    "Could not find a testdata data file matching {}".format(
+                        fileroot
+                    )
+                )
 
         if encoding:
             f.encoding = encoding
@@ -785,15 +929,16 @@ class PathData(TestData):
     def find_data(self, fileroot, basedir="", encoding=""):
         """Returns the contents of a file matching basedir/fileroot.*
 
-        :param fileroot: string, can be a basename (fileroot.ext) or just a file root, 
-            in which case basedir/fileroot.* will be searched for and first file matched
-            will be used
-        :param basedir: string, the directory to search for fileroot.*, if not passed
-            in then os.getcwd()/*/testdata will be searched for
+        :param fileroot: string, can be a basename (fileroot.ext) or just a file
+            root, in which case basedir/fileroot.* will be searched for and
+            first file matched will be used
+        :param basedir: string, the directory to search for fileroot.*, if not
+            passed in then os.getcwd()/*/testdata will be searched for
         :returns: string, the contents of the found file
         """
         if encoding:
             return self.find_data_text(fileroot, basedir, encoding)
+
         else:
             return self.find_data_bytes(fileroot, basedir)
     get_content_body = find_data
@@ -811,7 +956,8 @@ class PathData(TestData):
                 print(os.getcwd())
             print(os.getcwd())
 
-        :param curdir: str, the directory you want to now be the current directory
+        :param curdir: str, the directory you want to now be the current
+            directory
         """
         # backup the current directory to restore it when context resets
         cwd = os.getcwd()

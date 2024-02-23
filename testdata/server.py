@@ -56,7 +56,7 @@ class Server(ServerThread):
         return self.child(*parts, **kwargs)
 
 
-class CookieServer(CallbackServer):
+class CookieServer(MethodServer):
     """This will write and read cookies to make sure a client is passing cookies
     correctly to the server
 
@@ -90,7 +90,7 @@ class CookieServer(CallbackServer):
         ret["name"] = morsel.key
         return ret
 
-    def callback(self, handler):
+    def ANY(self, handler):
         ret = None
         req_cookies = handler.headers.get("cookie", "")
         if req_cookies:
@@ -144,10 +144,11 @@ class CookieServer(CallbackServer):
         # to pass in also with name: val
         if isinstance(cookies, Mapping):
             self.cookies = cookies.items()
+
         else:
             self.cookies = cookies
 
-        super().__init__({"default": self.callback}, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class TestDataServer(MethodServer):
