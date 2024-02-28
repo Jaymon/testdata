@@ -2,8 +2,13 @@
 """
 NOTE: most methods that return strings will return unicode utf-8 strings
 
-for a utf-8 stress test, see: http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
-you can get all the unicode chars and their names: ftp://ftp.unicode.org/
+for a utf-8 stress test, see:
+
+    http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
+
+You can get all the unicode chars and their names:
+
+    ftp://ftp.unicode.org/
     ftp://ftp.unicode.org/Public/6.3.0/ucd/UnicodeData-6.3.0d2.txt
 """
 import random
@@ -29,7 +34,8 @@ from ..data import (
 class StringData(TestData):
     def get_url(self, *args, **kwargs):
         '''
-        get a url, this is just a nice shortcut method to something I seemed to do a lot
+        get a url, this is just a nice shortcut method to something I seemed to
+        do a lot
 
         :param *args: path parts, these will be added to the generated urlstring
         :param **kwargs: keywords you can pass into Url
@@ -44,30 +50,38 @@ class StringData(TestData):
     def get_str(self, str_size=0, chars=None, **kwargs):
         """generate a random unicode string
 
-        if chars is None, this can generate up to a 4-byte utf-8 unicode string, which can
-        break legacy utf-8 things
+        if chars is None, this can generate up to a 4-byte utf-8 unicode string,
+        which can break legacy utf-8 things
 
         :param str_size: int, how long you want the string to be
-        :param chars: sequence, the characters you want the string to use, if this is None, it
-            will default to pretty much the entire unicode range of characters
+        :param chars: sequence, the characters you want the string to use, if
+            this is None, it will default to pretty much the entire unicode
+            range of characters
         :param **kwargs:
             min_size: the minimum size the string should be
             max_size: the maximum size the string should be
         :returns: str
         """
-        str_size = self.get_size(str_size=str_size, default_min=3, default_max=20, **kwargs)
+        str_size = self.get_size(
+            str_size=str_size,
+            default_min=3,
+            default_max=20,
+            **kwargs
+        )
 
         if chars:
             # we have a defined set of chars
             s = "".join(random.choices(chars, k=str_size))
-            #s = "".join(random.choices(chars, k=str_size) for c in range(str_size))
 
         else:
-            # chars can be any range in unicode (based off of table 3.7 of Unicode 6.2.0
+            # chars can be any range in unicode (based off of table 3.7 of
+            # Unicode 6.2.0
             # pg 42 - http://www.unicode.org/versions/Unicode6.2.0/ch03.pdf
             # via: http://stackoverflow.com/questions/1477294/generate-random-utf-8-string-in-python
             byte_range = lambda first, last: range(first, last+1)
-            first_values = list(byte_range(0x00, 0x7F)) + list(byte_range(0xC2, 0xF4))
+            first_values = (
+                list(byte_range(0x00, 0x7F)) + list(byte_range(0xC2, 0xF4))
+            )
             trailing_values = list(byte_range(0x80, 0xBF))
 
             def random_utf8_seq():
@@ -77,19 +91,37 @@ class StringData(TestData):
                         return bytearray([first])
 
                     elif (first >= 0xC2) and (first <= 0xDF): # U+0080...U+07FF
-                        return bytearray([first, random.choice(trailing_values)])
+                        return bytearray(
+                            [first, random.choice(trailing_values)]
+                        )
 
                     elif first == 0xE0: # U+0800...U+0FFF
-                        return bytearray([first, random.choice(byte_range(0xA0, 0xBF)), random.choice(trailing_values)])
+                        return bytearray([
+                            first,
+                            random.choice(byte_range(0xA0, 0xBF)),
+                            random.choice(trailing_values)
+                        ])
 
                     elif (first >= 0xE1) and (first <= 0xEC): # U+1000...U+CFFF
-                        return bytearray([first, random.choice(trailing_values), random.choice(trailing_values)])
+                        return bytearray([
+                            first,
+                            random.choice(trailing_values),
+                            random.choice(trailing_values)
+                        ])
 
                     elif first == 0xED: # U+D000...U+D7FF
-                        return bytearray([first, random.choice(byte_range(0x80, 0x9F)), random.choice(trailing_values)])
+                        return bytearray([
+                            first,
+                            random.choice(byte_range(0x80, 0x9F)),
+                            random.choice(trailing_values)
+                        ])
 
                     elif (first >= 0xEE) and (first <= 0xEF): # U+E000...U+FFFF
-                        return bytearray([first, random.choice(trailing_values), random.choice(trailing_values)])
+                        return bytearray([
+                            first,
+                            random.choice(trailing_values),
+                            random.choice(trailing_values)
+                        ])
 
                     else:
                         if sys.maxunicode > 65535:
@@ -103,7 +135,8 @@ class StringData(TestData):
                                     ]
                                 )
 
-                            elif (first >= 0xF1) and (first <= 0xF3): # U+40000...U+FFFFF
+                            elif (first >= 0xF1) and (first <= 0xF3):
+                                # U+40000...U+FFFFF
                                 return bytearray(
                                     [
                                         first,
@@ -123,7 +156,9 @@ class StringData(TestData):
                                     ]
                                 )
 
-            s = "".join(random_utf8_seq().decode('utf-8') for c in range(str_size))
+            s = "".join(
+                random_utf8_seq().decode('utf-8') for c in range(str_size)
+            )
 
         return s
     get_unicode = get_str
@@ -136,7 +171,11 @@ class StringData(TestData):
         str_size -- integer -- how long you want the string to be
         return -- unicode
         '''
-        return self.get_str(str_size=str_size, chars=string.hexdigits.lower(), **kwargs)
+        return self.get_str(
+            str_size=str_size,
+            chars=string.hexdigits.lower(),
+            **kwargs
+        )
 
     def get_ascii(self, str_size=0, **kwargs):
         '''
@@ -157,8 +196,8 @@ class StringData(TestData):
     get_alphanumeric_string = get_ascii
 
     def get_hash(self, str_size=32, **kwargs):
-        """Returns a random hash, if you want an md5 use get_md5(), if you want an
-        uuid use get_uuid()"""
+        """Returns a random hash, if you want an md5 use get_md5(), if you want
+        an uuid use get_uuid()"""
         return self.get_ascii(str_size=str_size, **kwargs)
 
     def get_md5(self, *val):
@@ -178,14 +217,6 @@ class StringData(TestData):
     def get_uuid(self):
         """Generate a random UUID"""
         return str(uuid.uuid4())
-        # 3088D703-6AD0-4D62-B0D3-0FF824A707F5
-        #     return '{}-{}-{}-{}-{}'.format(
-        #         get_ascii(8).upper(),
-        #         get_ascii(4).upper(),
-        #         get_ascii(4).upper(),
-        #         get_ascii(4).upper(),
-        #         get_ascii(12).upper()
-        #     )
 
     def get_ascii_words(self, count=0, as_str=True, **kwargs):
         return self.get_words(count, as_str, words=_ascii_words, **kwargs)
@@ -204,9 +235,14 @@ class StringData(TestData):
     def get_words(self, count=0, as_str=True, words=None, **kwargs):
         '''get some amount of random words
 
-        :param count: int, how many words you want, 0 means a random amount (at most 20)
-        :param as_str: bool, True to return as string, false to return as list of words
-        :param words: list, a list of words to choose from, defaults to unicode + ascii words
+        :param count: int, how many words you want, 0 means a random amount (at
+            most 20)
+        :param as_str: bool, True to return as string, false to return as list
+            of words
+        :param words: list, a list of words to choose from, defaults to unicode
+            + ascii words
+        :param **kwargs:
+            sep: str, the separator to use between the words, defaults to space
         :returns: str|list, your requested words
         '''
         min_size, max_size = self.get_bounds(
@@ -214,7 +250,8 @@ class StringData(TestData):
             max_size=kwargs.get("max_size", 0),
         )
 
-        # since we specified we didn't care, randomly choose how many words there should be
+        # since we specified we didn't care, randomly choose how many words
+        # there should be
         count = self.get_size(
             count=count,
             default_min_count=1,
@@ -234,12 +271,20 @@ class StringData(TestData):
         ret_words = random.sample(words, count)
 
         if as_str:
-            ret_words = " ".join(ret_words)
+            sep = kwargs.get("sep", " ")
+            ret_words = sep.join(ret_words)
             if max_size:
-                tw = String(ret_words).truncate(size=max_size, postfix="")
-                if len(ret_words) < min_size or len(ret_words) > max_size:
-                    tw = ret_words[:self.get_size(min_size, max_size)]
-                ret_words = tw
+                rw = String(ret_words).truncate(
+                    size=max_size,
+                    postfix="",
+                    sep=sep
+                )
+
+                if len(rw) < min_size:
+                    # truncating on word boundary failed so we won't be surgical
+                    rw = ret_words[:min_size]
+
+                ret_words = rw
 
         return ret_words
 
@@ -255,7 +300,8 @@ class StringData(TestData):
             max_size=kwargs.get("max_size", 0),
         )
 
-        # since we specified we didn't care, randomly choose how many words there should be
+        # since we specified we didn't care, randomly choose how many words
+        # there should be
         count = self.get_size(
             count=count,
             default_min_count=1,

@@ -100,13 +100,13 @@ class UserData(TestData):
         name = re.sub(r"['-]", "", name)
         return name
 
-    def get_unique_email(self, name=''):
+    def get_unique_email_address(self, name=''):
         name = self.get_username(name)
         timestamp = "{:.6f}".format(time.time()).replace(".", "")
-        return self.get_email(name + timestamp)
-    get_uniq_email = get_unique_email
+        return self.get_email_address(name + timestamp)
+    get_uniq_email_address = get_unique_email_address
 
-    def get_email(self, name=''):
+    def get_email_address(self, name=''):
         '''return a random email address'''
         name = self.get_username(name)
         email_domains = [

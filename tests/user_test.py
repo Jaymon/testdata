@@ -10,7 +10,9 @@ class UserTest(TestCase):
         ph = testdata.get_phone()
         self.assertRegex(ph, r"\d{3}-\d{3}-\d{4}")
 
-        ph = testdata.get_phone("+{country_code}-{area_code}-{exchange_code}-{line_number}")
+        ph = testdata.get_phone(
+            "+{country_code}-{area_code}-{exchange_code}-{line_number}"
+        )
         self.assertRegex(ph, r"\+\d-\d{3}-\d{3}-\d{4}")
 
         ph = testdata.get_phone(line_number="5555")
@@ -65,19 +67,13 @@ class UserTest(TestCase):
     def test_get_ascii_name(self):
         name = testdata.get_ascii_name()
         self.assertGreater(len(name), 0)
-        if is_py2:
-            name.decode('utf-8') # this should not fail because the string is ascii
-        elif is_py3:
-            bytes(name, encoding="ascii").decode('utf-8')
+        bytes(name, encoding="ascii").decode('utf-8')
 
     def test_get_unicode_name(self):
         name = testdata.get_unicode_name()
         self.assertGreater(len(name), 0)
         with self.assertRaises(UnicodeEncodeError):
-            if is_py2:
-                name.decode('utf-8')
-            elif is_py3:
-                bytes(name, encoding="ascii").decode('utf-8')
+            bytes(name, encoding="ascii").decode('utf-8')
 
     def test_get_name(self):
         name = testdata.get_name()
@@ -92,19 +88,19 @@ class UserTest(TestCase):
         name = testdata.get_name(name_count=1)
         self.assertNotEqual(u"", name)
 
-    def test_get_unique_email(self):
-        email = testdata.get_unique_email()
+    def test_get_unique_email_address(self):
+        email = testdata.get_unique_email_address()
         self.assertFalse(" " in email)
 
-    def test_get_email(self):
-        email = testdata.get_email()
+    def test_get_email_address(self):
+        email = testdata.get_email_address()
         self.assertGreater(len(email), 0)
         self.assertTrue("'" not in email)
         self.assertTrue("-" not in email)
 
-        email = testdata.get_email("foo")
+        email = testdata.get_email_address("foo")
         self.assertTrue(email.startswith("foo"))
 
-        email = testdata.get_email("foo'bar")
+        email = testdata.get_email_address("foo'bar")
         self.assertTrue(email.startswith("foobar"))
 
