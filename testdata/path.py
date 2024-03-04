@@ -740,6 +740,8 @@ class PathData(TestData):
             if make_importable is True
         :param make_importable: bool, if True, then tmpdir will be added to the
             python path so it can be imported
+        :param **kwargs:
+            load: bool, set to True to import the module
         :return: Modulepath instance
         '''
         if not data:
@@ -748,13 +750,21 @@ class PathData(TestData):
                 kwargs.pop("content", kwargs.pop("text", ""))
             )
 
-        return TempModulepath(
+        load = kwargs.pop("load", kwargs.pop("import", False))
+
+        modpath = TempModulepath(
             modpath,
             data=data,
             dir=tmpdir,
             make_importable=make_importable,
             **kwargs
         )
+
+        if load:
+            # we import the module to load whatever it has into memory
+            modpath.get_module()
+
+        return modpath
 
     def create_modules(self, module_dict, modpath="", tmpdir="", **kwargs):
         """

@@ -31,7 +31,7 @@ class DataInstances(object):
         :param data_class: TestData, the child class to add to the attribute
             resolution list
         """
-        self.data_classes.insert(data_class)
+        self.data_classes.insert(data_class, (TestData,))
         self.data_instances[data_class] = data_class()
 
     def delete(self, data_class):
@@ -190,10 +190,25 @@ class TestData(object):
         this method will be called
 
         https://peps.python.org/pep-0487/
+
+        NOTE -- This will automatically add the class to the method resolution
+        list unless the class's name begins with an underscore, because a class
+        that begins with an underscore is considered private and shouldn't be
+        automatically used. It could still be added by calling .add_class
+        manually though
         """
         super().__init_subclass__(*args, **kwargs)
 
-        cls.add_class(cls)
+        if cls.__name__.startswith("_"):
+            logger.debug(" ".join([
+                "Not automatically adding {} to method resolution".format(
+                    cls.__name__
+                ),
+                "because it begins with an underscore"
+            ]))
+
+        else:
+            cls.add_class(cls)
 
     def __getattr__(self, name):
         """This allows child classes to reference any other registered class's
