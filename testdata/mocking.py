@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import types
 import inspect
 import sys
@@ -569,7 +568,7 @@ class MockData(TestData):
                 return AsyncRunner(thing)
 
     @contextmanager
-    def environment(self, thing=None, **kwargs):
+    def environ(self, thing=None, **kwargs):
         """Context manager to change the os.environ to something else for the
             life of the with statement
 
@@ -579,42 +578,67 @@ class MockData(TestData):
 
             print(os.environ["FOO"]) # keyError
 
+        :param thing: Any, defaults to os.environ, otherwise it will be
+            considered the object whose environment should be updated
         :param **kwargs: key is the environment variable name and value is the
             value
+                * environ: dict, if thing is None this will be checked and
+                    popped from kwargs and used as thing
+                * cwd: str, the current working directory, if thing is None then
+                    this key will set python's cwd
         """
+        orig_cwd = cwd = ""
+        global_cwd = False
+
         normalize_value = lambda v: v
+
         if thing is None:
             thing = os.environ
             normalize_value = lambda v: String(v)
 
+            if environ := kwargs.pop("environ", None):
+                kwargs = {**environ, **kwargs}
+
+            if cwd := kwargs.get("cwd", kwargs.get("CWD", "")):
+                orig_cwd = os.getcwd()
+
         def has_key(thing, k):
             if isinstance(thing, Mapping):
                 ret = k in thing
+
             else:
                 ret = hasattr(thing, k)
+
             return ret
 
         def set_key(thing, k, v):
             if isinstance(thing, Mapping):
                 thing[k] = v
+
             else:
                 setattr(thing, k, v)
 
         def get_key(thing, k):
             if isinstance(thing, Mapping):
                 ret = thing[k]
+
             else:
                 ret = getattr(thing, k)
+
             return ret
 
         def del_key(thing, k):
             if isinstance(thing, Mapping):
                 thing.pop(k)
+
             else:
                 delattr(thing, k)
 
         originals = {}
         try:
+            if cwd:
+                os.chdir(cwd)
+
             for k, v in kwargs.items():
                 if has_key(thing, k):
                     originals[k] = get_key(thing, k)
@@ -624,13 +648,17 @@ class MockData(TestData):
             yield originals
 
         finally:
+            if orig_cwd:
+                os.chdir(orig_cwd)
+
             for k, v in kwargs.items():
                 if k in originals:
                     set_key(thing, k, originals[k])
+
                 else:
                     del_key(thing, k)
-    modify = environment
-    change = environment
-    configure = environment
-    environ = environment
+    modify = environ
+    change = environ
+    configure = environ
+    environment = environ
 

@@ -31,12 +31,8 @@ from .base import TestData
 class Path(object):
     @classmethod
     def gettempdir(cls):
-        return environ.TEMPDIR
-
-    @classmethod
-    def mktempdir(cls, **kwargs):
-        kwargs.setdefault("dir", cls.gettempdir())
-        return super(Path, cls).mktempdir(**kwargs)
+        """Overrides parent to allow changing the temp directory"""
+        return os.path.realpath(environ.TEMPDIR)
 
     @classmethod
     def tempdir_class(cls):
@@ -153,15 +149,23 @@ class TempFilepath(Path, BaseTempFilepath):
 
 class TempModulepath(TempFilepath):
     """create a python module folder structure so that the module can be
-    imported"""
+    imported
+
+    NOTE -- the import directory can be found at .basedir
+    """
     @property
     def modparts(self):
         return self.split('.')
 
     @property
+    def import_dir(self):
+        """Returns the importable directory for this module"""
+        return self.basedir
+
+    @property
     def directory(self):
         """Return the directory this module lives in"""
-        d = super(TempModulepath, self).directory
+        d = super().parent
         if self.is_package():
             d = d.directory
         return d
@@ -170,7 +174,7 @@ class TempModulepath(TempFilepath):
     def normparts(cls, *parts, **kwargs):
         kwargs.setdefault("root", "")
         kwargs.setdefault("regex", r"[\.\\/]+")
-        parts = super(TempModulepath, cls).normparts(*parts, **kwargs)
+        parts = super().normparts(*parts, **kwargs)
         return parts
 
     @classmethod
@@ -185,7 +189,7 @@ class TempModulepath(TempFilepath):
 
         else:
             # check if we already have a package
-            path = super(TempModulepath, cls).normpath(parts, basename)
+            path = super().normpath(parts, basename)
             if os.path.isdir(path):
                 if "is_package" in kwargs:
                     raise ValueError("Cannot convert package back to module")
@@ -243,7 +247,7 @@ class TempModulepath(TempFilepath):
         return data, encoding, errors
 
     def touch(self, mode=0o666, exist_ok=True):
-        super(TempModulepath, self).touch(mode=mode, exist_ok=exist_ok)
+        super().touch(mode=mode, exist_ok=exist_ok)
 
         # we need to make sure every part/directory of the module path is a
         # valid python module with an __init__.py file

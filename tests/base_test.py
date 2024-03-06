@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 
 from testdata.config import environ
 from testdata.compat import *
@@ -28,4 +27,45 @@ class TestDataTest(TestCase):
         d = OtherData()
         foo = d.get_bar()
         self.assertEqual("foo", foo)
+
+
+class TestDatasTest(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.data._data_instances.inserted_modules = False
+
+    def test_insert_modules_path(self):
+        modpath = self.create_module(
+            [
+                "from testdata import TestData",
+                "",
+                "class MockData(TestData):",
+                "    def get_mock_foo(self):",
+                "        return 1",
+            ],
+            modpath=self.get_module_name(count=2, name="extras.testdata")
+        )
+
+        with self.environ(cwd=modpath.basedir):
+            self.assertEqual(1, self.get_mock_foo())
+
+        self.data.delete_class(modpath.get_module().MockData)
+
+    def test_insert_modules_prefix(self):
+        modpath = self.create_module(
+            [
+                "from testdata import TestData",
+                "",
+                "class MockData(TestData):",
+                "    def get_mock_foo(self):",
+                "        return 2",
+            ],
+            modpath=self.get_module_name(count=2, name="extras.testdata")
+        )
+
+        with self.environ(TESTDATA_PREFIX=modpath):
+            self.assertEqual(2, self.get_mock_foo())
+
+        self.data.delete_class(modpath.get_module().MockData)
 
