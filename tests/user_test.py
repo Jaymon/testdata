@@ -104,3 +104,27 @@ class UserTest(TestCase):
         email = testdata.get_email_address("foo'bar")
         self.assertTrue(email.startswith("foobar"))
 
+    def test_get_ip_methods(self):
+        ip = self.get_ipv4_address()
+        self.assertIsNotNone(ip)
+
+        ip = self.get_ipv6_address()
+        self.assertIsNotNone(ip)
+
+    def test_get_password(self):
+        p = self.get_password()
+        self.assertIsNotNone(p)
+
+    def test_get_version(self):
+        v = self.get_version()
+        self.assertIsNotNone(v)
+
+        v = self.get_version(is_pre=True)
+        self.assertIsNotNone(v)
+
+        v = self.get_version(is_pre=True, is_local=True)
+        self.assertIsNotNone(v)
+
+        v = self.get_version(is_pre=True, is_dev=True)
+        self.assertIsNotNone(v)
+

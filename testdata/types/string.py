@@ -178,12 +178,11 @@ class StringData(TestData):
         )
 
     def get_ascii(self, str_size=0, **kwargs):
-        '''
-        generate a random string full of just ascii characters
+        """Generate a random string full of just ascii characters
 
-        str_size -- integer -- how long you want the string to be
-        return -- unicode
-        '''
+        :param str_size: int, how long you want the string to be
+        :returns: str
+        """
         chars=string.ascii_letters + string.digits
         return self.get_str(str_size=str_size, chars=chars, **kwargs)
     get_ascii_str = get_ascii
@@ -194,6 +193,19 @@ class StringData(TestData):
     get_alphanumeric = get_ascii
     get_alphanumeric_str = get_ascii
     get_alphanumeric_string = get_ascii
+
+    def get_punctuation(self, str_size=0, **kwargs):
+        """Generate a random string full of just punctuation chars
+
+        :param str_size: int, how long you want the string to be
+        :returns: str
+        """
+        chars=string.punctuation
+        return self.get_str(str_size=str_size, chars=chars, **kwargs)
+    get_punc = get_punctuation
+
+    def get_char(self, **kwargs):
+        return self.get_str(str_size=1, **kwargs)
 
     def get_hash(self, str_size=32, **kwargs):
         """Returns a random hash, if you want an md5 use get_md5(), if you want

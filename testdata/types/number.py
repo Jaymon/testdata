@@ -112,8 +112,8 @@ class NumberData(TestData):
         '''
         get a random unique float
 
-        no different than random.uniform() except it automatically can set range, and
-        guarrantees that no 2 floats are the same
+        no different than random.uniform() except it automatically can set
+        range, and guarrantees that no 2 floats are the same
 
         return -- float
         '''
@@ -130,11 +130,11 @@ class NumberData(TestData):
     def get_digits(self, count, n=None):
         """return a string value that contains count digits
 
-        :param count: int, how many digits you want, so if you pass in 4, you would get
-            4 digits
-        :param n: int, if you already have a value and want it to for sure by count digits
-        :returns: string, this returns a string because the digits might start with
-            zero
+        :param count: int, how many digits you want, so if you pass in 4, you
+        would get
+            4 digits :param n: int, if you already have a value and want it to
+              for sure by count digits :returns: string, this returns a string
+              because the digits might start with zero
         """
         max_size = int("9" * count)
 
@@ -150,8 +150,8 @@ class NumberData(TestData):
     get_count_digits = get_digits
 
     def get_full_int(self, min_size=None, max_size=None):
-        """This will get a random integer through the full range of integers, which
-        means the value can be negative"""
+        """This will get a random integer through the full range of integers,
+        which means the value can be negative"""
         if min_size is None:
             min_size = -sys.maxsize - 1
 
@@ -161,10 +161,9 @@ class NumberData(TestData):
         return random.randint(min_size, max_size)
 
     def get_posint(self, max_size=2**31-1):
-        """just return a positive 32-bit integer, this is basically a wrapper around
-        random.randint where you don't have to specify a minimum (or a maximum if you
-        don't want)
-        """
+        """just return a positive 32-bit integer, this is basically a wrapper
+        around random.randint where you don't have to specify a minimum (or a
+        maximum if you don't want) """
         min_size = 1
         return random.randint(min_size, max_size)
     get_positive_int = get_posint

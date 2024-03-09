@@ -455,3 +455,163 @@ class UserData(TestData):
     get_unicode_lastname = get_unicode_last_name
     get_unicode_surname = get_unicode_last_name
 
+    def get_password(self, **kwargs):
+
+        chars = set()
+        for k in ["upper", "lower", "digit", "special", "unicode"]:
+            if kwargs.get(k, True):
+                chars.add(k)
+
+#         include_upper = kwargs.get("upper", True)
+#         include_lower = kwargs.get("lower", True)
+#         include_digit = kwargs.get("digit", True)
+#         include_special = kwargs.get("special", True)
+#         include_unicode = kwargs.get("unicode", True)
+
+#         if include_special:
+#             sep = self.get_punctuation(1) 
+# 
+#         elif include_digit:
+#             sep = self.get_digits(1)
+# 
+#         else:
+#             sep = ""
+
+        password = list(self.get_ascii_words(sep="", **kwargs))
+
+        for k in chars:
+            index = self.randint(0, len(password) - 1)
+            ch = password[index]
+
+            if k == "upper":
+                password[index] = self.get_char(chars=String.ASCII_UPPERCASE)
+
+            elif k == "lower":
+                password[index] = self.get_char(chars=String.ASCII_LOWERCASE)
+
+            elif k == "digit":
+                password[index] = self.get_digits(1)
+
+            elif k == "special":
+                password[index] = self.get_punctuation(1)
+
+            elif k == "unicode":
+                password[index] = random.choice(self.get_unicode_word())
+
+
+#         if include_upper:
+#             index = self.randint(0, len(password))
+#             ch = password[index]
+#             password[index].upper()
+# 
+#         if include_lower:
+#             index = self.randint(0, len(password))
+#             password[index].lower()
+# 
+#         if include_digit:
+#             index = self.randint(0, len(password))
+#             password[index] = self.get_digits(1)
+# 
+#         if include_special:
+#             index = self.randint(0, len(password))
+#             password[index] = self.get_punctuation(1)
+# 
+#         if include_unicode:
+#             index = self.randint(0, len(password))
+#             password[index] = self.get_unicode_word()[0]
+
+        return "".join(password)
+
+    def get_ipv4_address(self, **kwargs):
+        """
+        https://en.wikipedia.org/wiki/Internet_Protocol_version_4
+        """
+        ip = []
+        for _ in range(4):
+            i = self.randint(1, 999)
+            ip.append(str(i))
+
+        return ".".join(ip)
+    get_ip4_address = get_ipv4_address
+    get_ipv4 = get_ipv4_address
+    get_ip4 = get_ipv4_address
+
+    def get_ipv6_address(self, **kwargs):
+        """
+        https://en.wikipedia.org/wiki/IPv6
+
+            IPv6 addresses are represented as eight groups of four hexadecimal
+            digits each, separated by colons. The full representation may be
+            shortened; for example, 2001:0db8:0000:0000:0000:8a2e:0370:7334
+            becomes 2001:db8::8a2e:370:7334
+        """
+        ip = []
+        for _ in range(8):
+            ip.append(self.get_hex(4))
+
+        return ":".join(ip)
+    get_ip6_address = get_ipv6_address
+    get_ipv6 = get_ipv6_address
+    get_ip6 = get_ipv6_address
+
+    def get_version(self, **kwargs):
+        """
+        https://peps.python.org/pep-0440/
+
+            [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
+
+            Public version identifiers are separated into up to five segments:
+
+                * Epoch segment: N!
+                * Release segment: N(.N)*
+                * Pre-release segment: {a|b|rc}N
+                * Post-release segment: .postN
+                * Development release segment: .devN
+
+        https://semver.org/
+        """
+        version = kwargs.get("major", str(self.randint(1, 99)))
+        version += "." + kwargs.get("minor", str(self.randint(1, 99)))
+
+        if patch := kwargs.get("patch", kwargs.get("micro", "")):
+            version += f".{patch}"
+
+        elif self.yes():
+            version += ".{}".format(self.randint(1, 999))
+
+        if p := kwargs.get("pre", ""):
+            version += f".{p}"
+
+        elif kwargs.get("is_pre", False):
+            version += ".{}{}".format(
+                self.choice(["a", "b", "rc"]),
+                self.randint(1, 9999)
+            )
+
+        if p := kwargs.get("post", ""):
+            version += f".{p}"
+
+        elif kwargs.get("is_post", False):
+            version += ".post{}".format(
+                self.randint(1, 9999)
+            )
+
+        if p := kwargs.get("dev", ""):
+            version += f".{p}"
+
+        elif kwargs.get("is_dev", False):
+            version += ".dev{}".format(
+                self.randint(1, 9999)
+            )
+
+        if p := kwargs.get("local", ""):
+            version += f"+{p}"
+
+        elif kwargs.get("is_local", False):
+            version += "+{}".format(
+                self.get_str(chars=String.ALPHANUMERIC + ".")
+            )
+
+        return version
+    get_semver = get_version
+
