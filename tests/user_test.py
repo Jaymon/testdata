@@ -115,6 +115,12 @@ class UserTest(TestCase):
         p = self.get_password()
         self.assertIsNotNone(p)
 
+        p = self.get_password(digit=False)
+        self.assertIsNotNone(p)
+
+        p = self.get_password(digit=False, lower=False)
+        self.assertIsNotNone(p)
+
     def test_get_version(self):
         v = self.get_version()
         self.assertIsNotNone(v)

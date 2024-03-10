@@ -16,10 +16,11 @@ class DatetimeData(TestData):
             datetime - just returned
             date - returned as a datetime
             int - assumed to be days and will be added/subtracted from utc now
-            float - assumed to be seconds and will be added/subtracted from utc now
+            float - assumed to be seconds and will be added/subtracted from utc
+                now
             timedelta - will be add/subtracted from utc now
-        :param backward: if True, then a positive int, float, or timedelta will be
-            subtracted from utc now, if False then it will be added
+        :param backward: if True, then a positive int, float, or timedelta will
+            be subtracted from utc now, if False then it will be added
         :param **kwargs: these will be passed to timedelta
         :returns: datetime
         """
@@ -36,7 +37,10 @@ class DatetimeData(TestData):
                 if backward and seconds > 0:
                     seconds *= -1.0
 
-                td = datetime.timedelta(seconds=seconds, microseconds=microseconds)
+                td = datetime.timedelta(
+                    seconds=seconds,
+                    microseconds=microseconds
+                )
                 now = datetime.datetime.utcnow() + td
 
             elif isinstance(now, datetime.date):
@@ -73,7 +77,9 @@ class DatetimeData(TestData):
         :returns: datetime.date|string
         """
         age = random.randint(start_age, stop_age)
-        year = (datetime.datetime.utcnow() - datetime.timedelta(weeks=(age * 52))).year
+        year = (
+            datetime.datetime.utcnow() - datetime.timedelta(weeks=(age * 52))
+        ).year
         month = random.randint(1, 12)
         if month == 2:
             day = random.randint(1, 28)
@@ -129,7 +135,8 @@ class DatetimeData(TestData):
     def get_between_datetime(self, start, stop=None):
         """get a datetime between start and stop
 
-        return a datetime guaranteed to be in the future from start and in the past from stop
+        return a datetime guaranteed to be in the future from start and in the
+    past from stop
         """
         start = self.get_datetime(start)
         stop = self.get_datetime(stop)

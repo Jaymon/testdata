@@ -456,74 +456,63 @@ class UserData(TestData):
     get_unicode_surname = get_unicode_last_name
 
     def get_password(self, **kwargs):
+        """Get a user password
+
+        :param **kwargs:
+            * upper: bool, password should have an upper-case character
+            * lower: bool, password should have a lower-case character
+            * digit: bool, password should have a numeric digit character
+            * special: bool, password should contain a punctuation character
+            * unicode: bool, password should have a non-ascii character
+        :returns: str, the password
+        """
+        password = []
 
         chars = set()
         for k in ["upper", "lower", "digit", "special", "unicode"]:
             if kwargs.get(k, True):
                 chars.add(k)
 
-#         include_upper = kwargs.get("upper", True)
-#         include_lower = kwargs.get("lower", True)
-#         include_digit = kwargs.get("digit", True)
-#         include_special = kwargs.get("special", True)
-#         include_unicode = kwargs.get("unicode", True)
-
-#         if include_special:
-#             sep = self.get_punctuation(1) 
-# 
-#         elif include_digit:
-#             sep = self.get_digits(1)
-# 
-#         else:
-#             sep = ""
-
-        password = list(self.get_ascii_words(sep="", **kwargs))
-
-        for k in chars:
-            index = self.randint(0, len(password) - 1)
-            ch = password[index]
-
+        def get_char(k):
             if k == "upper":
-                password[index] = self.get_char(chars=String.ASCII_UPPERCASE)
+                ch = self.get_char(chars=String.ASCII_UPPERCASE)
 
             elif k == "lower":
-                password[index] = self.get_char(chars=String.ASCII_LOWERCASE)
+                ch = self.get_char(chars=String.ASCII_LOWERCASE)
 
             elif k == "digit":
-                password[index] = self.get_digits(1)
+                ch = self.get_digits(1)
 
             elif k == "special":
-                password[index] = self.get_punctuation(1)
+                ch = self.get_punctuation(1)
 
             elif k == "unicode":
-                password[index] = random.choice(self.get_unicode_word())
+                ch = random.choice(self.get_unicode_word())
 
+            return ch
 
-#         if include_upper:
-#             index = self.randint(0, len(password))
-#             ch = password[index]
-#             password[index].upper()
-# 
-#         if include_lower:
-#             index = self.randint(0, len(password))
-#             password[index].lower()
-# 
-#         if include_digit:
-#             index = self.randint(0, len(password))
-#             password[index] = self.get_digits(1)
-# 
-#         if include_special:
-#             index = self.randint(0, len(password))
-#             password[index] = self.get_punctuation(1)
-# 
-#         if include_unicode:
-#             index = self.randint(0, len(password))
-#             password[index] = self.get_unicode_word()[0]
+        kwargs.setdefault("default_min", len(chars) * 3)
+        kwargs.setdefault("default_max", len(chars) * 20)
+        str_size = self.get_size(**kwargs)
+
+        for k in chars:
+            password.append(get_char(k))
+            str_size -= 1
+
+        if str_size < 0:
+            raise ValueError(
+                "Cannot generate password with passed in settings"
+            )
+
+        for index in range(str_size):
+            k = self.choice(chars)
+            password.append(get_char(k))
 
         return "".join(password)
 
     def get_ipv4_address(self, **kwargs):
-        """
+        """Generate an ip4 address
+
         https://en.wikipedia.org/wiki/Internet_Protocol_version_4
         """
         ip = []
@@ -537,7 +526,8 @@ class UserData(TestData):
     get_ip4 = get_ipv4_address
 
     def get_ipv6_address(self, **kwargs):
-        """
+        """Generate an ip6 address
+
         https://en.wikipedia.org/wiki/IPv6
 
             IPv6 addresses are represented as eight groups of four hexadecimal
@@ -555,7 +545,14 @@ class UserData(TestData):
     get_ip6 = get_ipv6_address
 
     def get_version(self, **kwargs):
-        """
+        """Get a semver version
+
+        In it's simplest version, a semver version consists of:
+
+            <MAJOR>.<<MINOR>[.<PATCH>]
+
+        But this can also generate python's more elaborate versions
+
         https://peps.python.org/pep-0440/
 
             [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
@@ -569,9 +566,25 @@ class UserData(TestData):
                 * Development release segment: .devN
 
         https://semver.org/
+
+        :param **kwargs:
+            * major: str|int, the major version fragment
+            * minor: str|int, the minor version fragment
+            * patch: str|int, the patch version fragment
+            * is_pre: bool, generate pre-release version fragment
+            * pre: str, pre-release version fragment
+            * is_post: bool, generate post-release version fragment
+            * post: str, post-release version fragment
+            * is_dev: bool, generate dev version fragment
+            * dev: str, dev-release version fragment
+            * is_local: bool, generate local version fragment, joined to
+                version with a plus (+) sign
+            * local: str, local version fragment
+        :returns: str, the version, by default it returns what is considered a
+            final version which is a standard semver version
         """
-        version = kwargs.get("major", str(self.randint(1, 99)))
-        version += "." + kwargs.get("minor", str(self.randint(1, 99)))
+        version = str(kwargs.get("major", self.randint(1, 99)))
+        version += "." + str(kwargs.get("minor", self.randint(1, 99)))
 
         if patch := kwargs.get("patch", kwargs.get("micro", "")):
             version += f".{patch}"

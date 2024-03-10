@@ -205,6 +205,10 @@ class StringData(TestData):
     get_punc = get_punctuation
 
     def get_char(self, **kwargs):
+        """Get one character
+
+        :returns: str, one character
+        """
         return self.get_str(str_size=1, **kwargs)
 
     def get_hash(self, str_size=32, **kwargs):

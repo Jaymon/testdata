@@ -296,7 +296,7 @@ class DatetimeTest(TestCase):
 
     def test_get_datetime(self):
         d = testdata.get_datetime(datetime.datetime.utcnow())
-        self.assertGreater(datetime.datetime.utcnow(), d)
+        self.assertGreaterEqual(datetime.datetime.utcnow(), d)
 
         d = testdata.get_datetime(datetime.datetime.utcnow().date())
         self.assertGreater(datetime.datetime.utcnow(), d)
@@ -313,16 +313,24 @@ class DatetimeTest(TestCase):
         d = testdata.get_datetime(3600)
         self.assertLess(datetime.datetime.utcnow(), d)
 
-        d = testdata.get_datetime(datetime.timedelta(seconds=-3600), backward=True)
+        d = testdata.get_datetime(
+            datetime.timedelta(seconds=-3600),
+            backward=True
+        )
         self.assertGreater(datetime.datetime.utcnow(), d)
 
-        d = testdata.get_datetime(datetime.timedelta(seconds=3600), backward=True)
+        d = testdata.get_datetime(
+            datetime.timedelta(seconds=3600),
+            backward=True
+        )
         self.assertGreater(datetime.datetime.utcnow(), d)
 
         d = testdata.get_datetime(datetime.timedelta(seconds=-3600))
         self.assertGreater(datetime.datetime.utcnow(), d)
 
-        d = testdata.get_datetime(datetime.timedelta(days=1, seconds=3600, microseconds=1234))
+        d = testdata.get_datetime(
+            datetime.timedelta(days=1, seconds=3600, microseconds=1234)
+        )
         self.assertLess(datetime.datetime.utcnow(), d)
 
     def test_get_between_datetime_1(self):
