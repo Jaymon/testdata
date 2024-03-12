@@ -2,6 +2,7 @@
 import re
 
 from testdata.compat import *
+from testdata.data.countries import COUNTRY_CODE_TO_IP
 from . import TestCase, testdata
 
 
@@ -104,12 +105,28 @@ class UserTest(TestCase):
         email = testdata.get_email_address("foo'bar")
         self.assertTrue(email.startswith("foobar"))
 
-    def test_get_ip_methods(self):
+    def test_get_ipv4_address(self):
         ip = self.get_ipv4_address()
         self.assertIsNotNone(ip)
+        self.assertEqual(3, ip.count("."))
 
+        ip = self.get_ipv4_address(octets={1: 800, 3: 900})
+        self.assertTrue("800." in ip)
+        self.assertTrue(".900." in ip)
+
+        country_code = self.choice(COUNTRY_CODE_TO_IP)
+        ip = self.get_ipv4_address(country=country_code)
+        self.assertTrue(
+            int(ip.split(".", 1)[0]) in COUNTRY_CODE_TO_IP[country_code]
+        )
+
+    def test_get_ipv6_address(self):
         ip = self.get_ipv6_address()
         self.assertIsNotNone(ip)
+        self.assertEqual(7, ip.count(":"))
+
+        ip = self.get_ipv6_address(hextets={1: "effe"})
+        self.assertTrue(ip.startswith("effe:"))
 
     def test_get_password(self):
         p = self.get_password()

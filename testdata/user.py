@@ -14,6 +14,8 @@ from .data import (
     _last_names,
     usa,
 )
+from .data.countries import country_lookup
+
 from .base import TestData
 
 
@@ -514,10 +516,37 @@ class UserData(TestData):
         """Generate an ip4 address
 
         https://en.wikipedia.org/wiki/Internet_Protocol_version_4
+
+        :param **kwargs:
+            * country: str, usually a 2 character country code (eg, "US")
+            * octets: dict[int, str|int], a dict with keys 1, 2, 3, or 4 only,
+                representing the octet value (eg, {1: 127} means the ip will
+                start with "127.").
+
+                I got the octet name from:
+
+                    https://en.wikipedia.org/wiki/Octet_(computing)#Use_in_Internet_Protocol_addresses
+        :returns: str, the ip4 address with 4 octets separated by periods
         """
         ip = []
-        for _ in range(4):
-            i = self.randint(1, 999)
+
+        octets = kwargs.get(
+            "octets",
+            kwargs.get(
+                "groups",
+                kwargs.get(
+                    "parts",
+                    {}
+                )
+            )
+        )
+
+        if country_code := kwargs.get("country", ""):
+            country_info = country_lookup[country_code]
+            octets[1] = self.choice(country_info["ips"])
+
+        for k in range(1, 5):
+            i = octets.get(k, self.randint(1, 999))
             ip.append(str(i))
 
         return ".".join(ip)
@@ -534,10 +563,32 @@ class UserData(TestData):
             digits each, separated by colons. The full representation may be
             shortened; for example, 2001:0db8:0000:0000:0000:8a2e:0370:7334
             becomes 2001:db8::8a2e:370:7334
+
+        :param **kwargs:
+            * hextets: dict[int, str|int], a dict with keys 1-8 only,
+                representing the hextet value (eg, {1: "effe"} means the ip
+                will start with "effe:").
+
+                I got the hextet name from:
+
+                    https://en.wikipedia.org/wiki/Octet_(computing)#Use_in_Internet_Protocol_addresses
+        :returns: str, the ip6 address with 8 hextets separated by colons
         """
         ip = []
-        for _ in range(8):
-            ip.append(self.get_hex(4))
+
+        hextets = kwargs.get(
+            "hextets",
+            kwargs.get(
+                "groups",
+                kwargs.get(
+                    "parts",
+                    {}
+                )
+            )
+        )
+
+        for k in range(1, 9):
+            ip.append(hextets.get(k, self.get_hex(4)))
 
         return ":".join(ip)
     get_ip6_address = get_ipv6_address

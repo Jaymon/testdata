@@ -27,6 +27,8 @@ from ..data import (
     _unicode_words,
     _words,
 )
+from ..data.countries import country_tlds
+
 
 ###############################################################################
 # testdata functions
@@ -41,9 +43,16 @@ class StringData(TestData):
         :param **kwargs: keywords you can pass into Url
         :returns: Url instance
         '''
-        urlstring = 'http{}://{}.com'.format(
+        if self.yes(0.75):
+            tld = "com"
+
+        else:
+            tld = self.choice(country_tlds)
+
+        urlstring = 'http{}://{}.{}'.format(
             's' if random.choice([True, False]) else '',
-            self.get_ascii()
+            self.get_ascii(),
+            tld
         )
         return Url(urlstring, *args, **kwargs)
 
