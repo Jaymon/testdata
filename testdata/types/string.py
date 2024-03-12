@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-NOTE: most methods that return strings will return unicode utf-8 strings
+Easily generated unicode string data for testing
 
 for a utf-8 stress test, see:
 
@@ -35,32 +35,46 @@ from ..data.countries import country_tlds
 ###############################################################################
 class StringData(TestData):
     def get_url(self, *args, **kwargs):
-        '''
-        get a url, this is just a nice shortcut method to something I seemed to
-        do a lot
+        """Get a url, this is just a nice shortcut method to something I seem
+        to do a lot
 
-        :param *args: path parts, these will be added to the generated urlstring
+        :param *args: path parts, these will be added to the generated
+            urlstring
         :param **kwargs: keywords you can pass into Url
+            * subdomain: str, the subdomain you want (eg "www")
+            * domain: str, the domain you want (eg, "example.com")
+            * tld: str, the top level domain you want (eg, "io")
         :returns: Url instance
-        '''
-        if self.yes(0.75):
-            tld = "com"
+        """
+        if subdomain := kwargs.pop("subdomain", ""):
+            subdomain = f"{subdomain}."
 
-        else:
-            tld = self.choice(country_tlds)
+        domain = kwargs.pop("domain", "")
+        if not domain:
+            domain = self.get_ascii()
 
-        urlstring = 'http{}://{}.{}'.format(
-            's' if random.choice([True, False]) else '',
-            self.get_ascii(),
-            tld
+            tld = kwargs.pop("tld", "")
+            if not tld:
+                if self.yes(0.75):
+                    tld = self.choice(["com", "net", "org"])
+
+                else:
+                    tld = self.choice(country_tlds)
+
+            domain = f"{domain}.{tld}"
+
+        urlstring = "http{}://{}{}".format(
+            's' if self.yes(0.90) else '',
+            subdomain,
+            domain,
         )
         return Url(urlstring, *args, **kwargs)
 
     def get_str(self, str_size=0, chars=None, **kwargs):
         """generate a random unicode string
 
-        if chars is None, this can generate up to a 4-byte utf-8 unicode string,
-        which can break legacy utf-8 things
+        if chars is None, this can generate up to a 4-byte utf-8 unicode
+        string, which can break legacy utf-8 things
 
         :param str_size: int, how long you want the string to be
         :param chars: sequence, the characters you want the string to use, if

@@ -120,10 +120,10 @@ class StringTest(TestCase):
     def test_get_url(self):
         s = testdata.get_url()
         self.assertNotEqual("", s)
-        if is_py2:
-            self.assertRegexpMatches(s, r'https?\://\S*')
-        else:
-            self.assertRegex(s, r'https?\://\S*')
+        self.assertRegex(s, r'https?\://\S*')
+
+        s = testdata.get_url("foo", "bar")
+        self.assertTrue(s.endswith("/foo/bar"))
 
 
 class NumberTest(TestCase):
