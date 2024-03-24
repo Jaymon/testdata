@@ -153,7 +153,11 @@ class TestData(object):
 
         :param data_class: TestData
         """
-        cls._data_instances.remove(data_class)
+        try:
+            cls._data_instances.remove(data_class)
+
+        except ValueError:
+            pass
 
     @classmethod
     def __findattr__(cls, name):

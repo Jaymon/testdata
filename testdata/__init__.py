@@ -78,7 +78,8 @@ class TestdataData(TestData):
         :param cb_kwargs: dict, any callback keyword arguments
         :param timeout: float, how long you should wait before failing with
             RuntimeError
-        :param interval: float, sleep for this interval inbetween callback calls
+        :param interval: float, sleep for this interval inbetween callback
+            calls
         """
         if cb_args is None:
             cb_args = []
@@ -99,4 +100,14 @@ class TestdataData(TestData):
                     raise RuntimeError(
                         "wait() timed out after {} seconds".format(timeout)
                     )
+
+    def wait_for(self, timeout):
+        """Equivalent to time.sleep(timeout)
+
+        This is named .wait_for since sleep is more common
+
+        :param timeout: float|int, how many seconds to wait
+        """
+        time.sleep(timeout)
+    sleep = wait_for
 
