@@ -537,19 +537,27 @@ class PathData(TestData):
         tmpdir="",
         encoding="",
         header=True,
+        default=None,
         **kwargs
     ):
         """Create a csv file using the generators/callbacks found in columns
 
-        :param columns: dict, in the format of key: callback where the callback
-            can generate a value for the row, so something like "foo":
-                testdata.get_name would work
+        :param columns: dict[callable]|dict[list], in the format of
+            key: callback where the callback can generate a value for the row,
+            so something like "foo": testdata.get_name would work, if it is
+            "foo": [1, 2, 3] then each value at each index of the list will
+            be used as the value for a row, default will be used if the list
+            doesn't have a value at that index
         :param count: int, how many rows you want, will be randomly created
             between 1 and 50 if not specified
         :param path: string, the path relative to tmpdir, default is randomly
             generated
         :param tmpdir: string, the temp directory to use as a base/prefix
         :param encoding: string, the encoding to use for the csv file
+        :param header: bool, True (default) if you want the column names to
+            be the first line in the file
+        :param default: str|int|None, the default value if the column is
+            missing a value
         :param **kwargs: dict, these will get passed to csv.DictWriter,
             https://docs.python.org/3/library/csv.html#csv.DictWriter
         :returns: testdata.path.CSVpath instance
@@ -557,6 +565,15 @@ class PathData(TestData):
         if not count:
             if any((callable(c) for c in columns.values())):
                 count = random.randint(1, 50)
+
+            elif any(isinstance(c, list) for c in columns.values()):
+                count = 0
+                for k, c in list(columns.items()):
+                    if not isinstance(c, Sequence):
+                        columns[k] = c = [c]
+
+                    count = max(count, len(c))
+
             else:
                 count = 1
 
@@ -572,6 +589,14 @@ class PathData(TestData):
                 for field_name, callback in columns.items():
                     if callable(callback):
                         d[field_name] = callback()
+
+                    elif isinstance(callback, list):
+                        if i < len(callback):
+                            d[field_name] = callback[i]
+
+                        else:
+                            d[field_name] = default
+
                     else:
                         d[field_name] = callback
 
@@ -607,7 +632,10 @@ class PathData(TestData):
             image_type, ext, image = random.choice(images)
 
         # https://docs.python.org/2/library/pkgutil.html#pkgutil.get_data
-        data = pkgutil.get_data(__name__.split(".")[0], "data/{}".format(image))
+        data = pkgutil.get_data(
+            __name__.split(".")[0],
+            "data/{}".format(image)
+        )
 
         if path:
             if not path.lower().endswith(ext):

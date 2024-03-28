@@ -82,6 +82,25 @@ class CSVTest(TestCase):
             row_count += 1
         self.assertEqual(3, row_count)
 
+    def test_create_csv_dict_lists(self):
+        p = testdata.create_csv({
+            "foo": [1, 2, 3, 4, 5],
+            "bar": [1, 2, 3, 4, 5, 6, 7],
+            "che": [1],
+            "boo": 100,
+        })
+
+        maxes = {}
+        for r in p:
+            for k, v in r.items():
+                if v:
+                    maxes[k] = int(v)
+
+        self.assertEqual(5, maxes["foo"])
+        self.assertEqual(7, maxes["bar"])
+        self.assertEqual(1, maxes["che"])
+        self.assertEqual(100, maxes["boo"])
+
 
 class ContentTest(TestCase):
     def test_find(self):
