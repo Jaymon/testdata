@@ -532,7 +532,6 @@ class PathData(TestData):
     def create_csv(
         self,
         columns,
-        count=0,
         path="",
         tmpdir="",
         encoding="",
@@ -542,14 +541,14 @@ class PathData(TestData):
     ):
         """Create a csv file using the generators/callbacks found in columns
 
-        :param columns: dict[callable]|dict[list], in the format of
-            key: callback where the callback can generate a value for the row,
-            so something like "foo": testdata.get_name would work, if it is
-            "foo": [1, 2, 3] then each value at each index of the list will
-            be used as the value for a row, default will be used if the list
-            doesn't have a value at that index
-        :param count: int, how many rows you want, will be randomly created
-            between 1 and 50 if not specified
+        :param columns: dict[callable]|dict[list]|list[dict],
+            * dict[callable], where the callback can generate a value for the
+                row, so something like "foo": testdata.get_name would work
+            * dict[list], then each value at each index of the list will
+                be used as the value for a row, `default` will be used if the
+                list doesn't have a value at that index
+            * list[dict], then each dict in the list will be considered one
+                row of the csv
         :param path: string, the path relative to tmpdir, default is randomly
             generated
         :param tmpdir: string, the temp directory to use as a base/prefix
@@ -562,9 +561,20 @@ class PathData(TestData):
             https://docs.python.org/3/library/csv.html#csv.DictWriter
         :returns: testdata.path.CSVpath instance
         """
-        if not count:
+        if isinstance(columns, list):
+            fieldnames = set()
+            #count = len(columns)
+            kwargs.setdefault("count", len(columns))
+
+            for d in columns:
+                fieldnames.update(d.keys())
+
+            fieldnames = list(fieldnames)
+
+        else:
             if any((callable(c) for c in columns.values())):
-                count = random.randint(1, 50)
+                kwargs.setdefault("default_min", 1)
+                kwargs.setdefault("default_max", 50)
 
             elif any(isinstance(c, list) for c in columns.values()):
                 count = 0
@@ -574,33 +584,44 @@ class PathData(TestData):
 
                     count = max(count, len(c))
 
+                kwargs.setdefault("count", count)
+
             else:
-                count = 1
+                kwargs.setdefault("count", 1)
+
+            fieldnames = list(columns.keys())
+
+        count = self.get_size(**kwargs)
 
         kwargs.setdefault("ext", "csv")
         path = TempFilepath(path, dir=tmpdir, encoding=encoding, **kwargs)
-        csv = CSV(path, fieldnames=list(columns.keys()))
+        csv = CSV(path, fieldnames=fieldnames)
         with csv:
-            if not header:
-                csv.writer.has_header = True
+            csv.writer.has_header = not header
 
-            for i in range(count):
-                d = {}
-                for field_name, callback in columns.items():
-                    if callable(callback):
-                        d[field_name] = callback()
+            if isinstance(columns, list):
+                defaults = {fn: default for fn in fieldnames}
+                for d in columns:
+                    csv.add({**defaults, **d})
 
-                    elif isinstance(callback, list):
-                        if i < len(callback):
-                            d[field_name] = callback[i]
+            else:
+                for i in range(count):
+                    d = {}
+                    for field_name, callback in columns.items():
+                        if callable(callback):
+                            d[field_name] = callback()
+
+                        elif isinstance(callback, list):
+                            if i < len(callback):
+                                d[field_name] = callback[i]
+
+                            else:
+                                d[field_name] = default
 
                         else:
-                            d[field_name] = default
+                            d[field_name] = callback
 
-                    else:
-                        d[field_name] = callback
-
-                csv.add(d)
+                    csv.add(d)
 
         return csv
 

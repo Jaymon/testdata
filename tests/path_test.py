@@ -101,6 +101,31 @@ class CSVTest(TestCase):
         self.assertEqual(1, maxes["che"])
         self.assertEqual(100, maxes["boo"])
 
+    def test_create_csv_list_dicts(self):
+        """
+        https://github.com/Jaymon/testdata/issues/85
+        """
+        p = testdata.create_csv([
+            {
+                "foo": 1,
+                "bar": 2,
+            },
+            {
+                "foo": 3,
+                "che": 4,
+            },
+            {
+                "bar": 5,
+                "boo": 6,
+            }
+        ])
+
+        rows = p.tolist()
+        self.assertEqual(3, len(rows))
+        for row in rows:
+            for k in ["foo", "bar", "che", "boo"]:
+                self.assertTrue(k in row)
+
 
 class ContentTest(TestCase):
     def test_find(self):

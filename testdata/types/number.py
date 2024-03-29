@@ -30,13 +30,17 @@ class NumberData(TestData):
         kwargs = Dict(kwargs)
         start = kwargs.pop(
             "default_start",
-            kwargs.pops(["default_min", "default_min_size", "default_min_count"], 0)
-            #kwargs.pop("default_min", kwargs.pop("default_min_size", kwargs.pop("default_min_count", 0)))
+            kwargs.pops(
+                ["default_min", "default_min_size", "default_min_count"],
+                0
+            )
         )
         stop = kwargs.pop(
             "default_stop",
-            kwargs.pops(["default_max", "default_max_size", "default_max_count"], 0)
-            #kwargs.pop("default_max", kwargs.pop("default_max_size", kwargs.pop("default_max_count", 0)))
+            kwargs.pops(
+                ["default_max", "default_max_size", "default_max_count"],
+                0
+            )
         )
 
         if len(args) == 1:
