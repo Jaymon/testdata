@@ -81,13 +81,15 @@ class NumberData(TestData):
             stop = self.get_int(start, 50)
         return random.randint(start, stop)
 
-    def get_full_float(self, min_size=None, max_size=None):
+    def get_full_float(self, min_size=None, max_size=None, **kwargs):
         """return a random float
 
         sames as the random method but automatically sets min and max
 
         :param min_size: float, the minimum float size you want
         :param max_size: float, the maximum float size you want
+        :param **kwargs:
+            * round|ndigits|rnd: int, how many digits to round the float to
         :returns: float, a random value between min_size and max_size
         """
         float_info = sys.float_info
@@ -95,24 +97,38 @@ class NumberData(TestData):
             min_size = float_info.min
         if max_size is None:
             max_size = float_info.max
-        return random.uniform(min_size, max_size)
 
-    def get_float(self, min_size=0.000001, max_size=None):
-        """This used to be .get_full_float() but it turns out when I request a
-        float I almost always want a positive float"""
-        return self.get_full_float(min_size=min_size, max_size=max_size)
+        ret = random.uniform(min_size, max_size)
+        rnd = kwargs.get("round", kwargs.get("ndigits", kwargs.get("rnd", 0)))
+        if rnd:
+            ret = round(ret, rnd)
 
-    def get_posfloat(self, max_size=None):
+        return ret
+
+    def get_float(self, min_size=0.001, max_size=100000, **kwargs):
+        """Get a float value
+
+        This has realative small min and max sizes because it turns out when
+        I request a float I almost always want a positive float that isn't
+        gigantic
+        """
+        return self.get_full_float(
+            min_size=min_size,
+            max_size=max_size,
+            **kwargs
+        )
+
+    def get_posfloat(self, max_size=None, **kwargs):
         """Similar to get_float but the random float will always be positive
 
         :param max_size: float, the maximum float size
         :returns: float, a random float between 0.0 and max_size
         """
-        return self.get_float(0.0, max_size)
+        return self.get_float(0.0, max_size, **kwargs)
     get_positive_float = get_posfloat
     get_positivefloat = get_posfloat
 
-    def get_unique_float(self, min_size=None, max_size=None):
+    def get_unique_float(self, min_size=None, max_size=None, **kwargs):
         '''
         get a random unique float
 
@@ -123,7 +139,7 @@ class NumberData(TestData):
         '''
         i = 0;
         while True:
-            i = self.get_float(min_size, max_size)
+            i = self.get_float(min_size, max_size, **kwargs)
             if i not in self._previous_floats:
                 self._previous_floats.add(i)
                 break
