@@ -7,9 +7,10 @@ from datatypes import (
     ReflectPath,
     OrderedSubclasses,
     Dirpath,
-    Environ,
 )
 from datatypes import logging
+
+from .config import environ
 
 
 # this module is really verbose so we're going to raise its default level to be
@@ -60,7 +61,8 @@ class TestDatas(OrderedSubclasses):
         modules
         """
         if not self.inserted_modules:
-            environ = Environ("TESTDATA_")
+            self.inserted_modules = True
+
             for modpath in environ.paths("PREFIX"):
                 self.insert_module(modpath)
 
@@ -70,8 +72,6 @@ class TestDatas(OrderedSubclasses):
                 rp = ReflectPath(Dirpath.cwd())
                 for mod in rp.find_modules("testdata"):
                     self.module_prefixes.add(mod.__name__)
-
-            self.inserted_modules = True
 
     def items(self, **kwargs):
         """Iterate through all the TestData children that should be checked to
@@ -132,9 +132,9 @@ class TestData(object):
 
     def __init__(self):
         # holds attributes that were requested but aren't available on this
-        # instance. Since attribute resultion for these classes are so crazy and
-        # very recursive, this keeping track of non-existent attributes on the
-        # various TestData subclasses just speeds everything up
+        # instance. Since attribute resultion for these classes are so crazy
+        # and very recursive, this keeping track of non-existent attributes on
+        # the various TestData subclasses just speeds everything up
         self._missing_cache = set()
 
     @classmethod
@@ -181,6 +181,14 @@ class TestData(object):
             cls.__name__,
             name,
         ))
+
+        # we do this here so it all of the magical loading coding is confined
+        # to this class and also because trying to do this in __init__ can
+        # easily cause circular imports and other bad things because the
+        # instances aren't fully initialized. Basically, I'm telling future me
+        # not to try and move this
+        if environ.AUTOLOAD and not cls._data_instances.inserted_modules:
+            cls._data_instances.insert_modules()
 
         # go through all the absolute children classes and see if they have an
         # attribute that matches name
