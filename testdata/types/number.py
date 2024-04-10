@@ -15,11 +15,12 @@ from ..base import TestData
 ###############################################################################
 class NumberData(TestData):
 
-    # used in the get_unique_int() function to make sure it never returns the same int twice
-    # this is a possible memory leak if you are using this script in a very long running
-    # process using get_int(), since this list will get bigger and bigger and never
-    # be flushed, but seriously, you should just use get_int() or random.randint() in any
-    # long running scripts. In order to minimize the memory leak we cap the list at
+    # used in the get_unique_int() function to make sure it never returns the
+    # same int twice this is a possible memory leak if you are using this
+    # script in a very long running process using get_int(), since this list
+    # will get bigger and bigger and never be flushed, but seriously, you
+    # should just use get_int() or random.randint() in any long running
+    # scripts. In order to minimize the memory leak we cap the list at
     # environ.MAX_UNIQUE unique values
     _previous_ints = HotSet(environ.MAX_UNIQUE)
 

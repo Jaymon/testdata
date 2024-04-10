@@ -242,7 +242,7 @@ class MappingTest(TestCase):
         d = testdata.get_dict()
         self.assertTrue(isinstance(d, dict))
 
-        d = testdata.get_dict(foo=testdata.get_int)
+        d = testdata.get_dict(dict(foo=testdata.get_int), size=1)
         self.assertEqual(1, len(d))
         self.assertTrue(isinstance(d["foo"], int))
         self.assertTrue(isinstance(d, dict))
