@@ -625,6 +625,18 @@ class PathData(TestData):
 
         return csv
 
+    def get_csv(self, *args, **kwargs):
+        """Wrapper around .create_csv but returns the csv body, because
+        sometimes you just need the csv contents and don't care at all about
+        the actual file
+
+        :param *args: see .create_csv
+        :param **kwargs: see .create_csv
+        :returns: str, the csv contents, nothing else
+        """
+        csv = self.create_csv(*args, **kwargs)
+        return csv.read_text()
+
     def create_image(self, image_type="", path="", tmpdir=""):
         """Creates an image using the images founc in the data/ directory
 
