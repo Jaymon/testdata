@@ -126,6 +126,13 @@ class CSVTest(TestCase):
             for k in ["foo", "bar", "che", "boo"]:
                 self.assertTrue(k in row)
 
+    def test_create_csv_list_str(self):
+        p = testdata.create_csv(["foo", "bar"])
+        for row in p:
+            self.assertEqual(2, len(row))
+            self.assertTrue("foo" in row)
+            self.assertTrue("bar" in row)
+
 
 class ContentTest(TestCase):
     def test_find(self):
