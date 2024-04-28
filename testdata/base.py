@@ -217,8 +217,8 @@ class TestData(object):
                     return attribute
 
         # since we couldn't find an attribute in any of the classes, let's try
-        # and see if there is an actual class that matches the name, then return
-        # the class, this makes it easy to get a specific class
+        # and see if there is an actual class that matches the name, then
+        # return the class, this makes it easy to get a specific class
         for data_name, data_instance in cls._data_instances.items():
             if name == data_instance.__class__.__name__:
                 logger.debug("{}.__findattr__ found data class {}".format(
@@ -236,8 +236,8 @@ class TestData(object):
         raise AttributeError(name)
 
     def __init_subclass__(cls, *args, **kwargs):
-        """This is where all the magic happens, when a class is read into memory
-        this method will be called
+        """This is where all the magic happens, when a class is read into
+        memory this method will be called
 
         https://peps.python.org/pep-0487/
 

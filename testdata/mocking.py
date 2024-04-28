@@ -282,8 +282,8 @@ class Mock(object):
 ###############################################################################
 class MockData(TestData):
     def patch_instance(self, mod, patches=None, **kwargs_patches):
-        """Helper function called from .patch() that will patch a class instance
-        """
+        """Helper function called from .patch() that will patch a class
+        instance"""
         if mod is None:
             raise ValueError("mod is empty")
 
@@ -292,7 +292,7 @@ class MockData(TestData):
 
         for name, patch in patches.items():
             val = getattr(mod, name, None)
-            if inspect.isroutine(val):
+            if inspect.isroutine(val) or callable(patch):
                 # we first try and patch as is, if we fail then we wrap the
                 # patch in a lambda
                 try:
@@ -584,8 +584,8 @@ class MockData(TestData):
             value
                 * environ: dict, if thing is None this will be checked and
                     popped from kwargs and used as thing
-                * cwd: str, the current working directory, if thing is None then
-                    this key will set python's cwd
+                * cwd: str, the current working directory, if thing is None
+                    then this key will set python's cwd
         """
         orig_cwd = cwd = ""
         global_cwd = False
