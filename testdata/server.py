@@ -245,13 +245,15 @@ class TestDataServer(MethodServer):
         kwargs = infer_type(kwargs)
 
         parts = Url(handler.path).parts
-        if len(parts) > 1:
+        if parts:
             method_name = parts[0]
             args = infer_type(parts[1:])
 
         else:
-            method_name = parts[0]
-            args = []
+            handler.code = 404
+            raise ValueError(
+                "Path missing method name, should be /<METHOD-NAME>"
+            )
 
         return method_name, args, kwargs
 
@@ -263,9 +265,21 @@ class TestDataServer(MethodServer):
             request
         :returns: Any, it will return whatever the ran method returned
         """
-        method_name, args, kwargs = self.get_method_call(handler)
-        cb = TestData.__findattr__(method_name)
-        return self.run_method(cb, *args, **kwargs)
+        try:
+            method_name, args, kwargs = self.get_method_call(handler)
+            cb = TestData.__findattr__(method_name)
+
+        except TypeError as e:
+            handler.code = 404
+            raise
+
+        else:
+            try:
+                return self.run_method(cb, *args, **kwargs)
+
+            except TypeError as e:
+                handler.code = 405
+                raise
 
     def GET(self, handler):
         """Answer GET requests"""
