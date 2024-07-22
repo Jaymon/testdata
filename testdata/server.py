@@ -228,7 +228,6 @@ class TestDataServer(MethodServer):
 
         else:
             ret = String(o)
-            #raise ValueError(f"No idea how to json encode {type(o)} object")
 
         return ret
 

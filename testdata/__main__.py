@@ -14,27 +14,10 @@ import testdata
 from testdata.server import TestDataServer
 
 
-# def app_server(parsed):
-#     pout.v("server")
-# 
-# 
-# def app_function(parsed):
-#     pout.v("function")
-# 
-# 
-# class FunctionAction(argparse.Action):
-#     # https://stackoverflow.com/questions/8632354/python-argparse-custom-actions-with-additional-arguments-passed
-#     def __call__(self, parser, namespace, values, option_string=None):
-# 
-#         pout.v(parser, namespace, values, option_string)
-#         setattr(namespace, self.dest, values)
-#         #super().__call__(parser, args, values, option_string)
-
-
 class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
     """Format help and keep newlines
 
-    TODO -- Copied from captain.parse on 7-16-2024, this shouldn't be changed
+    !!! Copied from captain.parse on 7-16-2024, this shouldn't be changed
     here but should be changed/tested in captain and then re-copied to here,
     and the best would be to move it to datatypes
     """
@@ -69,6 +52,12 @@ class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 
 
 class FunctionParser(argparse.ArgumentParser):
+    """Maps a testdata method to a parser definition so passed in CLI flags
+    can be mapped to a testdata method call
+
+    This is called from ApplicationParser and isn't meant to be used outside
+    of that context
+    """
     def __init__(self, function_name, **kwargs):
         _function = getattr(testdata, function_name)
 
@@ -89,7 +78,6 @@ class FunctionParser(argparse.ArgumentParser):
         self.add_argument(
             "_function_name",
             metavar="FUNCTION_NAME",
-            #action=FunctionAction,
             help="Testdata function name"
         )
 
@@ -146,25 +134,11 @@ class FunctionParser(argparse.ArgumentParser):
         )
 
 
-
-
-#                 self.add_argument(
-#                     name,
-#                     nargs="*"
-#                 )
-
-
-            #pout.v(name, param)
-
-
-        #pout.i(function)
-        #pout.v(inspect.signature(function))
-        #pout.v(function.__defaults__)
-        #pout.v(function.__kwdefaults__)
-
-
 class ApplicationParser(argparse.ArgumentParser):
-    """
+    """The main CLI parser. This basically is here to handle --help and 
+    --version from the top level. If it has any other input it will defer
+    to the FunctionParser
+
     I was originally going to have this be a default parser and then add a few
     subparsers for advanced functionality and I couldn't get that to work
     https://stackoverflow.com/a/46964652
@@ -180,27 +154,23 @@ class ApplicationParser(argparse.ArgumentParser):
             action='version',
             version="%(prog)s {}".format(testdata.__version__)
         )
-#         self.add_argument(
-#             "--debug", "-d",
-#             action="store_true",
-#             help="More verbose logging"
-#         )
 
         self.add_argument(
             "_function_name",
             metavar="FUNCTION_NAME",
-            #action=FunctionAction,
             help="Testdata function name"
         )
 
-
     def _parse_known_args(self, arg_strings, namespace):
-        #pout.v(arg_strings)
-        #pout.v(namespace)
+        """This is the internal method that is called from all the external
+        methods
 
+        If a flag is passed in then it will defer to parent's version of this
+        method, if there is any other input then this defers to FunctionParser
+        """
         if arg_strings[0].startswith("-"):
             parsed, parsed_unknown = super()._parse_known_args(
-                args,
+                arg_strings,
                 namespace
             )
 
@@ -223,46 +193,9 @@ class ApplicationParser(argparse.ArgumentParser):
 
         return parsed, parsed_unknown
 
-#     def parse_args(self, *args, **kwargs):
-#         parsed = super().parse_args(*args, **kwargs)
-# 
-#         _function_kwargs = {}
-#         for name in parsed._argnames:
-#             if name in parsed:
-#                 _function_kwargs[name] = getattr(parsed, name)
-
-
-
-
-
-    def xparse_known_args(self, args=None, namespace=None):
-#         if args is None:
-#             # args default to the system args
-#             args = _sys.argv[1:]
-# 
-#         if args[0].startswith("-"):
-#             parsed, parsed_unknown = super().parse_known_args(args, namespace)
-# 
-#         else:
-
-
-        parsed, parsed_unknown = super().parse_known_args(args, namespace)
-
-        pout.v(parsed.function_name)
-        pout.v(parsed_unknown)
-
-        return parsed, parsed_unknown
-
-
-
-#     def format_help(self):
-#         pout.v(self)
-# 
-#         return super().format_help()
-
 
 def application():
-
+    """Callable for CLI application"""
     testdata.basic_logging()
 
     parser = ApplicationParser()
@@ -279,83 +212,6 @@ def application():
         *info["args"],
         **info["kwargs"]
     ))
-
-    return 0
-
-
-
-#     parsed, unknown = parser.parse_known_args()
-#     return 0
-
-    parser.add_argument(
-        "--version", "-V",
-        action='version',
-        version="%(prog)s {}".format(testdata.__version__)
-    )
-    parser.add_argument(
-        "--debug", "-d",
-        action="store_true",
-        help="More verbose logging"
-    )
-
-    parser.add_argument(
-        "function_name",
-        nargs=1,
-        metavar="FUNCTION_NAME",
-        help="Testdata function name"
-    )
-
-#     parser.add_argument(
-#         "function_args",
-#         nargs="*",
-#         metavar="FUNCTION_ARGS",
-#         help="Testdata function positional arguments"
-#     )
-
-    parsed = parser.parse_args()
-    rf = ReflectCallable(parsed._function)
-    info = rf.get_bind_info(**dict(parsed._get_kwargs()))
-    #pout.v(parsed)
-    pout.v(info)
-    return 0
-
-
-
-
-    parser.set_defaults(app_callback=app_function)
-
-    subparsers = parser.add_subparsers(dest="command", help="a sub command")
-    #subparsers.required = False
-    #subparsers.required = True # https://bugs.python.org/issue9253#msg186387
-
-    # $ testdata server
-    desc = "Start a testdata json server"
-    subparser = subparsers.add_parser(
-        "server",
-        parents=[parser],
-        help=desc,
-        description=desc,
-        conflict_handler="resolve",
-    )
-    subparser.set_defaults(app_callback=app_server)
-
-    parsed, unknown = parser.parse_known_args()
-
-    pout.v(unknown)
-    parsed.app_callback(parsed)
-
-
-
-    # $ testdata <FUNCTION-NAME> [<ARGS>, ...] [<KWARGS>, ...]
-#     desc = "Run a testdata function and return its value"
-#     subparser = subparsers.add_parser(
-#         "server",
-#         parents=[parser],
-#         help=desc,
-#         description=desc,
-#         conflict_handler="resolve",
-#     )
-#     subparser.set_defaults(func=app_function)
 
 
 if __name__ == "__main__":

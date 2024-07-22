@@ -54,3 +54,6 @@ version = { attr = "testdata.__version__" }
   "**"
 ]
 
+[project.scripts]
+testdata = "testdata.__main__:application"
+

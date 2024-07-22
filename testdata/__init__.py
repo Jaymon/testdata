@@ -36,7 +36,7 @@ from .user import *
 from .base import TestData
 
 
-__version__ = "7.0.0"
+__version__ = "7.1.0"
 
 
 def __getattr__(name):
