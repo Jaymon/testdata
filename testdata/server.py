@@ -161,8 +161,77 @@ class TestDataServer(MethodServer):
 
     :Example:
         s = TestDataServer(("localhost", 4321)
-        testdata.fetch("http://localhost:4321/get_int/1/100")
+        with s:
+            testdata.fetch("http://localhost:4321/get_int/1/100")
     """
+    @classmethod
+    def run_method(cls, cb, *args, **kwargs):
+        if callable(cb):
+            cbr = cb(*args, **kwargs)
+
+        else:
+            cbr = cb
+
+        if cbr is None:
+            ret = None
+
+        if isinstance(cbr, (basestring, float, int, bool)):
+            ret = cbr
+
+        elif isinstance(cbr, Mapping):
+            ret = cbr
+
+        elif isinstance(cbr, Sequence):
+            ret = []
+            for o in cbr:
+                try:
+                    ret.append(cls.get_object_json(o))
+
+                except ValueError:
+                    ret.append(o)
+
+        elif isinstance(cbr, object):
+            ret = cls.get_object_json(cbr)
+
+        else:
+            ret = cbr
+
+        return ret
+
+    @classmethod
+    def get_object_json(cls, o):
+        """If the testdata method that was ran returns an object then this will
+        try and figure out how to turn that object into json
+
+        :param o: object, the generic object whose json value couldn't be
+            inferred
+        :returns: dict
+        """
+        # https://stackoverflow.com/a/51055044
+        if hasattr(o, "jsonable"):
+            ret = o.jsonable()
+
+        elif hasattr(o, "to_json"):
+            ret = o.to_json()
+
+        elif hasattr(o, "toJSON"):
+            ret = o.toJSON()
+
+        elif hasattr(o, "tojson"):
+            ret = o.tojson()
+
+        elif hasattr(o, "json"):
+            ret = o.json()
+
+        elif hasattr(o, "__json__"):
+            ret = o.__json__()
+
+        else:
+            ret = String(o)
+            #raise ValueError(f"No idea how to json encode {type(o)} object")
+
+        return ret
+
     def get_method_call(self, handler):
         """From the path, query, and body figure out the method name and the
         arguments that will be passed to it
@@ -187,39 +256,7 @@ class TestDataServer(MethodServer):
 
         return method_name, args, kwargs
 
-    def get_object_json(self, o):
-        """If the testdata method that was ran returns an object then this will
-        try and figure out how to turn that object into json
-
-        :param o: object, the generic object whose json value couldn't be
-            inferred
-        :returns: dict
-        """
-        # https://stackoverflow.com/a/51055044
-        if hasattr(o, "jsonable"):
-            ret = o.jsonable()
-
-        elif hasattr(cbr, "to_json"):
-            ret = cbr.to_json()
-
-        elif hasattr(cbr, "toJSON"):
-            ret = cbr.toJSON()
-
-        elif hasattr(cbr, "tojson"):
-            ret = cbr.tojson()
-
-        elif hasattr(cbr, "json"):
-            ret = cbr.json()
-
-        elif hasattr(cbr, "__json__"):
-            ret = cbr.__json__()
-
-        else:
-            raise ValueError(f"No idea how to json encode {type(o)} object")
-
-        return ret
-
-    def run_method(self, handler):
+    def run_handler_method(self, handler):
         """Internal method to figure out and run the testdata method that was
         requested
 
@@ -229,45 +266,15 @@ class TestDataServer(MethodServer):
         """
         method_name, args, kwargs = self.get_method_call(handler)
         cb = TestData.__findattr__(method_name)
-        if callable(cb):
-            cbr = cb(*args, **kwargs)
-
-        else:
-            cbr = cb
-
-        if cbr is None:
-            ret = None
-
-        if isinstance(cbr, (basestring, float, int, bool)):
-            ret = cbr
-
-        elif isinstance(cbr, Mapping):
-            ret = cbr
-
-        elif isinstance(cbr, Sequence):
-            ret = []
-            for o in cbr:
-                try:
-                    ret.append(self.get_object_json(o))
-
-                except ValueError:
-                    ret.append(o)
-
-        elif isinstance(cbr, object):
-            ret = self.get_object_json(cbr)
-
-        else:
-            ret = cbr
-
-        return ret
+        return self.run_method(cb, *args, **kwargs)
 
     def GET(self, handler):
         """Answer GET requests"""
-        return self.run_method(handler)
+        return self.run_handler_method(handler)
 
     def POST(self, handler):
         """Answer POST requests"""
-        return self.run_method(handler)
+        return self.run_handler_method(handler)
 
 
 ###############################################################################
@@ -360,6 +367,23 @@ class ServerData(TestData):
         :param hostname: str, usually leave this alone and it will use localhost
         :param port: int, the port you want to use
         """
-        s = server_class(server_address=(hostname, port))
-        s.serve_forever()
+        s = None
+        try:
+            s = server_class(server_address=(hostname, port))
+
+            #hostloc = ":".join(map(str, s.server_address))
+
+            logger.info("Server is listening on {}".format(
+                Host(*s.server_address).client()
+            ))
+            #logger.info("Listening on {}".format(hostloc))
+
+            s.serve_forever()
+
+        except KeyboardInterrupt:
+                pass
+
+        finally:
+            if s:
+                s.server_close()
 
