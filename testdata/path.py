@@ -9,12 +9,13 @@ import random
 from contextlib import contextmanager
 import zlib
 import struct
+import textwrap
 
 from datatypes.path import (
-    TempFilepath as BaseTempFilepath,
-    TempDirpath as BaseTempDirpath,
-    Dirpath as BaseDirpath,
-    Filepath as BaseFilepath,
+    TempFilepath,
+    TempDirpath,
+    Dirpath,
+    Filepath,
 )
 from datatypes.reflection import ReflectModule
 from datatypes.collections import Namespace
@@ -67,21 +68,27 @@ class Path(object):
                 if not isinstance(v, basestring):
                     kwargs[k] = "\n".join(v)
 
-        if not isinstance(data, basestring):
+        if isinstance(data, basestring):
+            data = textwrap.dedent(data)
+
+        else:
             data = "\n".join(data)
+
+#         if not isinstance(data, basestring):
+#             data = "\n".join(data)
 
         return super().prepare_text(data, **kwargs)
 
 
-class Filepath(Path, BaseFilepath):
+class Filepath(Path, Filepath):
     pass
 
 
-class Dirpath(Path, BaseDirpath):
+class Dirpath(Path, Dirpath):
     pass
 
 
-class TempDirpath(Path, BaseTempDirpath):
+class TempDirpath(Path, TempDirpath):
     def module(self, module_path):
         return self.get_module(module_path)
 
@@ -131,7 +138,7 @@ class TempDirpath(Path, BaseTempDirpath):
         return self.has(pattern=pattern)
 
 
-class TempFilepath(Path, BaseTempFilepath):
+class TempFilepath(Path, TempFilepath):
     def run(self, arg_str="", cwd="", environ=None, **kwargs):
         """Treat this file like a script and execute it
 
@@ -224,7 +231,6 @@ class TempModulepath(TempFilepath):
 
         data, encoding, errors = super().prepare_text(data, **kwargs)
 
-        add_coding = kwargs.get("add_coding", not "# -*- coding:" in data)
         if kwargs.get("add_future", False):
             if "from __future__ import " not in data:
                 lines = [
@@ -238,6 +244,8 @@ class TempModulepath(TempFilepath):
                 ]
                 data = "\n".join(lines) + data
 
+        add_coding = kwargs.get("add_coding", False)
+        #add_coding = kwargs.get("add_coding", not "# -*- coding:" in data)
         if add_coding:
             data = f"# -*- coding: {encoding} -*-\n" + data.lstrip()
 
