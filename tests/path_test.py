@@ -388,6 +388,27 @@ class ModulepathTest(TestCase):
         m = testdata.create_module(modpath="d.i", tmpdir=d)
         self.assertEqual(os.path.join(d, "d"), m.directory)
 
+    def test_create_module_modules(self):
+        """There are many times I want to create a bunch of modules but have
+        the parent module returned. The create modules stuff returns the 
+        import directory but sometimes I want the actual parent module"""
+        mpath = testdata.create_module({
+            "": "print('parent module')",
+            "foo": {
+                "bar": "print('<PARENT>.foo.bar')",
+            },
+            "che": "print('<PARENT>.che')"
+        }, count=4)
+
+        ms = set([
+            mpath,
+            mpath + ".foo",
+            mpath + ".foo.bar",
+            mpath + ".che",
+        ])
+        for m in mpath.get_modules():
+            self.assertTrue(m.__name__ in ms)
+
     def test_create_modules_modpath(self):
         modpath = "modpref"
         mpath = testdata.create_modules({

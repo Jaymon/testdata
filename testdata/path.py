@@ -178,6 +178,12 @@ class TempModulepath(TempFilepath):
         return d
 
     @classmethod
+    def normpaths(cls, *args, **kwargs):
+        kwargs.setdefault("root", "")
+        kwargs.setdefault("regex", r"[\.\\/]+")
+        return super().normpaths(*args, **kwargs)
+
+    @classmethod
     def normparts(cls, *parts, **kwargs):
         kwargs.setdefault("root", "")
         kwargs.setdefault("regex", r"[\.\\/]+")
@@ -245,7 +251,6 @@ class TempModulepath(TempFilepath):
                 data = "\n".join(lines) + data
 
         add_coding = kwargs.get("add_coding", False)
-        #add_coding = kwargs.get("add_coding", not "# -*- coding:" in data)
         if add_coding:
             data = f"# -*- coding: {encoding} -*-\n" + data.lstrip()
 
@@ -283,7 +288,7 @@ class TempModulepath(TempFilepath):
     def modpaths(self):
         """Similar to modules, returns all the modules under this directory as
         Modulepath instances"""
-        dp = self.tempdir_class()(self.modparts, dir=self.directory)
+        dp = self.tempdir_class()(self.modparts, dir=self.basedir)
         return dp.modpaths()
 
     def classes(self):
@@ -291,24 +296,33 @@ class TempModulepath(TempFilepath):
 
     def get_classes(self):
         """Return all the classes this module contains"""
-        for m in self.modules():
+        for m in self.get_modules():
             for klass_name, klass in inspect.getmembers(m, inspect.isclass):
                 yield klass
 
     def module(self):
         return self.get_module()
 
-    def get_module(self):
+    def get_module(self, module_path=""):
         """Return the actual module this Modulepath represents"""
-        dp = self.tempdir_class()(dir=self.directory)
-        return dp.module(self)
+        dp = self.tempdir_class()(dir=self.basedir)
+
+        if module_path:
+            module_path = self.joinparts(self, module_path)
+
+        else:
+            module_path = self
+
+        return dp.get_module(module_path)
 
     def modules(self):
         return self.get_modules()
 
     def get_modules(self):
-        dp = self.tempdir_class()(dir=self.directory)
-        return dp.modules()
+        dp = self.tempdir_class()(dir=self.basedir)
+        for m in dp.get_modules():
+            if m.__name__.startswith(self):
+                yield m
 
     def is_package(self):
         """returns True if this module is a package (directory with __init__.py
@@ -740,11 +754,11 @@ class PathData(TestData):
     def get_filename(self, ext="", name="", **kwargs):
         """return just a valid file name
 
-        :param ext: string, the extension you want the file to have
-        :param prefix: string, this will be the first part of the file's name
-        :param name: string, the name you want to use (prefix will be added to
+        :param ext: str, the extension you want the file to have
+        :param prefix: str, this will be the first part of the file's name
+        :param name: str, the name you want to use (prefix will be added to
             the front of the name and ext will be added to the end of the name)
-        :returns: string, the random filename
+        :returns: str, the random filename
         """
         return TempFilepath.get_basename(ext=ext, name=name, **kwargs)
     get_file_name = get_filename
@@ -759,12 +773,12 @@ class PathData(TestData):
             foo, 2 is foo.bar, etc)
         :param prefix: string, if you want the last bit to be prefixed with
             something
-        :param postfix: string, if you want the last bit to be posfixed with
+        :param postfix: str, if you want the last bit to be posfixed with
             something (eg, ".py")
-        :param name: string, the name you want to use for the last bit
+        :param name: str, the name you want to use for the last bit
             (prefix will be added to the front of the name and postfix will be
             added to the end of the name)
-        :returns: string, the modulepath
+        :returns: str, the modulepath
         """
         parts = TempModulepath.get_parts(count=count, name=name, **kwargs)
         return ".".join(parts)
@@ -787,7 +801,7 @@ class PathData(TestData):
     def get_source_filepath(self, v):
         """Returns the full filepath of a given python object
 
-        :param v: mixed, a python object to find the source file for
+        :param v: Any, a python object to find the source file for
         :returns: Filepath
         """
         try:
@@ -809,20 +823,22 @@ class PathData(TestData):
         make_importable=True,
         **kwargs
     ):
-        '''
+        """
         create a python module folder structure so that the module can be
         imported
 
-        :param data: str, the contents of the module
+        :param data: str|list|Mapping, the contents of the module
         :param modpath: str, something like foo.bar
-        :param tmpdir: str, the temp directory that will be added to the syspath
-            if make_importable is True
+        :param tmpdir: str, the temp directory that will be added to the
+            syspath if make_importable is True
         :param make_importable: bool, if True, then tmpdir will be added to the
             python path so it can be imported
         :param **kwargs:
             load: bool, set to True to import the module
+            is_package: bool, True if module should be a package (directory
+                with __init__.py file instead of file.py)
         :return: Modulepath instance
-        '''
+        """
         if not data:
             data = kwargs.pop(
                 "contents",
@@ -831,13 +847,37 @@ class PathData(TestData):
 
         load = kwargs.pop("load", kwargs.pop("import", False))
 
-        modpath = TempModulepath(
-            modpath,
-            data=data,
-            dir=tmpdir,
-            make_importable=make_importable,
-            **kwargs
-        )
+        if isinstance(data, Mapping):
+            modpath = TempModulepath(
+                modpath,
+                dir=tmpdir,
+                make_importable=make_importable,
+                is_package=True,
+                **kwargs
+            )
+
+            kwargs["make_importable"] = False
+            modpaths = TempModulepath.normpaths(
+                data,
+                modpath,
+            )
+
+            for mname, mdata in modpaths:
+                self.create_module(
+                    data=mdata,
+                    modpath=mname,
+                    tmpdir=modpath.basedir,
+                    **kwargs
+                )
+
+        else:
+            modpath = TempModulepath(
+                modpath,
+                data=data,
+                dir=tmpdir,
+                make_importable=make_importable,
+                **kwargs
+            )
 
         if load:
             # we import the module to load whatever it has into memory
@@ -851,19 +891,17 @@ class PathData(TestData):
 
         :param module_dict: dict, keys are the module_name, values are the
             module contents
-        :param modpath: string, if you want all the modules in module_dict to
+        :param modpath: str, if you want all the modules in module_dict to
             have a prefix, you can pass this in, so if you did prefix is
             "foo.bar" then all the keys in module_dict will be prepended with
             "foo.bar"
-        :param tmpdir: string, same as create_module() tmpdir
+        :param tmpdir: str, same as create_module() tmpdir
         :returns: Dirpath
         """
         module_base_dir = self.create_dir(tmpdir=tmpdir)
-        module_list = TempDirpath.normpaths(
+        module_list = TempModulepath.normpaths(
             module_dict,
             modpath,
-            regex=r"[\.\\/]+",
-            root=""
         )
 
         for modname, data in module_list:
