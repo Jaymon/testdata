@@ -409,6 +409,16 @@ class ModulepathTest(TestCase):
         for m in mpath.get_modules():
             self.assertTrue(m.__name__ in ms)
 
+        mpath = testdata.create_module({
+            "": "print('parent module')",
+            "foo": {
+                "bar": "print('<PARENT>.foo.bar')",
+            },
+            "che": "print('<PARENT>.che')"
+        }, count=2, name="foobar")
+
+        self.assertEqual(4, len([m.__name__ for m in mpath.get_modules()]))
+
     def test_create_modules_modpath(self):
         modpath = "modpref"
         mpath = testdata.create_modules({
