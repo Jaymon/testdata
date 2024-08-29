@@ -858,30 +858,19 @@ class PathData(TestData):
             )
             ms.append(modpath)
 
-            #kwargs["make_importable"] = False
             modpaths = TempModulepath.normpaths(
                 data,
                 modpath,
             )
 
-            # get rid of any of the basename keys since submodules shouldn't
-            # use them
-#             ks = [
-#                 "count",
-#                 "prefix",
-#                 "name", "basename", "fileroot",
-#                 "suffix", "postfix",
-#             ]
-#             for k in ks:
-#                 kwargs.pop(k, None)
-
             for mname, mdata in modpaths:
+                # NOTE -- we don't pass in kwargs to the submodules because
+                # kwargs could contain keys like name and prefix
                 m = self.create_module(
                     data=mdata,
                     modpath=mname,
                     tmpdir=modpath.basedir,
                     make_importable=False
-                    #**kwargs
                 )
                 ms.append(m)
 
