@@ -846,6 +846,7 @@ class PathData(TestData):
             )
 
         load = kwargs.pop("load", kwargs.pop("import", False))
+        ms = []
 
         if isinstance(data, Mapping):
             modpath = TempModulepath(
@@ -855,6 +856,7 @@ class PathData(TestData):
                 is_package=True,
                 **kwargs
             )
+            ms.append(modpath)
 
             kwargs["make_importable"] = False
             modpaths = TempModulepath.normpaths(
@@ -863,12 +865,13 @@ class PathData(TestData):
             )
 
             for mname, mdata in modpaths:
-                self.create_module(
+                m = self.create_module(
                     data=mdata,
                     modpath=mname,
                     tmpdir=modpath.basedir,
                     **kwargs
                 )
+                ms.append(m)
 
         else:
             modpath = TempModulepath(
@@ -878,10 +881,12 @@ class PathData(TestData):
                 make_importable=make_importable,
                 **kwargs
             )
+            ms.append(modpath)
 
         if load:
             # we import the module to load whatever it has into memory
-            modpath.get_module()
+            for m in ms:
+                m.get_module()
 
         return modpath
 
