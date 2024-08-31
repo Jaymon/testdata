@@ -177,6 +177,19 @@ class TempModulepath(TempFilepath):
             d = d.directory
         return d
 
+#     @classmethod
+#     def splitparts(cls, *args, **kwargs):
+#         kwargs.setdefault("root", "")
+#         kwargs.setdefault("regex", r"[\.\\/]+")
+#         return super().splitparts(*args, **kwargs)
+
+#     @classmethod
+#     def joinparts(cls, *args, **kwargs):
+#         kwargs.setdefault("sep", ".")
+#         kwargs.setdefault("root", "")
+#         kwargs.setdefault("regex", r"[\.\\/]+")
+#         return super().joinparts(*args, **kwargs)
+
     @classmethod
     def normpaths(cls, *args, **kwargs):
         kwargs.setdefault("root", "")
@@ -308,7 +321,7 @@ class TempModulepath(TempFilepath):
         dp = self.tempdir_class()(dir=self.basedir)
 
         if module_path:
-            module_path = self.joinparts(self, module_path)
+            module_path = self.joinparts(self, module_path, sep=".")
 
         else:
             module_path = self
@@ -863,14 +876,21 @@ class PathData(TestData):
                 modpath,
             )
 
+            # NOTE -- we don't pass in all kwargs to the submodules because
+            # kwargs could contain keys like name and prefix, but we do care
+            # about certain values
+            smkwargs = {}
+            for k in ["header", "footer"]:
+                if k in kwargs:
+                    smkwargs[k] = kwargs[k]
+
             for mname, mdata in modpaths:
-                # NOTE -- we don't pass in kwargs to the submodules because
-                # kwargs could contain keys like name and prefix
                 m = self.create_module(
                     data=mdata,
                     modpath=mname,
                     tmpdir=modpath.basedir,
-                    make_importable=False
+                    make_importable=False,
+                    **smkwargs
                 )
                 ms.append(m)
 
