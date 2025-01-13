@@ -7,7 +7,6 @@ from datatypes.server import (
     ServerThread,
     PathServer,
     CallbackServer,
-    MethodServer,
 )
 from datatypes.utils import infer_type
 
@@ -56,7 +55,7 @@ class Server(ServerThread):
         return self.child(*parts, **kwargs)
 
 
-class CookieServer(MethodServer):
+class CookieServer(CallbackServer):
     """This will write and read cookies to make sure a client is passing cookies
     correctly to the server
 
@@ -102,10 +101,8 @@ class CookieServer(MethodServer):
                 m.OutputString() for m in self.make_morsels(handler)
             )
             total_server_morsels = len(server_morsels)
-            if is_py2:
-                req_c = SimpleCookie(b"\r\n".join(req_cookies.split(b", ")))
-            else:
-                req_c = SimpleCookie("\r\n".join(req_cookies.split(", ")))
+            req_c = SimpleCookie("\r\n".join(req_cookies.split(", ")))
+
             for req_morsel in req_c.values():
                 req_s = req_morsel.OutputString()
                 morsel_d = self.get_morsel_dict(req_morsel)
@@ -137,7 +134,7 @@ class CookieServer(MethodServer):
 
         return ret
 
-    def __init__(self, cookies, *args, **kwargs):
+    def __init__(self, cookies, server_address=None, **kwargs):
         # we store cookies as (name, val) tuples because you could have cookies
         # with the same name but different paths and things like that so we want
         # to support that, but since most people don't need that dicts are fine
@@ -148,10 +145,10 @@ class CookieServer(MethodServer):
         else:
             self.cookies = cookies
 
-        super().__init__(*args, **kwargs)
+        super().__init__(server_address=server_address, **kwargs)
 
 
-class TestDataServer(MethodServer):
+class TestDataServer(CallbackServer):
     """Create a testdata server that basically turns all TestData children
     methods into a json api
 
@@ -288,6 +285,9 @@ class TestDataServer(MethodServer):
     def POST(self, handler):
         """Answer POST requests"""
         return self.run_handler_method(handler)
+
+    def __init__(self, server_address=None, **kwargs):
+        super().__init__(server_address=server_address, **kwargs)
 
 
 ###############################################################################

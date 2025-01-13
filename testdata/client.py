@@ -66,7 +66,10 @@ class ClientData(TestData):
             c = testdata.fetch("http://example.com/foo/bar")
 
             # make a request with a cookie
-            c = testdata.fetch("http://example.com/foo/bar", cookies={"foo": "1"})
+            c = testdata.fetch(
+                "http://example.com/foo/bar",
+                cookies={"foo": "1"}
+            )
 
             # make a request with a different method
             c = testdata.fetch("http://example.com/foo/bar", method="PUT")
@@ -75,15 +78,21 @@ class ClientData(TestData):
             c = testdata.fetch("http://example.com/foo/bar", {"foo": 1})
 
             # make a json POST request
-            c = testdata.fetch("http://example.com/foo/bar", {"foo": 1}, json=True)
+            c = testdata.fetch(
+                "http://example.com/foo/bar",
+                {"foo": 1},
+                json=True
+            )
 
         :param url: string, the full url you want to request
         :param body: dict, the body you want to POST, pass None for GET request
         :param query: dict, if you want to attach query params with ?
-        :param **kwargs: anything else you want to pass to the underlying HTTP object
-            method -- string, things like HEAD, or PUT
-            cookies -- dict, the cookies you want to pass to the server
-        :returns: HTTPResponse, has .code, .body, and other properties and methods
+        :keyword method: str, things like HEAD, or PUT
+        :keyword cookies: dict[str, str], the cookies you want to pass to the
+            server
+        :keyword **kwargs: passed to the underlying HTTP object
+        :returns: HTTPResponse, has .code, .body, and other properties and
+            methods
         """
         c = HTTP(url, **kwargs)
         method = kwargs.pop("method", "")
