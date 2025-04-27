@@ -4,10 +4,10 @@ from testdata.config import environ
 from testdata.compat import *
 from testdata.base import TestData
 
-from . import TestCase
+from . import TestCase, IsolatedAsyncioTestCase
 
 
-class TestDataTest(TestCase):
+class TestDataTest(IsolatedAsyncioTestCase):
     def test___getattr__(self):
         class GetAttrData(TestData):
             def _get_foo(self, *args, **kwargs):
@@ -27,6 +27,20 @@ class TestDataTest(TestCase):
         d = OtherData()
         foo = d.get_bar()
         self.assertEqual("foo", foo)
+
+    async def test_call_method(self):
+        """Make sure `TestData.call_method()` is working as expected
+
+        https://github.com/Jaymon/testdata/issues/98
+        """
+        r = await TestData.call_method("get_int", bad_arg=1)
+        self.assertTrue(isinstance(r, int))
+
+        with self.assertRaises(AttributeError):
+            await TestData.call_method("no_attr_name_exists")
+
+        with self.assertRaises(TypeError):
+            await TestData.call_method("create_callbackserver")
 
 
 class TestDatasTest(TestCase):

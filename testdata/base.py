@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import functools
+import inspect
 
 from datatypes import (
     ReflectClass,
     ReflectModule,
     ReflectPath,
+    ReflectCallable,
     OrderedSubclasses,
     Dirpath,
 )
@@ -234,6 +236,39 @@ class TestData(object):
                 return cls.__findattr__(name)
 
         raise AttributeError(name)
+
+    @classmethod
+    async def call_method(self, method_name, *args, **kwargs):
+        """call `method_name` passing in `*args` and `**kwargs`
+
+        This is just a convenience method for when you have a method's name
+        as a string and you want to call it
+
+        I almost called this `__callattr__` to match `.__findattr__`
+
+        NOTE -- this method has to be async so it can safely handle async
+        testdata methods
+
+        NOTE -- `args` and `**kwargs` will be filtered and unknown arguments
+        that the method can't take will be filtered out before the method
+        is called
+
+        :param method_name: str, the method to call, this uses `.__findattr__`
+            to find the actual method to call
+        :argument *args: filtered and passed through to the actual method
+            being called
+        :keyword **kwargs: filtered and passed through to the actual method
+            being called
+        :returns: Any, whatever the method's return value is
+        """
+        cb = TestData.__findattr__(method_name)
+        rcb = ReflectCallable(cb)
+        bind_info = rcb.get_bind_info(*args, **kwargs)
+        ret = cb(*bind_info["args"], **bind_info["kwargs"])
+        while inspect.iscoroutine(ret):
+            ret = await ret
+
+        return ret
 
     def __init_subclass__(cls, *args, **kwargs):
         """This is where all the magic happens, when a class is read into
