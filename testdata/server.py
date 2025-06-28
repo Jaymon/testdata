@@ -200,6 +200,8 @@ class TestDataServer(CallbackServer):
         """If the testdata method that was ran returns an object then this will
         try and figure out how to turn that object into json
 
+        DEPRECATED -- 2025-06-27, use TestData.get_jsonable_value instead
+
         :param o: object, the generic object whose json value couldn't be
             inferred
         :returns: dict

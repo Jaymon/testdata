@@ -11,7 +11,9 @@ from datatypes import (
     Dirpath,
 )
 from datatypes import logging
+from datatypes.utils import infer_type
 
+from .compat import *
 from .config import environ
 
 
@@ -262,11 +264,71 @@ class TestData(object):
         :returns: Any, whatever the method's return value is
         """
         cb = TestData.__findattr__(method_name)
-        rcb = ReflectCallable(cb)
-        bind_info = rcb.get_bind_info(*args, **kwargs)
-        ret = cb(*bind_info["args"], **bind_info["kwargs"])
+        bind_info = ReflectCallable(cb).get_bind_info(*args, **kwargs)
+        ret = cb(
+            *infer_type(bind_info["bound"].args),
+            **infer_type(bind_info["bound"].kwargs),
+        )
         while inspect.iscoroutine(ret):
             ret = await ret
+
+        return ret
+
+    @classmethod
+    def get_jsonable_value(self, value):
+        if isinstance(value, (basestring, float, int, bool)):
+            ret = value
+
+        elif isinstance(value, Mapping):
+            ret = value
+
+        elif isinstance(value, Sequence):
+            ret = []
+            for o in value:
+                try:
+                    ret.append(cls._get_object_json(o))
+
+                except ValueError:
+                    ret.append(o)
+
+        elif isinstance(value, object):
+            ret = cls._get_object_json(value)
+
+        else:
+            ret = value
+
+        return ret
+
+    @classmethod
+    def _get_object_json(cls, o):
+        """If the testdata method that was ran returns an object then this will
+        try and figure out how to turn that object into json
+
+        :param o: object, the generic object whose json value couldn't be
+            inferred
+        :returns: dict
+        """
+        # https://stackoverflow.com/a/51055044
+        if hasattr(o, "jsonable"):
+            ret = o.jsonable()
+
+        elif hasattr(o, "to_json"):
+            ret = o.to_json()
+
+        elif hasattr(o, "toJSON"):
+            ret = o.toJSON()
+
+        elif hasattr(o, "tojson"):
+            ret = o.tojson()
+
+        elif hasattr(o, "json"):
+            ret = o.json()
+
+        elif hasattr(o, "__json__"):
+            ret = o.__json__()
+
+        else:
+            ret = String(o)
 
         return ret
 

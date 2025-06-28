@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import asyncio
 import argparse
 import inspect
 import textwrap
@@ -60,15 +61,16 @@ class FunctionParser(argparse.ArgumentParser):
     """
     def __init__(self, function_name, **kwargs):
         _function = getattr(testdata, function_name)
+        rf = ReflectCallable(_function)
+        rdoc = rf.reflect_docblock()
+        sig = rf.signature
 
         if "description" not in kwargs:
-            rf = ReflectCallable(_function)
-            doc = rf.get_docblock()
-            if doc:
+            if desc := rdoc.get_description():
                 kwargs["description"] = "\n".join([
-                    function_name,
+                    f"{function_name}{sig}",
                     "",
-                    doc
+                    desc
                 ])
 
         super().__init__(**kwargs)
@@ -77,13 +79,16 @@ class FunctionParser(argparse.ArgumentParser):
 
         self.add_argument(
             "_function_name",
-            metavar="FUNCTION_NAME",
-            help="Testdata function name"
+            metavar=function_name,
+            help="The testdata function name",
         )
 
-        sig = inspect.signature(_function)
+        param_descs = rdoc.get_param_descriptions()
         for name, param in sig.parameters.items():
             arg_kwargs = {}
+            if name in param_descs:
+                arg_kwargs["help"] = param_descs[name]
+
             if param.default is not param.empty:
                 arg_kwargs["default"] = param.default
 
@@ -126,7 +131,8 @@ class FunctionParser(argparse.ArgumentParser):
                     name,
                     nargs="*"
                 )
-            if param.kind is param.VAR_KEYWORD:
+
+            elif param.kind is param.VAR_KEYWORD:
                 self.keyword_name = name
 
         self.set_defaults(
@@ -168,17 +174,14 @@ class ApplicationParser(argparse.ArgumentParser):
         If a flag is passed in then it will defer to parent's version of this
         method, if there is any other input then this defers to FunctionParser
         """
-        if arg_strings[0].startswith("-"):
-            parsed, parsed_unknown = super()._parse_known_args(
-                arg_strings,
-                namespace
-            )
 
-        else:
+        # if there are any positionals defer to the function parser
+        if filter(lambda s: not s.startswith("-"), arg_strings):
             p = FunctionParser(
                 arg_strings[0],
                 formatter_class=self.formatter_class
             )
+
             parsed, parsed_unknown = p.parse_known_args(
                 arg_strings,
                 namespace
@@ -191,10 +194,16 @@ class ApplicationParser(argparse.ArgumentParser):
                     UnknownParser(parsed_unknown).unwrap_keywords()
                 )
 
+        else:
+            parsed, parsed_unknown = super()._parse_known_args(
+                arg_strings,
+                namespace
+            )
+
         return parsed, parsed_unknown
 
 
-def application():
+async def application():
     """Callable for CLI application"""
     testdata.basic_logging()
 
@@ -202,18 +211,23 @@ def application():
 
     parsed = parser.parse_args()
     rf = ReflectCallable(parsed._function)
+    cb_kwargs = {k:v for k,v in parsed._get_kwargs() if v is not None}
 
-    info = rf.get_bind_info(**dict(parsed._get_kwargs()))
-    info["args"] = infer_type(info["args"])
-    info["kwargs"] = infer_type(info["kwargs"])
+    ret = await testdata.call_method(
+        parsed._function_name,
+        #**dict(parsed._get_kwargs()),
+        **cb_kwargs,
+    )
 
-    print(TestDataServer.run_method(
-        parsed._function,
-        *info["args"],
-        **info["kwargs"]
-    ))
+    print(testdata.get_jsonable_value(ret))
+
+#     print(TestDataServer.run_method(
+#         parsed._function,
+#         *infer_type(info["args"]),
+#         **infer_type(info["kwargs"]),
+#     ))
 
 
 if __name__ == "__main__":
-    application()
+    asyncio.run(application())
 
