@@ -12,7 +12,6 @@ from datatypes import (
 )
 
 import testdata
-from testdata.server import TestDataServer
 
 
 class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
@@ -62,20 +61,22 @@ class FunctionParser(argparse.ArgumentParser):
     def __init__(self, function_name, **kwargs):
         _function = getattr(testdata, function_name)
         rf = ReflectCallable(_function)
-        rdoc = rf.reflect_docblock()
+        self.keyword_name = ""
+        param_descs = {}
         sig = rf.signature
 
-        if "description" not in kwargs:
-            if desc := rdoc.get_description():
-                kwargs["description"] = "\n".join([
-                    f"{function_name}{sig}",
-                    "",
-                    desc
-                ])
+        if rdoc := rf.reflect_docblock():
+            param_descs = rdoc.get_param_descriptions()
+
+            if "description" not in kwargs:
+                if desc := rdoc.get_description():
+                    kwargs["description"] = "\n".join([
+                        f"{function_name}{sig}",
+                        "",
+                        desc
+                    ])
 
         super().__init__(**kwargs)
-
-        self.keyword_name = ""
 
         self.add_argument(
             "_function_name",
@@ -83,53 +84,55 @@ class FunctionParser(argparse.ArgumentParser):
             help="The testdata function name",
         )
 
-        param_descs = rdoc.get_param_descriptions()
         for name, param in sig.parameters.items():
             arg_kwargs = {}
+
+            arg_kwargs["metavar"] = name.upper()
+
             if name in param_descs:
                 arg_kwargs["help"] = param_descs[name]
 
             if param.default is not param.empty:
                 arg_kwargs["default"] = param.default
 
-            if (
-                param.kind is param.POSITIONAL_ONLY
-                or param.kind is param.POSITIONAL_OR_KEYWORD
-            ):
-                if param.kind is not param.POSITIONAL_ONLY:
-                    arg_kwargs["nargs"] = "?"
-
-                self.add_argument(
-                    name,
-                    **arg_kwargs
+            if param.kind is param.POSITIONAL_OR_KEYWORD:
+                # https://docs.python.org/3/library/argparse.html#mutual-exclusion
+                group = self.add_mutually_exclusive_group(
+                    required=("default" not in arg_kwargs),
                 )
 
-            if (
-                param.kind is param.KEYWORD_ONLY
-                or param.kind is param.POSITIONAL_OR_KEYWORD
-            ):
-                # https://docs.python.org/3/library/argparse.html#prefix-chars
-                prefix = self.prefix_chars[0]
+                group.add_argument(
+                    name,
+                    nargs="?",
+                    **arg_kwargs,
+                )
 
-                if param.kind is param.KEYWORD_ONLY:
-                    if "default" not in arg_kwargs:
-                        arg_kwargs["required"] = True
+                group.add_argument(
+                    *self._get_flag_names(name),
+                    dest=name,
+                    **arg_kwargs,
+                )
 
-                flags = [prefix*2 + name]
-                kflag = prefix*2 + NamingConvention(name).kebabcase()
-                if kflag not in flags:
-                    flags.append(kflag)
+            elif param.kind is param.POSITIONAL_ONLY:
+                self.add_argument(
+                    name,
+                    **arg_kwargs,
+                )
+
+            elif param.kind is param.KEYWORD_ONLY:
+                if "default" not in arg_kwargs:
+                    arg_kwargs["required"] = True
 
                 self.add_argument(
-                    *flags,
+                    *self._get_flag_names(name),
                     dest=name,
                     **arg_kwargs
                 )
 
-            if param.kind is param.VAR_POSITIONAL:
+            elif param.kind is param.VAR_POSITIONAL:
                 self.add_argument(
                     name,
-                    nargs="*"
+                    nargs="*",
                 )
 
             elif param.kind is param.VAR_KEYWORD:
@@ -138,6 +141,17 @@ class FunctionParser(argparse.ArgumentParser):
         self.set_defaults(
             _function=_function,
         )
+
+    def _get_flag_names(self, name):
+        # https://docs.python.org/3/library/argparse.html#prefix-chars
+        prefix = self.prefix_chars[0]
+
+        flags = [prefix*2 + name]
+        kflag = prefix*2 + NamingConvention(name).kebabcase()
+        if kflag not in flags:
+            flags.append(kflag)
+
+        return flags
 
 
 class ApplicationParser(argparse.ArgumentParser):
@@ -215,18 +229,10 @@ async def application():
 
     ret = await testdata.call_method(
         parsed._function_name,
-        #**dict(parsed._get_kwargs()),
-        **cb_kwargs,
+        **infer_type(cb_kwargs),
     )
 
     print(testdata.get_jsonable_value(ret))
-
-#     print(TestDataServer.run_method(
-#         parsed._function,
-#         *infer_type(info["args"]),
-#         **infer_type(info["kwargs"]),
-#     ))
-
 
 if __name__ == "__main__":
     asyncio.run(application())

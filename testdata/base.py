@@ -11,7 +11,6 @@ from datatypes import (
     Dirpath,
 )
 from datatypes import logging
-from datatypes.utils import infer_type
 
 from .compat import *
 from .config import environ
@@ -169,7 +168,7 @@ class TestData(object):
         testdata.test.TestCase.__getattr__ use this method to find requested
         testdata methods
 
-        NOTE -- this method is actually quite recursive, basically, it will
+        .. note:: this method is actually quite recursive, basically, it will
         go through each data instance and try to get `name`, but if the data
         instance doesn't have the `name` attribute that will trigger that data
         instance to check all the data instances. Basically, it's turtles all
@@ -186,11 +185,11 @@ class TestData(object):
             name,
         ))
 
-        # we do this here so it all of the magical loading coding is confined
+        # we do this here so all of the magical loading coding is confined
         # to this class and also because trying to do this in __init__ can
         # easily cause circular imports and other bad things because the
         # instances aren't fully initialized. Basically, I'm telling future me
-        # not to try and move this
+        # not to try and move this like present me tried to do
         if environ.AUTOLOAD and not cls._data_instances.inserted_modules:
             cls._data_instances.insert_modules()
 
@@ -248,11 +247,11 @@ class TestData(object):
 
         I almost called this `__callattr__` to match `.__findattr__`
 
-        NOTE -- this method has to be async so it can safely handle async
+        .. note:: this method has to be async so it can safely handle async
         testdata methods
 
-        NOTE -- `args` and `**kwargs` will be filtered and unknown arguments
-        that the method can't take will be filtered out before the method
+        .. note:: `args` and `**kwargs` will be filtered and unknown arguments
+        that the method doesn't accept will be filtered out before the method
         is called
 
         :param method_name: str, the method to call, this uses `.__findattr__`
@@ -266,8 +265,8 @@ class TestData(object):
         cb = TestData.__findattr__(method_name)
         bind_info = ReflectCallable(cb).get_bind_info(*args, **kwargs)
         ret = cb(
-            *infer_type(bind_info["bound"].args),
-            **infer_type(bind_info["bound"].kwargs),
+            *bind_info["bound"].args,
+            **bind_info["bound"].kwargs,
         )
         while inspect.iscoroutine(ret):
             ret = await ret
@@ -276,6 +275,12 @@ class TestData(object):
 
     @classmethod
     def get_jsonable_value(self, value):
+        """Does its very very best to convert `value` to something that can
+        be serialized to json
+
+        :param value: Any, the value that wants to be serialized to json
+        :returns: Any, this value should hopefully be safe to encode to json
+        """
         if isinstance(value, (basestring, float, int, bool)):
             ret = value
 

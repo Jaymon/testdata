@@ -154,7 +154,8 @@ class NumberData(TestData):
         :param count: int, how many digits you want, so if you pass in 4, you
             would get 4 digits
         :param n: int, if you already have a value and want it to
-            for sure by count digits :returns: string, this returns a string
+            for sure by count digits
+        :returns: string, this returns a string
             because the digits might start with zero
         """
         max_size = int("9" * count)
