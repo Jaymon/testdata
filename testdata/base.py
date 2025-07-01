@@ -265,8 +265,8 @@ class TestData(object):
         cb = TestData.__findattr__(method_name)
         bind_info = ReflectCallable(cb).get_bind_info(*args, **kwargs)
         ret = cb(
-            *bind_info["bound"].args,
-            **bind_info["bound"].kwargs,
+            *bind_info["bound_args"],
+            **bind_info["bound_kwargs"],
         )
         while inspect.iscoroutine(ret):
             ret = await ret

@@ -65,16 +65,14 @@ class FunctionParser(argparse.ArgumentParser):
         param_descs = {}
         sig = rf.signature
 
-        if rdoc := rf.reflect_docblock():
-            param_descs = rdoc.get_param_descriptions()
+        if "description" not in kwargs:
+            kwargs["description"] = f"{function_name}{sig}"
 
-            if "description" not in kwargs:
+            if rdoc := rf.reflect_docblock():
+                param_descs = rdoc.get_param_descriptions()
+
                 if desc := rdoc.get_description():
-                    kwargs["description"] = "\n".join([
-                        f"{function_name}{sig}",
-                        "",
-                        desc
-                    ])
+                    kwargs["description"] += "\n\n" + desc
 
         super().__init__(**kwargs)
 
