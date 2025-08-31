@@ -24,24 +24,34 @@ logger = logging.getLogger(__name__)
 
 
 class TestDataFinder(ClassFinder):
+    """Holds TestData children that are used for attribute resolution
+
+    This is an internal class used by TestData and shouldn't be messed with
+    unless you really know what you're doing
+    """
     inserted_modules = False
+    """Flag for autodiscover and prefix loading"""
 
     def __set_name__(cls, owner, name):
+        """We use this to get the root testdata class and set it as our
+        cutoff class"""
         cls.cutoff_class = owner
 
     def _get_node_items(self, klass, cutoff_class):
+        """Override from DictTree"""
         for keys, data_class in super()._get_node_items(klass, cutoff_class):
             yield keys, data_class()
 
     def _is_valid_subclass(self, klass, cutoff_class=None):
+        """Override from ClassFinder"""
         if cutoff_class is None:
             cutoff_class = self.cutoff_class
 
         return super()._is_valid_subclass(klass, cutoff_class)
 
     def insert_modules(self):
-        """Goes through the TESTDATA_PREFIX evnironment variables and loads any
-        found module classpaths and loads all the classes found in those
+        """Goes through the TESTDATA_PREFIX evnironment variables and loads
+        any found module classpaths and loads all the classes found in those
         modules
         """
         if not self.inserted_modules:
@@ -53,81 +63,87 @@ class TestDataFinder(ClassFinder):
                 environ.get("AUTODISCOVER_NAME"),
             )
 
+    def get_abs_instances(self):
+        """Go through all the absolute TestData instances (these are the
+        edges/leaves of the class hierarchy"""
+        for pathkeys, node in self.leaves():
+            yield pathkeys[-1].__name__, node.value
 
-class TestDatas(OrderedSubclasses):
-    """Holds TestData children that are used for attribute resolution
 
-    This is an internal class used by TestData and shouldn't be messed with
-    unless you really know what you're doing
-    """
-    def __init__(self):
-        super().__init__()
-        self.clear()
-
-    def default_cutoff(self):
-        return (TestData,)
-
-    def insert(self, data_class):
-        """Add a TestData child
-
-        :param data_class: TestData, the child class to add to the attribute
-            resolution list
-        """
-        super().insert(data_class)
-        self.data_instances[data_class] = data_class()
-
-    def remove(self, data_class):
-        """Removes data_class from the method resolution list, this means it
-        will no longer be checked when resolving attributes
-
-        :param data_class: the TestData child to remove
-        """
-        super().remove(data_class)
-        self.data_instances.pop(data_class)
-
-    def insert_module(self, modpath):
-        rm = ReflectModule(modpath)
-        for mod in rm.get_modules():
-            self.module_prefixes.add(mod.__name__)
-
-    def insert_modules(self):
-        """Goes through the TESTDATA_PREFIX evnironment variables and loads any
-        found module classpaths and loads all the classes found in those
-        modules
-        """
-        if not self.inserted_modules:
-            self.inserted_modules = True
-
-            for modpath in environ.paths("PREFIX"):
-                self.insert_module(modpath)
-
-            # if there aren't any defined prefixes let's inspect the current
-            # working directory
-            if not self.module_prefixes:
-                rp = ReflectPath(Dirpath.cwd())
-                for mod in rp.find_modules("testdata"):
-                    self.module_prefixes.add(mod.__name__)
-
-    def items(self, **kwargs):
-        """Iterate through all the TestData children that should be checked to
-        resolve an attribute
-
-        :returns: generator[str, TestData]
-        """
-        for data_name, data_class in super().items(**kwargs):
-            try:
-                yield data_name, self.data_instances[data_class]
-
-            except KeyError:
-                pass
-
-    def clear(self):
-        super().clear()
-
-        self.data_instances = {}
-
-        self.module_prefixes = set()
-        self.inserted_modules = False
+# class TestDatas(OrderedSubclasses):
+#     """Holds TestData children that are used for attribute resolution
+# 
+#     This is an internal class used by TestData and shouldn't be messed with
+#     unless you really know what you're doing
+#     """
+#     def __init__(self):
+#         super().__init__()
+#         self.clear()
+# 
+#     def default_cutoff(self):
+#         return (TestData,)
+# 
+#     def insert(self, data_class):
+#         """Add a TestData child
+# 
+#         :param data_class: TestData, the child class to add to the attribute
+#             resolution list
+#         """
+#         super().insert(data_class)
+#         self.data_instances[data_class] = data_class()
+# 
+#     def remove(self, data_class):
+#         """Removes data_class from the method resolution list, this means it
+#         will no longer be checked when resolving attributes
+# 
+#         :param data_class: the TestData child to remove
+#         """
+#         super().remove(data_class)
+#         self.data_instances.pop(data_class)
+# 
+#     def insert_module(self, modpath):
+#         rm = ReflectModule(modpath)
+#         for mod in rm.get_modules():
+#             self.module_prefixes.add(mod.__name__)
+# 
+#     def insert_modules(self):
+#         """Goes through the TESTDATA_PREFIX evnironment variables and loads any
+#         found module classpaths and loads all the classes found in those
+#         modules
+#         """
+#         if not self.inserted_modules:
+#             self.inserted_modules = True
+# 
+#             for modpath in environ.paths("PREFIX"):
+#                 self.insert_module(modpath)
+# 
+#             # if there aren't any defined prefixes let's inspect the current
+#             # working directory
+#             if not self.module_prefixes:
+#                 rp = ReflectPath(Dirpath.cwd())
+#                 for mod in rp.find_modules("testdata"):
+#                     self.module_prefixes.add(mod.__name__)
+# 
+#     def items(self, **kwargs):
+#         """Iterate through all the TestData children that should be checked to
+#         resolve an attribute
+# 
+#         :returns: generator[str, TestData]
+#         """
+#         for data_name, data_class in super().items(**kwargs):
+#             try:
+#                 yield data_name, self.data_instances[data_class]
+# 
+#             except KeyError:
+#                 pass
+# 
+#     def clear(self):
+#         super().clear()
+# 
+#         self.data_instances = {}
+# 
+#         self.module_prefixes = set()
+#         self.inserted_modules = False
 
 
 class TestData(object):
@@ -162,10 +178,11 @@ class TestData(object):
     To override methods, you should extend that specific child class, since
     the absolute child is the only TestData subclass that will be checked.
     """
-    _data_instances = TestDatas()
+    #_data_instances = TestDatas()
     """Holds an active instance of each data class"""
 
-    _finder = TestDataFinder()
+    _data_instances = TestDataFinder()
+    """Holds an active instance of each data class"""
 
     def __init__(self):
         # holds attributes that were requested but aren't available on this
@@ -181,9 +198,9 @@ class TestData(object):
 
         :param data_class: TestData
         """
-        cls._data_instances.insert(data_class)
+        #cls._data_instances.insert(data_class)
         #cls._finder.add_class(data_class, TestData)
-        cls._finder.add_class(data_class)
+        cls._data_instances.add_class(data_class)
 
     @classmethod
     def delete_class(cls, data_class):
@@ -193,8 +210,8 @@ class TestData(object):
         :param data_class: TestData
         """
         try:
-            cls._data_instances.remove(data_class)
-            cls._finder.delete_class(data_class)
+            #cls._data_instances.remove(data_class)
+            cls._data_instances.delete_class(data_class)
 
         except (ValueError, KeyError):
             pass
@@ -222,23 +239,23 @@ class TestData(object):
             name,
         ))
 
-        pout.v(len(cls._data_instances.module_prefixes))
-
-
         # we do this here so all of the magical loading coding is confined
         # to this class and also because trying to do this in __init__ can
         # easily cause circular imports and other bad things because the
         # instances aren't fully initialized. Basically, I'm telling future me
         # not to try and move this like present me tried to do
-        if environ.AUTOLOAD and not cls._data_instances.inserted_modules:
+        if not cls._data_instances.inserted_modules and environ.AUTOLOAD:
+        #if environ.AUTOLOAD and not cls._data_instances.inserted_modules:
             cls._data_instances.insert_modules()
-            cls._finder.insert_modules()
+            #cls._finder.insert_modules()
             #pout.v(cls._data_instances.module_prefixes, cls._finder.modules)
             #pout.b()
 
         # go through all the absolute children classes and see if they have an
         # attribute that matches name
-        for data_name, data_instance in cls._data_instances.items(edges=True):
+        #for data_name, data_instance in cls._data_instances.items(edges=True):
+        data_instances = cls._data_instances.get_abs_instances()
+        for data_name, data_instance in data_instances:
             if name not in data_instance._missing_cache:
 
                 logger.debug("{}.__findattr__ checking {}.{}".format(
@@ -265,19 +282,30 @@ class TestData(object):
         # since we couldn't find an attribute in any of the classes, let's try
         # and see if there is an actual class that matches the name, then
         # return the class, this makes it easy to get a specific class
-        for data_name, data_instance in cls._data_instances.items():
-            if name == data_instance.__class__.__name__:
-                logger.debug("{}.__findattr__ found data class {}".format(
-                    cls.__name__,
-                    name
-                ))
-                return data_instance
+        for data_classes, node in cls._data_instances.leaves():
+            while node:
+                if name == node.value.__class__.__name__:
+                    logger.debug("{}.__findattr__ found data class {}".format(
+                        cls.__name__,
+                        name
+                    ))
+                    return data_instance
+
+                node = node.parent
+
+#         for data_name, data_instance in cls._data_instances.items():
+#             if name == data_instance.__class__.__name__:
+#                 logger.debug("{}.__findattr__ found data class {}".format(
+#                     cls.__name__,
+#                     name
+#                 ))
+#                 return data_instance
 
         # hail mary
-        if not cls._data_instances.inserted_modules:
-            cls._data_instances.insert_modules()
-            if cls._data_instances.module_prefixes:
-                return cls.__findattr__(name)
+#         if not cls._data_instances.inserted_modules:
+#             cls._data_instances.insert_modules()
+#             if cls._data_instances.modules:
+#                 return cls.__findattr__(name)
 
         raise AttributeError(name)
 
