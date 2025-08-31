@@ -9,6 +9,7 @@ from datatypes import (
     ReflectCallable,
     OrderedSubclasses,
     Dirpath,
+    ClassFinder,
 )
 from datatypes import logging
 
@@ -20,6 +21,37 @@ from .config import environ
 # a bit more quiet
 logging.setdefault(__name__, "INFO")
 logger = logging.getLogger(__name__)
+
+
+class TestDataFinder(ClassFinder):
+    inserted_modules = False
+
+    def __set_name__(cls, owner, name):
+        cls.cutoff_class = owner
+
+    def _get_node_items(self, klass, cutoff_class):
+        for keys, data_class in super()._get_node_items(klass, cutoff_class):
+            yield keys, data_class()
+
+    def _is_valid_subclass(self, klass, cutoff_class=None):
+        if cutoff_class is None:
+            cutoff_class = self.cutoff_class
+
+        return super()._is_valid_subclass(klass, cutoff_class)
+
+    def insert_modules(self):
+        """Goes through the TESTDATA_PREFIX evnironment variables and loads any
+        found module classpaths and loads all the classes found in those
+        modules
+        """
+        if not self.inserted_modules:
+            self.inserted_modules = True
+
+            self.modules = self.find_modules(
+                list(environ.paths("PREFIX")),
+                [Dirpath.cwd()],
+                environ.get("AUTODISCOVER_NAME"),
+            )
 
 
 class TestDatas(OrderedSubclasses):
@@ -133,6 +165,8 @@ class TestData(object):
     _data_instances = TestDatas()
     """Holds an active instance of each data class"""
 
+    _finder = TestDataFinder()
+
     def __init__(self):
         # holds attributes that were requested but aren't available on this
         # instance. Since attribute resultion for these classes are so crazy
@@ -148,6 +182,8 @@ class TestData(object):
         :param data_class: TestData
         """
         cls._data_instances.insert(data_class)
+        #cls._finder.add_class(data_class, TestData)
+        cls._finder.add_class(data_class)
 
     @classmethod
     def delete_class(cls, data_class):
@@ -158,8 +194,9 @@ class TestData(object):
         """
         try:
             cls._data_instances.remove(data_class)
+            cls._finder.delete_class(data_class)
 
-        except ValueError:
+        except (ValueError, KeyError):
             pass
 
     @classmethod
@@ -185,6 +222,9 @@ class TestData(object):
             name,
         ))
 
+        pout.v(len(cls._data_instances.module_prefixes))
+
+
         # we do this here so all of the magical loading coding is confined
         # to this class and also because trying to do this in __init__ can
         # easily cause circular imports and other bad things because the
@@ -192,6 +232,9 @@ class TestData(object):
         # not to try and move this like present me tried to do
         if environ.AUTOLOAD and not cls._data_instances.inserted_modules:
             cls._data_instances.insert_modules()
+            cls._finder.insert_modules()
+            #pout.v(cls._data_instances.module_prefixes, cls._finder.modules)
+            #pout.b()
 
         # go through all the absolute children classes and see if they have an
         # attribute that matches name
@@ -343,14 +386,12 @@ class TestData(object):
 
         https://peps.python.org/pep-0487/
 
-        NOTE -- This will automatically add the class to the method resolution
-        list unless the class's name begins with an underscore, because a class
-        that begins with an underscore is considered private and shouldn't be
-        automatically used. It could still be added by calling .add_class
-        manually though
+        .. note:: This will automatically add the class to the method
+            resolution list unless the class's name begins with an underscore,
+            because a class that begins with an underscore is considered
+            private and shouldn't be automatically used. It could still be
+            added by calling .add_class manually though
         """
-        super().__init_subclass__(*args, **kwargs)
-
         if cls.__name__.startswith("_"):
             logger.debug(" ".join([
                 "Not automatically adding {} to method resolution".format(

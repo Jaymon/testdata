@@ -38,3 +38,7 @@ environ.setdefault("MAX_UNIQUE", 1000000, type=int)
 # looking for TestData child classes
 environ.setdefault("AUTOLOAD", True, type=Bool)
 
+
+# Holds the autoloading name if modules are automatically loaded
+environ.setdefault("AUTODISCOVER_NAME", "testdata")
+
