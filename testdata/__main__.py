@@ -51,6 +51,21 @@ class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
         return lines
 
 
+class ParamAction(argparse.Action):
+    """Mutually exclusive actions with a positional and optional with
+    defaults and the same dest will overwrite the optional value with the
+    default of the positional, so this custom action makes sure a non-default
+    value in the namespace isn't overwritten by a default value
+    """
+    def __call__(self, parser, namespace, values, option_string=None):
+        if self.dest in namespace:
+            if values != self.default:
+                setattr(namespace, self.dest, values)
+
+        else:
+            setattr(namespace, self.dest, values)
+
+
 class FunctionParser(argparse.ArgumentParser):
     """Maps a testdata method to a parser definition so passed in CLI flags
     can be mapped to a testdata method call
@@ -58,8 +73,10 @@ class FunctionParser(argparse.ArgumentParser):
     This is called from ApplicationParser and isn't meant to be used outside
     of that context
     """
-    def __init__(self, function_name, **kwargs):
-        _function = getattr(testdata, function_name)
+    def __init__(self, _function, **kwargs):
+        function_name = kwargs.pop("function_name", _function.__name__)
+        #defaults = {"_function": _function}
+
         rf = ReflectCallable(_function)
         self.keyword_name = ""
         param_descs = {}
@@ -79,6 +96,7 @@ class FunctionParser(argparse.ArgumentParser):
         self.add_argument(
             "_function_name",
             metavar=function_name,
+            choices=set([function_name]),
             help="The testdata function name",
         )
 
@@ -91,22 +109,26 @@ class FunctionParser(argparse.ArgumentParser):
                 arg_kwargs["help"] = param_descs[name]
 
             if param.default is not param.empty:
+                #defaults[name] = param.default
                 arg_kwargs["default"] = param.default
 
             if param.kind is param.POSITIONAL_OR_KEYWORD:
                 # https://docs.python.org/3/library/argparse.html#mutual-exclusion
                 group = self.add_mutually_exclusive_group(
                     required=("default" not in arg_kwargs),
+                    #required=(name not in defaults),
                 )
 
                 group.add_argument(
                     name,
+                    action=ParamAction,
                     nargs="?",
                     **arg_kwargs,
                 )
 
                 group.add_argument(
                     *self._get_flag_names(name),
+                    action=ParamAction,
                     dest=name,
                     **arg_kwargs,
                 )
@@ -118,6 +140,8 @@ class FunctionParser(argparse.ArgumentParser):
                 )
 
             elif param.kind is param.KEYWORD_ONLY:
+                #if name not in defaults:
+                #    arg_kwargs["required"] = True
                 if "default" not in arg_kwargs:
                     arg_kwargs["required"] = True
 
@@ -136,6 +160,8 @@ class FunctionParser(argparse.ArgumentParser):
             elif param.kind is param.VAR_KEYWORD:
                 self.keyword_name = name
 
+#         pout.v(defaults)
+        #self.set_defaults(**defaults)
         self.set_defaults(
             _function=_function,
         )
@@ -179,37 +205,38 @@ class ApplicationParser(argparse.ArgumentParser):
             help="Testdata function name"
         )
 
-    def _parse_known_args(self, arg_strings, namespace):
+    def _parse_known_args(self, arg_strings, namespace, intermixed=False):
         """This is the internal method that is called from all the external
         methods
 
         If a flag is passed in then it will defer to parent's version of this
         method, if there is any other input then this defers to FunctionParser
         """
-
         # if there are any positionals defer to the function parser
         if filter(lambda s: not s.startswith("-"), arg_strings):
+            _function = getattr(testdata, arg_strings[0])
             p = FunctionParser(
-                arg_strings[0],
-                formatter_class=self.formatter_class
+                _function,
+                formatter_class=self.formatter_class,
             )
 
             parsed, parsed_unknown = p.parse_known_args(
                 arg_strings,
-                namespace
+                namespace,
             )
 
             if p.keyword_name and parsed_unknown:
                 setattr(
                     parsed, 
                     p.keyword_name,
-                    UnknownParser(parsed_unknown).unwrap_keywords()
+                    UnknownParser(parsed_unknown).unwrap_keywords(),
                 )
 
         else:
             parsed, parsed_unknown = super()._parse_known_args(
                 arg_strings,
-                namespace
+                namespace,
+                intermixed,
             )
 
         return parsed, parsed_unknown
