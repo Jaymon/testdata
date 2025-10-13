@@ -65,19 +65,13 @@ class StringTest(TestCase):
     def test_get_ascii_words(self):
         v = testdata.get_ascii_words()
         self.assertGreater(len(v), 0)
-        if is_py2:
-            v.decode('utf-8') # this should not fail because the string is ascii
-        elif is_py3:
-            bytes(v, encoding="ascii").decode('utf-8')
+        bytes(v, encoding="ascii").decode('utf-8')
 
     def test_get_unicode_words(self):
         v = testdata.get_unicode_words()
         self.assertGreater(len(v), 0)
         with self.assertRaises(UnicodeEncodeError):
-            if is_py2:
-                v.decode('utf-8')
-            elif is_py3:
-                bytes(v, encoding="ascii").decode('utf-8')
+            bytes(v, encoding="ascii").decode('utf-8')
 
     def test_get_lines(self):
         ls = testdata.get_lines(10)
@@ -92,12 +86,11 @@ class StringTest(TestCase):
 
         s_byte = s.encode('utf-8')
         with self.assertRaises(UnicodeError):
-            if is_py2:
-                s_byte.encode('utf-8')
-            elif is_py3:
-                str(s_byte).encode('utf-8')
+            str(s_byte).encode('utf-8')
 
-            raise UnicodeError('well what do you know, get_str() returned all ascii')
+            raise UnicodeError(
+                "well what do you know, get_str() returned all ascii"
+            )
 
         s = testdata.get_str(24, chars=string.hexdigits.lower())
         self.assertNotEqual("", s)
@@ -263,7 +256,7 @@ class DatetimeTest(TestCase):
         self.assertTrue(isinstance(v, basestring))
 
     def test_get_past_datetime(self):
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         for x in range(5):
             dt = testdata.get_past_datetime()
             self.assertGreater(now, dt)
@@ -279,7 +272,7 @@ class DatetimeTest(TestCase):
             self.assertTrue(type(dt) is datetime.date)
 
     def test_get_future_datetime(self):
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         for x in range(5):
             dt = testdata.get_future_datetime()
             self.assertGreater(dt, now)
@@ -295,60 +288,66 @@ class DatetimeTest(TestCase):
             self.assertTrue(type(dt) is datetime.date)
 
     def test_get_datetime(self):
-        d = testdata.get_datetime(datetime.datetime.utcnow())
-        self.assertGreaterEqual(datetime.datetime.utcnow(), d)
+        d = testdata.get_datetime(datetime.datetime.now(datetime.timezone.utc))
+        self.assertGreaterEqual(
+            datetime.datetime.now(datetime.timezone.utc),
+            d
+        )
 
-        d = testdata.get_datetime(datetime.datetime.utcnow().date())
-        self.assertGreater(datetime.datetime.utcnow(), d)
+        d = testdata.get_datetime(
+            datetime.datetime.now(datetime.timezone.utc).date()
+        )
+        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
 
         d = testdata.get_datetime(3600, backward=True)
-        self.assertGreater(datetime.datetime.utcnow(), d)
+        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
 
         d = testdata.get_datetime(-3600, backward=True)
-        self.assertGreater(datetime.datetime.utcnow(), d)
+        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
 
         d = testdata.get_datetime(-3600)
-        self.assertGreater(datetime.datetime.utcnow(), d)
+        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
 
         d = testdata.get_datetime(3600)
-        self.assertLess(datetime.datetime.utcnow(), d)
+        self.assertLess(datetime.datetime.now(datetime.timezone.utc), d)
 
         d = testdata.get_datetime(
             datetime.timedelta(seconds=-3600),
             backward=True
         )
-        self.assertGreater(datetime.datetime.utcnow(), d)
+        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
 
         d = testdata.get_datetime(
             datetime.timedelta(seconds=3600),
             backward=True
         )
-        self.assertGreater(datetime.datetime.utcnow(), d)
+        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
 
         d = testdata.get_datetime(datetime.timedelta(seconds=-3600))
-        self.assertGreater(datetime.datetime.utcnow(), d)
+        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
 
         d = testdata.get_datetime(
             datetime.timedelta(days=1, seconds=3600, microseconds=1234)
         )
-        self.assertLess(datetime.datetime.utcnow(), d)
+        self.assertLess(datetime.datetime.now(datetime.timezone.utc), d)
 
     def test_get_between_datetime_1(self):
         start = testdata.get_past_datetime()
+
         for x in range(5):
             dt = testdata.get_between_datetime(start)
-            now = datetime.datetime.utcnow()
+            now = datetime.datetime.now(datetime.timezone.utc)
             self.assertGreater(now, dt)
 
         time.sleep(0.1)
-        stop = datetime.datetime.utcnow()
+        stop = datetime.datetime.now(datetime.timezone.utc)
         for x in range(5):
             dt = testdata.get_between_datetime(start, stop)
             self.assertGreater(dt, start)
             self.assertGreater(stop, dt)
             start = dt
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         with self.assertRaises(ValueError):
             dt = testdata.get_between_datetime(now, now)
 
@@ -362,7 +361,7 @@ class DatetimeTest(TestCase):
 
     def test_get_between_datetime_same_microseconds(self):
         """noticed a problem when using the same now"""
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         start_dt = testdata.get_past_datetime(now)
         stop_dt = testdata.get_between_datetime(start_dt, now)
         self.assertGreater(stop_dt, start_dt)

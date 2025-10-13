@@ -75,7 +75,6 @@ class FunctionParser(argparse.ArgumentParser):
     """
     def __init__(self, _function, **kwargs):
         function_name = kwargs.pop("function_name", _function.__name__)
-        #defaults = {"_function": _function}
 
         rf = ReflectCallable(_function)
         self.keyword_name = ""
@@ -109,14 +108,12 @@ class FunctionParser(argparse.ArgumentParser):
                 arg_kwargs["help"] = param_descs[name]
 
             if param.default is not param.empty:
-                #defaults[name] = param.default
                 arg_kwargs["default"] = param.default
 
             if param.kind is param.POSITIONAL_OR_KEYWORD:
                 # https://docs.python.org/3/library/argparse.html#mutual-exclusion
                 group = self.add_mutually_exclusive_group(
                     required=("default" not in arg_kwargs),
-                    #required=(name not in defaults),
                 )
 
                 group.add_argument(
@@ -140,8 +137,6 @@ class FunctionParser(argparse.ArgumentParser):
                 )
 
             elif param.kind is param.KEYWORD_ONLY:
-                #if name not in defaults:
-                #    arg_kwargs["required"] = True
                 if "default" not in arg_kwargs:
                     arg_kwargs["required"] = True
 
@@ -160,8 +155,6 @@ class FunctionParser(argparse.ArgumentParser):
             elif param.kind is param.VAR_KEYWORD:
                 self.keyword_name = name
 
-#         pout.v(defaults)
-        #self.set_defaults(**defaults)
         self.set_defaults(
             _function=_function,
         )

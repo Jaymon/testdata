@@ -41,15 +41,23 @@ class DatetimeData(TestData):
                     seconds=seconds,
                     microseconds=microseconds
                 )
-                now = datetime.datetime.utcnow() + td
+                now = datetime.datetime.now(datetime.timezone.utc) + td
 
             elif isinstance(now, datetime.date):
-                now = datetime.datetime(now.year, now.month, now.day)
+                now = datetime.datetime(
+                    now.year,
+                    now.month,
+                    now.day,
+                    tzinfo=datetime.timezone.utc,
+                )
 
             elif isinstance(now, int):
                 if backward and now > 0:
                     now *= -1.0
-                now = datetime.datetime.utcnow() + datetime.timedelta(days=now)
+                now = (
+                    datetime.datetime.now(datetime.timezone.utc)
+                    + datetime.timedelta(days=now)
+                )
 
             elif isinstance(now, float):
                 seconds = int(now)
@@ -57,13 +65,13 @@ class DatetimeData(TestData):
                 if backward and seconds > 0:
                     seconds *= -1.0
                 td = datetime.timedelta(seconds=now, microseconds=microseconds)
-                now = datetime.datetime.utcnow() + td
+                now = datetime.datetime.now(datetime.timezone.utc) + td
 
             else:
                 raise ValueError("Unknown value: {}".format(now))
 
         else:
-            now = datetime.datetime.utcnow()
+            now = datetime.datetime.now(datetime.timezone.utc)
 
         return now
 
@@ -78,7 +86,8 @@ class DatetimeData(TestData):
         """
         age = random.randint(start_age, stop_age)
         year = (
-            datetime.datetime.utcnow() - datetime.timedelta(weeks=(age * 52))
+            datetime.datetime.now(datetime.timezone.utc)
+            - datetime.timedelta(weeks=(age * 52))
         ).year
         month = random.randint(1, 12)
         if month == 2:
@@ -98,7 +107,12 @@ class DatetimeData(TestData):
     def get_past_datetime(self, now=None):
         """return a datetime guaranteed to be in the past from now"""
         now = self.get_datetime(now, backward=True)
-        td = now - datetime.datetime(year=2000, month=1, day=1)
+        td = now - datetime.datetime(
+            year=2000,
+            month=1,
+            day=1,
+            tzinfo=now.tzinfo,
+        )
         return now - datetime.timedelta(
             days=random.randint(1, max(td.days, 1)),
             seconds=random.randint(1, max(td.seconds, 1))
