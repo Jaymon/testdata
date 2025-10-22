@@ -7,7 +7,6 @@ from datatypes import (
     ReflectModule,
     ReflectPath,
     ReflectCallable,
-    OrderedSubclasses,
     Dirpath,
     ClassFinder,
 )
