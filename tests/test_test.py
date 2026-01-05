@@ -8,7 +8,7 @@ from testdata.base import TestData
 from . import TestCase, testdata
 
 
-class TC1Test(TestCase):
+class AssertTest(TestCase):
     def test_assert_logs(self):
 
         name = "test_assert_logs"
@@ -37,16 +37,55 @@ class TC1Test(TestCase):
         self.assertRegex("foo", r"^foo$")
         self.assertNotRegex("bar", r"^foo$")
 
+
+@TestCase.skip()
+class Skip1Test(TestCase):
+    def test_foo(self):
+        self.assertTrue(False)
+
+
+@TestCase.skipIf(True)
+class Skip2Test(TestCase):
+    def test_foo(self):
+        self.assertTrue(False)
+
+
+@TestCase.skipUnless(False)
+class Skip3Test(TestCase):
+    def test_foo(self):
+        self.assertTrue(False)
+
+
+class Skip4Test(TestCase):
+    @TestCase.skip()
+    def test_foo(self):
+        self.assertTrue(False)
+
+    @TestCase.skipIf(True)
+    def test_foo(self):
+        self.assertTrue(False)
+
+    @TestCase.skipUnless(False)
+    def test_foo(self):
+        self.assertTrue(False)
+
+    @TestCase.expectedFailure()
+    def test_foo(self):
+        self.assertTrue(False)
+
+
+class Skip5Test(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.skipTest()
+
+    def test_this_test_should_never_run(self):
+        raise RuntimeError()
+
+
+class Skip6Test(TestCase):
     @testdata.expectedFailure
     def test_failure_1(self):
-        raise RuntimeError()
-
-    @testdata.expected_failure
-    def test_failure_2(self):
-        raise RuntimeError()
-
-    @testdata.expect_failure
-    def test_failure_3(self):
         raise RuntimeError()
 
     @testdata.skipUnless(False, "this is the required reason")
@@ -64,24 +103,6 @@ class TC1Test(TestCase):
 
     def test_skip_if(self):
         self.skipIf(False)
-
-
-class TC2Test(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.skip_test()
-
-    def test_this_test_should_never_run(self):
-        raise RuntimeError()
-
-
-class TC3Test(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.skipTest()
-
-    def test_this_test_should_never_run(self):
-        raise RuntimeError()
 
 
 class TCDataAttributeSet(TestCase):

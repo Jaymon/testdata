@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from unittest import(
-    TestCase as _TestCase,
-    IsolatedAsyncioTestCase as _IsolatedAsyncioTestCase,
+    TestCase,
+    IsolatedAsyncioTestCase,
     SkipTest,
     skip,
     skipIf,
@@ -19,6 +19,7 @@ from .base import TestData
 
 
 # https://docs.python.org/3/library/unittest.html#unittest.skip
+# https://docs.python.org/3/library/unittest.html#skipping-tests-and-expected-failures
 skip_if = skipIf # Skip the decorated test if condition is true.
 skip_unless = skipUnless # Skip the decorated test unless condition is true.
 expected_failure = expectedFailure # Mark the test as an expected failure.
@@ -71,19 +72,34 @@ class _TestCaseMixin(object):
     """
     @staticmethod
     def skip(reason=""):
-        raise SkipTest(reason)
+        """
+        https://docs.python.org/3/library/unittest.html#skipping-tests-and-expected-failures
+        """
+        return skip(reason)
 
     @staticmethod
     def skipIf(condition, reason=""):
-        if condition:
-            raise SkipTest(reason)
+        """
+        https://docs.python.org/3/library/unittest.html#skipping-tests-and-expected-failures
+        """
+        return skipIf(condition, reason)
     skip_if = skipIf
 
     @staticmethod
     def skipUnless(condition, reason=""):
-        if not condition:
-            raise SkipTest(reason)
+        """
+        https://docs.python.org/3/library/unittest.html#skipping-tests-and-expected-failures
+        """
+        return skipUnless(condition, reason)
     skip_unless = skipUnless
+
+    @staticmethod
+    def expectedFailure():
+        """
+        https://docs.python.org/3/library/unittest.html#unittest.expectedFailure
+        """
+        return expectedFailure
+    expected_failure = expectedFailure
 
     @classmethod
     def skip_test(cls, *args, **kwargs):
@@ -196,7 +212,7 @@ class _TestCaseMixin(object):
 class TestCase(
     _TestDataMixin,
     _TestCaseMixin,
-    _TestCase,
+    TestCase,
     metaclass=_TestCaseMeta
 ):
     """
@@ -237,7 +253,7 @@ class TestCase(
 class IsolatedAsyncioTestCase(
     _TestDataMixin,
     _TestCaseMixin,
-    _IsolatedAsyncioTestCase,
+    IsolatedAsyncioTestCase,
     metaclass=_TestCaseMeta
 ):
     """This is a terrible name, but I guess there is a method to the madness,
