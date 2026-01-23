@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 test testdata
 
@@ -7,12 +6,11 @@ link -- http://docs.python.org/library/unittest.html
 to run on the command line:
 python -m unittest test_testdata[.ClassTest[.test_method]]
 """
-from __future__ import unicode_literals, division, print_function, absolute_import
 import sys
 import logging
 
 from testdata.compat import *
-from testdata.output import Capture
+from testdata.output import Capture, Stream
 
 from . import TestCase, testdata
 
@@ -149,4 +147,49 @@ class CaptureTest(TestCase):
         with testdata.capture(passthrough=False) as c:
             logger.debug("foo bar che 2")
         self.assertTrue("foo bar che 2" in c)
+
+    def test_capture_issue(self):
+        logger = logging.getLogger("output_test_capture_issue")
+        logger.setLevel(logging.DEBUG)
+        log_handler = logging.StreamHandler(sys.stderr)
+        log_formatter = logging.Formatter('- %(message)s')
+        log_handler.setFormatter(log_formatter)
+        logger.addHandler(log_handler)
+        logger.propagate = False
+
+        with self.capture() as c:
+            logger.debug("debug")
+            logger.info("info")
+            logger.warning("warning")
+            logger.error("error")
+            logger.critical("critical")
+
+        for v in ["debug", "info", "warning", "error", "critical"]:
+            self.assertTrue(v in c)
+
+    def test_capture_member(self):
+        class Stream(object):
+            def __init__(self, stream):
+                self.stream = stream
+
+            def __getattr__(self, k):
+                return getattr(self.stream, k)
+
+        logger = logging.getLogger("output_test_capture_member")
+        logger.setLevel(logging.DEBUG)
+        log_handler = logging.StreamHandler(Stream(sys.stderr))
+        log_formatter = logging.Formatter('- %(message)s')
+        log_handler.setFormatter(log_formatter)
+        logger.addHandler(log_handler)
+        logger.propagate = False
+
+        with self.capture() as c:
+            logger.debug("debug")
+            logger.info("info")
+            logger.warning("warning")
+            logger.error("error")
+            logger.critical("critical")
+
+        for v in ["debug", "info", "warning", "error", "critical"]:
+            self.assertTrue(v in c)
 
