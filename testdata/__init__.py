@@ -39,6 +39,12 @@ from .base import TestData
 __version__ = "7.3.1"
 
 
+# The `Environ` instance is imported with all the asterisk imports but we want
+# `testdata.environ` to be euivalent to `self.environ` inside a unit test case
+# so we delete the imported `environ` since this module doesn't need it
+del environ
+
+
 def __getattr__(name):
     """Allow module level magic attribute access
 

@@ -661,4 +661,5 @@ class MockData(TestData):
     change = environ
     configure = environ
     environment = environ
+    env = environ
 

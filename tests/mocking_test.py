@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import os
 
 from testdata.compat import *
@@ -376,6 +374,8 @@ class PatchTest(TestCase):
         self.assertEqual("barclass 2", m.barclass())
         self.assertEqual("barstatic 2", m.barstatic())
 
+
+class EnvironTest(TestCase):
     def test_environment(self):
         self.assertFalse("TDT_ENVIRON_VAL" in os.environ)
         with testdata.environment(TDT_ENVIRON_VAL="foobar"):
@@ -396,4 +396,7 @@ class PatchTest(TestCase):
             self.assertEqual(3, f.bar)
         self.assertEqual(1, f.bar)
         self.assertEqual(2, f.che)
+
+    def test_environ_1(self):
+        self.assertEqual(self.environ, testdata.environ)
 
