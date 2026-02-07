@@ -37,6 +37,8 @@ expect_failure = expectedFailure
 class _TestDataMixin(object):
     """The mixin for both the TestCase and the TestCase metaclass that provides
     the passthrough to the testdata functions if the called method doesn't exist
+
+    .. note:: Needs to be the first inherited class to work
     """
     data = TestData
 
@@ -115,9 +117,26 @@ class _TestCaseMixin(object):
         setUpClass()"""
         raise SkipTest(*args, **kwargs)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.assert_test_env()
+
+    def assert_test_env(self):
+        """Raise an error if we're not in a development environment
+
+        This is here to protect the production db from accidently being
+        cleared in 
+        """
+        if not self.is_test_env():
+            self.fail("Attempting to run tests in a non-test environment")
+
+    def is_test_env(self):
+        """Override this in child classes to customize behavior"""
+        return True
+
     def assertEventuallyEqual(self, v1, callback, msg="", count=30, wait=0.25):
-        """Will run callback up to count times waiting wait seconds between each
-        check or until callback's return value equals v1
+        """Will run callback up to count times waiting `wait` seconds between
+        each check or until callback's return value equals v1
 
         Moved here from morp's base test interface class on 2-6-2023
 
@@ -279,9 +298,4 @@ class IsolatedAsyncioTestCase(
         https://docs.python.org/3/library/unittest.html#unittest.IsolatedAsyncioTestCase.asyncTearDown
         """
         pass
-
-
-class AsyncTestCase(IsolatedAsyncioTestCase):
-    """Alias for IsolatedAsyncioTestCase that is easier to remember"""
-    pass
 

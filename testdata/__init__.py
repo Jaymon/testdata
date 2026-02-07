@@ -9,7 +9,7 @@ from .compat import *
 from .test import (
     TestCase,
     IsolatedAsyncioTestCase,
-    AsyncTestCase,
+    IsolatedAsyncioTestCase as AsyncTestCase, # deprecated alias
     skip,
     SkipTest,
     skipIf,
