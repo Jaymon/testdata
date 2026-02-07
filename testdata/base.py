@@ -67,7 +67,7 @@ class TestData(object):
     """Any testdata sources should extend this class, this will register them
     with the testdata module without you having to do anything else
 
-    :Example:
+    :example:
         from testdata import TestData
 
         class CustomData(TestData):
@@ -104,9 +104,6 @@ class TestData(object):
         # and very recursive, this keeping track of non-existent attributes on
         # the various TestData subclasses just speeds everything up
         self._missing_cache = set()
-
-#         self._cleanups = []
-#         self._setups = []
 
     @classmethod
     def add_class(cls, data_class):
@@ -202,15 +199,6 @@ class TestData(object):
                     return node.value
 
                 node = node.parent
-
-        # I commented this out because my feeling is if AUTODISCOVER is set
-        # to False then it probably should fail if it can't find what it is
-        # looking for (2025-08-31)
-        # hail mary
-#         if not cls._data_instances.inserted_modules:
-#             cls._data_instances.insert_modules()
-#             if cls._data_instances.modules:
-#                 return cls.__findattr__(name)
 
         raise AttributeError(name)
 
@@ -358,6 +346,28 @@ class TestData(object):
             # magic resolution is only supported for non magic/private
             # attributes
             return self.__findattr__(name)
+
+    def get_setups(self) -> Sequence[tuple[Callable, Sequence, Mapping]]:
+        """Called from `testdata.test.TestCase._callSetUp` and
+        will run all the return values before the actual `TestCase.setUp`
+        is run
+
+        :returns: a tuple where index 0 is a callable and index 1 are the
+            `*args` and index 2 are the `**kwargs` that will be passed to the
+            callable
+        """
+        return []
+
+    def get_async_setups(self) -> Sequence[tuple[Callable, Sequence, Mapping]]:
+        """Called from `testdata.test.IsolatedAsyncioTestCase._callSetUp` and
+        will run all the return values before the actual `setUp` method
+        is run
+
+        :returns: a tuple where index 0 is a callable and index 1 are the
+            `*args` and index 2 are the `**kwargs` that will be passed to the
+            callable
+        """
+        return []
 
     def get_cleanups(self) -> Sequence[tuple[Callable, Sequence, Mapping]]:
         """Called from `testdata.test.TestCase.doCleanups` and
