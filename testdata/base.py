@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import functools
 import inspect
+from collections.abc import Sequence, Callable, Mapping
 
 from datatypes import (
     ReflectClass,
@@ -103,6 +104,9 @@ class TestData(object):
         # and very recursive, this keeping track of non-existent attributes on
         # the various TestData subclasses just speeds everything up
         self._missing_cache = set()
+
+#         self._cleanups = []
+#         self._setups = []
 
     @classmethod
     def add_class(cls, data_class):
@@ -354,4 +358,26 @@ class TestData(object):
             # magic resolution is only supported for non magic/private
             # attributes
             return self.__findattr__(name)
+
+    def get_cleanups(self) -> Sequence[tuple[Callable, Sequence, Mapping]]:
+        """Called from `testdata.test.TestCase.doCleanups` and
+        adds the return value to the cleanup list, this way subclasses can
+        add cleanup hooks that tests inherit
+
+        :returns: a tuple where index 0 is a callable and index 1 are the
+            `*args` and index 2 are the `**kwargs` that will be passed to the
+            callable
+        """
+        return []
+
+    def get_async_cleanups(self) -> Sequence[tuple[Callable, Sequence, Mapping]]:
+        """Called from `testdata.test.IsolatedAsyncioTestCase.doCleanups` and
+        adds the return value to the cleanup list, this way subclasses can
+        add cleanup hooks that tests inherit
+
+        :returns: a tuple where index 0 is a callable and index 1 are the
+            `*args` and index 2 are the `**kwargs` that will be passed to the
+            callable
+        """
+        return []
 

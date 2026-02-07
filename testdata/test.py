@@ -268,6 +268,13 @@ class TestCase(
         """
         pass
 
+    def doCleanups(self):
+        for data_classes, node in self.data._data_instances.leaves():
+            for t in node.value.get_cleanups():
+                self.addCleanup(t[0], *t[1], **t[2])
+
+        return super().doCleanups()
+
 
 class IsolatedAsyncioTestCase(
     _TestDataMixin,
@@ -298,4 +305,14 @@ class IsolatedAsyncioTestCase(
         https://docs.python.org/3/library/unittest.html#unittest.IsolatedAsyncioTestCase.asyncTearDown
         """
         pass
+
+    def doCleanups(self):
+        for data_classes, node in self.data._data_instances.leaves():
+            for t in node.value.get_cleanups():
+                self.addCleanup(t[0], *t[1], **t[2])
+
+            for t in node.value.get_async_cleanups():
+                self.addCleanup(t[0], *t[1], **t[2])
+
+        return super().doCleanups()
 

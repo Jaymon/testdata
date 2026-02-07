@@ -117,3 +117,15 @@ class TestdataData(TestData):
         time.sleep(timeout)
     sleep = wait_for
 
+#     def addAsyncCleanup(self, function, /, *args, **kwargs):
+#         self.addCleanup(function, *args, **kwargs)
+# 
+#     def addCleanup(self, function, /, *args, **kwargs):
+#         self._cleanups.append((function, args, kwargs))
+# 
+#     def addAsyncSetup(self, function, /, *args, **kwargs):
+#         self.addSetup(function, *args, **kwargs)
+# 
+#     def addSetup(self, function, /, *args, **kwargs):
+#         self._setups.append((function, args, kwargs))
+
