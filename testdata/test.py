@@ -325,7 +325,7 @@ class IsolatedAsyncioTestCase(
             for t in node.value.get_async_setups():
                 self._callMaybeAsync(t[0], *t[1], **t[2])
 
-        super()._callSetUp()
+        return super()._callSetUp()
 
     def doCleanups(self):
         """Wrapper that hooks into `TestData.get_*_cleanups` functionality"""
