@@ -374,6 +374,12 @@ class TestData(object):
         adds the return value to the cleanup list, this way subclasses can
         add cleanup hooks that tests inherit
 
+        This calls `TestCase.addCleanup` for each row returned, and since
+        cleanups are ran LIFO, the values returned from here will be reversed
+        so they run in the order they are returned from this method
+
+        https://docs.python.org/3/library/unittest.html#unittest.TestCase.addClassCleanup
+
         :returns: a tuple where index 0 is a callable and index 1 are the
             `*args` and index 2 are the `**kwargs` that will be passed to the
             callable
@@ -384,6 +390,12 @@ class TestData(object):
         """Called from `testdata.test.IsolatedAsyncioTestCase.doCleanups` and
         adds the return value to the cleanup list, this way subclasses can
         add cleanup hooks that tests inherit
+
+        This calls `TestCase.addAsyncCleanup` for each row returned, and since
+        cleanups are ran LIFO, the values returned from here will be reversed
+        so they run in the order they are returned from this method
+
+        https://docs.python.org/3/library/unittest.html#unittest.TestCase.addClassCleanup
 
         :returns: a tuple where index 0 is a callable and index 1 are the
             `*args` and index 2 are the `**kwargs` that will be passed to the

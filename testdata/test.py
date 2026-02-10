@@ -279,7 +279,7 @@ class TestCase(
     def doCleanups(self):
         """Wrapper that hooks into `TestData.get_*_cleanups` functionality"""
         for data_classes, node in self.data._data_instances.leaves():
-            for t in node.value.get_cleanups():
+            for t in reversed([*node.value.get_cleanups()]):
                 self.addCleanup(t[0], *t[1], **t[2])
 
         return super().doCleanups()
@@ -319,10 +319,8 @@ class IsolatedAsyncioTestCase(
         """Wrapper that hooks into `TestData.get_*_setups` functionality"""
         self._asyncioRunner.get_loop()
         for data_classes, node in self.data._data_instances.leaves():
-            for t in node.value.get_setups():
-                t[0](*t[1], **t[2])
-
-            for t in node.value.get_async_setups():
+            it = (*node.value.get_setups(), *node.value.get_async_setups())
+            for t in it:
                 self._callMaybeAsync(t[0], *t[1], **t[2])
 
         return super()._callSetUp()
@@ -330,10 +328,8 @@ class IsolatedAsyncioTestCase(
     def doCleanups(self):
         """Wrapper that hooks into `TestData.get_*_cleanups` functionality"""
         for data_classes, node in self.data._data_instances.leaves():
-            for t in node.value.get_cleanups():
-                self.addCleanup(t[0], *t[1], **t[2])
-
-            for t in node.value.get_async_cleanups():
+            it = (*node.value.get_async_cleanups(), *node.value.get_cleanups())
+            for t in reversed(it):
                 self.addCleanup(t[0], *t[1], **t[2])
 
         return super().doCleanups()
