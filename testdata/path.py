@@ -1022,6 +1022,29 @@ class PathData(TestData):
             **kwargs
         )
 
+    def find_data_dir(self, basedir: str = "") -> Dirpath:
+        """Find and return a testdata dir
+
+        :param basedir: if passed in this will be returned, otherwise a
+            testdata data dir will be looked for, if not found then just the
+            current directory will be returned
+        """
+        basedir = basedir or environ.CONTENTS_DIR
+        if not basedir:
+            basedir = os.getcwd()
+
+            for basename in ["testdata", "data"]:
+                d = Dirpath(basedir, basename)
+                if d.isdir():
+                    basedir = d
+                    break
+
+        if not basedir:
+            raise IOError("Could not find a testdata data directory")
+
+        return Dirpath(basedir)
+    
+
     def find_data_file(self, fileroot, basedir="", encoding=""):
         """find and return a file
 
@@ -1041,14 +1064,7 @@ class PathData(TestData):
             f = filepath
 
         else:
-            basedir = basedir or environ.CONTENTS_DIR
-            if not basedir:
-                basedir = os.getcwd()
-
-            if not basedir:
-                raise IOError("Could not find a testdata data directory")
-
-            basedir = Dirpath(basedir)
+            basedir = self.find_data_dir(basedir)
             patterns = [fileroot, "{}.*".format(fileroot)]
             for pattern in patterns:
                 for f in basedir.rglob(pattern):
