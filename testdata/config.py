@@ -19,8 +19,11 @@ environ.setdefault("TEMPDIR", tempfile.gettempdir())
 
 # if you have a directory where you put a lot of testdata data files, you can
 # set that directory and then use PathData.get_data_files to easily load those
-# files
-environ.setdefault("CONTENTS_DIR", "")
+# files, this is used in `.path.PathData.find_data_dir` and the methods that
+# rely on it (eg, `.path.PathData.find_data_file`). Testdata files are usually
+# fixtures (eg, raw emails, html files to test your html parser, things like
+# that) and are usually a directory in the project root
+environ.setdefault("DATA_DIR", "")
 
 
 # the default encoding for things (not fully supported/used throughout the

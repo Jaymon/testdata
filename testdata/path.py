@@ -142,8 +142,8 @@ class TempFilepath(Path, TempFilepath):
     def run(self, arg_str="", cwd="", environ=None, **kwargs):
         """Treat this file like a script and execute it
 
-        :param arg_str: string, flags you want to pass into the execution of the
-            script
+        :param arg_str: string, flags you want to pass into the execution of
+            the script
         :returns: string, the output of running the file/script
         """
         # avoid circular dependency
@@ -536,8 +536,8 @@ class PathData(TestData):
         """
         create a whole bunch of files all at once
 
-        :param file_dict: dict, keys are the filepath relative to tmpdir, values
-            are the file contents
+        :param file_dict: dict, keys are the filepath relative to tmpdir,
+            values are the file contents
         :param tmpdir: Dirpath, same as create_module() tmpdir
         :param **kwargs:
             encoding -- the encoding for any files
@@ -746,7 +746,11 @@ class PathData(TestData):
             )
 
         else:
-            return self.create_image(image_type="png", path=path, tmpdir=tmpdir)
+            return self.create_image(
+                image_type="png",
+                path=path,
+                tmpdir=tmpdir,
+            )
 
     def create_gif(self, path="", tmpdir=""):
         """create a static gif image"""
@@ -1010,8 +1014,8 @@ class PathData(TestData):
 
         :param module_name: str, something like foo.bar
         :param data: str, the contents of the module
-        :param tmpdir: str, the temp directory that will be added to the syspath
-            if make_importable is True
+        :param tmpdir: str, the temp directory that will be added to the
+            syspath if make_importable is True
         :returns: TempModulepath, the module file path
         '''
         kwargs.setdefault("is_package", True)
@@ -1026,10 +1030,11 @@ class PathData(TestData):
         """Find and return a testdata dir
 
         :param basedir: if passed in this will be returned, otherwise a
-            testdata data dir will be looked for, if not found then just the
+            `testdata` or `data` dir will be looked for in the current
+            working directory, if those aren't found then just the
             current directory will be returned
         """
-        basedir = basedir or environ.CONTENTS_DIR
+        basedir = basedir or environ.DATA_DIR
         if not basedir:
             basedir = os.getcwd()
 
@@ -1039,13 +1044,14 @@ class PathData(TestData):
                     basedir = d
                     break
 
-        if not basedir:
-            raise IOError("Could not find a testdata data directory")
-
         return Dirpath(basedir)
-    
 
-    def find_data_file(self, fileroot, basedir="", encoding=""):
+    def find_data_file(
+        self,
+        fileroot: str,
+        basedir: str = "",
+        encoding: str = "",
+    ) -> Filepath:
         """find and return a file
 
         this is primarily used by find_data(), find_data_text(), and
@@ -1055,6 +1061,7 @@ class PathData(TestData):
             filepath then that will be returned, if not then dirpath/fileroot.*
             will be searched for
         :param basedir: string, the base directory used to search for fileroot
+        :param encoding: the file's encoding
         :returns: Path, the found file
         """
         f = None
@@ -1065,6 +1072,10 @@ class PathData(TestData):
 
         else:
             basedir = self.find_data_dir(basedir)
+
+            if not basedir:
+                raise IOError("Could not find a testdata data directory")
+
             patterns = [fileroot, "{}.*".format(fileroot)]
             for pattern in patterns:
                 for f in basedir.rglob(pattern):
@@ -1097,9 +1108,9 @@ class PathData(TestData):
     def find_data(self, fileroot, basedir="", encoding=""):
         """Returns the contents of a file matching basedir/fileroot.*
 
-        :param fileroot: string, can be a basename (fileroot.ext) or just a file
-            root, in which case basedir/fileroot.* will be searched for and
-            first file matched will be used
+        :param fileroot: string, can be a basename (fileroot.ext) or just a
+            file root, in which case basedir/fileroot.* will be searched for
+            and first file matched will be used
         :param basedir: string, the directory to search for fileroot.*, if not
             passed in then os.getcwd()/*/testdata will be searched for
         :returns: string, the contents of the found file
