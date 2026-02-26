@@ -74,14 +74,28 @@ class _TestCaseMixin(object):
     """
     @staticmethod
     def skip(reason=""):
-        """
+        """Skip test decorator
+
+        If you need to skip the test inside of the test, use `.skip_test`
+
+        :example:
+            @TestCase.skip("reason test is skipped")
+            def test_foo(self):
+                pass
+
         https://docs.python.org/3/library/unittest.html#skipping-tests-and-expected-failures
         """
         return skip(reason)
 
     @staticmethod
     def skipIf(condition, reason=""):
-        """
+        """Skip if test decorator
+
+        :example:
+            @TestCase.skipIf(True, "reason test is skipped")
+            def test_foo(self):
+                pass
+
         https://docs.python.org/3/library/unittest.html#skipping-tests-and-expected-failures
         """
         return skipIf(condition, reason)
@@ -89,7 +103,13 @@ class _TestCaseMixin(object):
 
     @staticmethod
     def skipUnless(condition, reason=""):
-        """
+        """Skip unless decorator
+
+        :example:
+            @TestCase.skipUnless(True, "reason test is skipped")
+            def test_foo(self):
+                pass
+
         https://docs.python.org/3/library/unittest.html#skipping-tests-and-expected-failures
         """
         return skipUnless(condition, reason)
@@ -97,7 +117,13 @@ class _TestCaseMixin(object):
 
     @staticmethod
     def expectedFailure():
-        """
+        """Expected failure decorator
+
+        :example:
+            @TestCase.expectedFailure()
+            def test_foo(self):
+                pass
+
         https://docs.python.org/3/library/unittest.html#unittest.expectedFailure
         """
         return expectedFailure
