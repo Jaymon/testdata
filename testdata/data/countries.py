@@ -14,7 +14,10 @@ country_lookup = {}
 """Holds all the country info in a lookup table"""
 
 country_tlds = set()
-"""Holds just the country tlds"""
+"""Holds just the country tlds
+
+https://en.wikipedia.org/wiki/Country_code_top-level_domain
+"""
 
 
 COUNTRIES_INFO = {

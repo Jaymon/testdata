@@ -34,38 +34,63 @@ from ..data.countries import country_tlds
 # testdata functions
 ###############################################################################
 class StringData(TestData):
-    def get_url(self, *args, **kwargs):
+    def get_domain(
+        self,
+        subdomain: str = "",
+        sld: str = "",
+        tld: str = "",
+        *,
+        domain: str = "",
+        **kwargs,
+    ) -> str:
+        """Get a domain
+
+        :param subdomain: str, the subdomain you want (eg "www")
+        :param sld: str, the `foo` portion of `foo.com`, this is not used if
+            domain is passed in
+        :param tld: str, the top level domain you want (eg, "io"), not used
+            if domain is passed in
+        :keyword domain: str, the domain you want (eg, "example.com"), this is
+            an `sld.tld` and takes precedence over those if passed in
+        :returns: Url instance
+        """
+        if subdomain:
+            subdomain = f"{subdomain}."
+
+        if not domain:
+            sld = self.get_ascii()
+
+            if not tld:
+                if self.yes(0.75):
+                    tld = self.choice(
+                        ["com", "net", "org", "app", "io", "ai", "edu", "gov"],
+                    )
+
+                else:
+                    tld = self.choice(country_tlds)
+
+            domain = f"{sld}.{tld}"
+
+        return domain
+
+    def get_url(self, *args, **kwargs) -> Url:
         """Get a url, this is just a nice shortcut method to something I seem
         to do a lot
 
         :param *args: path parts, these will be added to the generated
             urlstring
-        :param **kwargs: keywords you can pass into Url
-            * subdomain: str, the subdomain you want (eg "www")
-            * domain: str, the domain you want (eg, "example.com")
-            * tld: str, the top level domain you want (eg, "io")
+        :param **kwargs: passed through to `.get_domain` and `Url`
         :returns: Url instance
         """
-        if subdomain := kwargs.pop("subdomain", ""):
-            subdomain = f"{subdomain}."
+        domain = self.get_domain(
+            subdomain=kwargs.pop("subdomain", ""),
+            sld=kwargs.pop("sld", ""),
+            tld=kwargs.pop("tld", ""),
+            domain=kwargs.pop("tld", ""),
+        )
 
-        domain = kwargs.pop("domain", "")
-        if not domain:
-            domain = self.get_ascii()
-
-            tld = kwargs.pop("tld", "")
-            if not tld:
-                if self.yes(0.75):
-                    tld = self.choice(["com", "net", "org"])
-
-                else:
-                    tld = self.choice(country_tlds)
-
-            domain = f"{domain}.{tld}"
-
-        urlstring = "http{}://{}{}".format(
+        urlstring = "http{}://{}".format(
             's' if self.yes(0.90) else '',
-            subdomain,
             domain,
         )
         return Url(urlstring, *args, **kwargs)
