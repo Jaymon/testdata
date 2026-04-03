@@ -108,39 +108,47 @@ class UserData(TestData):
         return self.get_email_address(name + timestamp)
     get_uniq_email_address = get_unique_email_address
 
-    def get_email_address(self, name: str = "", domain: str = "", **kwargs):
+    def get_email_address(
+        self,
+        name: str = "",
+        domain: str = "",
+        **kwargs,
+    ) -> str:
         """return a random email address"""
         name = self.get_username(name)
         if not domain:
-            email_domains = [
-                "yahoo.com",
-                "hotmail.com",
-                "outlook.com",
-                "aol.com",
-                "gmail.com",
-                "msn.com",
-                "comcast.net",
-                "hotmail.co.uk",
-                "sbcglobal.net",
-                "yahoo.co.uk",
-                "yahoo.co.in",
-                "bellsouth.net",
-                "verizon.com",
-                "earthlink.net",
-                "cox.net",
-                "rediffmail.com",
-                "yahoo.ca",
-                "btinternet.com",
-                "charter.net",
-                "shaw.ca",
-                "ntlworld.com",
-                "gmx.com",
-                "gmx.net",
-                "mail.com",
-                "mailinator.com",
-                "icloud.com",
-            ]
-            domain = random.choice(email_domains)
+            if self.yes():
+                domain = random.choice([
+                    "yahoo.com",
+                    "hotmail.com",
+                    "outlook.com",
+                    "aol.com",
+                    "gmail.com",
+                    "msn.com",
+                    "comcast.net",
+                    "hotmail.co.uk",
+                    "sbcglobal.net",
+                    "yahoo.co.uk",
+                    "yahoo.co.in",
+                    "bellsouth.net",
+                    "verizon.com",
+                    "earthlink.net",
+                    "cox.net",
+                    "rediffmail.com",
+                    "yahoo.ca",
+                    "btinternet.com",
+                    "charter.net",
+                    "shaw.ca",
+                    "ntlworld.com",
+                    "gmx.com",
+                    "gmx.net",
+                    "mail.com",
+                    "mailinator.com",
+                    "icloud.com",
+                ])
+
+            else:
+                domain = self.get_domain()
 
         return '{}@{}'.format(name.lower(), domain)
 
