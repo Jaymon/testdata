@@ -58,7 +58,7 @@ class ClientData(TestData):
     def fetch(self, url, body=None, query=None, **kwargs):
         """fetch a url
 
-        :Example:
+        :example:
             # make a simple get request
             c = testdata.fetch("http://example.com/foo/bar")
 
