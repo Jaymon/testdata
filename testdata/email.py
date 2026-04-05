@@ -18,7 +18,12 @@ class EmailData(TestData):
         msgid: str = "",
         **kwargs,
     ) -> str:
-        """
+        """Very similar to `email.utils.make_msgid` but if `idstring` is passed
+        in that is considered unique and will be used as the id portion of
+        the msgid.
+
+        A msgid is in the form of: `<idstring@domain>`
+
         https://docs.python.org/3/library/email.utils.html#email.utils.make_msgid
         """
         if msgid:
@@ -41,7 +46,7 @@ class EmailData(TestData):
 
         return ret
 
-    def create_email(
+    def create_email_message(
         self,
         data: str|dict[str, str] = "",
         subject: str = "",
