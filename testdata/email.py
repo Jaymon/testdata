@@ -10,6 +10,61 @@ from .base import TestData
 
 
 class EmailData(TestData):
+    def get_email_address(
+        self,
+        name: str = "",
+        domain: str = "",
+        *,
+        unique: bool = False,
+        **kwargs,
+    ) -> str:
+        """return a random email address
+
+        :keyword unique: If True then `name` will have a random suffix added
+            to it to better guarrantee uniqueness, in practice, unless you
+            are generating millions of email addresses this probably isn't
+            needed to ever be True
+        """
+        name = self.get_username(name)
+        if unique:
+            name += "{:.6f}".format(time.time()).replace(".", "")
+
+        if not domain:
+            if self.yes():
+                domain = random.choice([
+                    "yahoo.com",
+                    "hotmail.com",
+                    "outlook.com",
+                    "aol.com",
+                    "gmail.com",
+                    "msn.com",
+                    "comcast.net",
+                    "hotmail.co.uk",
+                    "sbcglobal.net",
+                    "yahoo.co.uk",
+                    "yahoo.co.in",
+                    "bellsouth.net",
+                    "verizon.com",
+                    "earthlink.net",
+                    "cox.net",
+                    "rediffmail.com",
+                    "yahoo.ca",
+                    "btinternet.com",
+                    "charter.net",
+                    "shaw.ca",
+                    "ntlworld.com",
+                    "gmx.com",
+                    "gmx.net",
+                    "mail.com",
+                    "mailinator.com",
+                    "icloud.com",
+                ])
+
+            else:
+                domain = self.get_domain()
+
+        return "{}@{}".format(name.lower(), domain)
+
     def get_email_msgid(
         self,
         idstring: str = "",

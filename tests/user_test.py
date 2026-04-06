@@ -89,22 +89,6 @@ class UserTest(TestCase):
         name = testdata.get_name(name_count=1)
         self.assertNotEqual(u"", name)
 
-    def test_get_unique_email_address(self):
-        email = testdata.get_unique_email_address()
-        self.assertFalse(" " in email)
-
-    def test_get_email_address(self):
-        email = testdata.get_email_address()
-        self.assertGreater(len(email), 0)
-        self.assertTrue("'" not in email)
-        self.assertTrue("-" not in email)
-
-        email = testdata.get_email_address("foo")
-        self.assertTrue(email.startswith("foo"))
-
-        email = testdata.get_email_address("foo'bar")
-        self.assertTrue(email.startswith("foobar"))
-
     def test_get_ipv4_address(self):
         ip = self.get_ipv4_address()
         self.assertIsNotNone(ip)
