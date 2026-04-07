@@ -1,7 +1,13 @@
 import random
 from collections.abc import Mapping, Iterable
 from email.message import EmailMessage
-from email.utils import formataddr, format_datetime, make_msgid, parseaddr
+from email.utils import (
+    formataddr,
+    format_datetime,
+    make_msgid,
+    parseaddr,
+    getaddresses,
+)
 import datetime
 import textwrap
 
@@ -14,10 +20,11 @@ from .base import TestData
 class EmailData(TestData):
     def get_email_address(
         self,
-        name: str = "",
+        username: str = "",
         domain: str = "",
         *,
         unique: bool = False,
+        name: str = "",
         **kwargs,
     ) -> str:
         """return a random email address
@@ -27,9 +34,13 @@ class EmailData(TestData):
             are generating millions of email addresses this probably isn't
             needed to ever be True
         """
-        name = self.get_username(name)
+        to_lower = False if username else True
+        username = self.get_username(username)
         if unique:
-            name += "{:.6f}".format(time.time()).replace(".", "")
+            username += "{:.6f}".format(time.time()).replace(".", "")
+
+        if to_lower:
+            username = username.lower()
 
         if not domain:
             if self.yes():
@@ -65,7 +76,12 @@ class EmailData(TestData):
             else:
                 domain = self.get_domain()
 
-        return "{}@{}".format(name.lower(), domain)
+        email_address = "{}@{}".format(username, domain)
+
+        if name:
+            email_address = formataddr((name, email_address))
+
+        return email_address
 
     def get_email_msgid(
         self,
@@ -107,8 +123,8 @@ class EmailData(TestData):
         self,
         data: str|dict[str, str] = "",
         subject: str = "",
-        from_address: str = "",
-        to_address: str|Iterable[str] = "",
+        from_address: str|tuple[str, str] = "",
+        to_address: str|tuple[str, str]|Iterable[str|tuple[str, str]] = "",
         msgid: str = "",
         prev_msgids: Iterable[str]|str|None = None,
         headers: Mapping[str, str]|Iterable[tuple[str, str]]|None = None,
@@ -135,9 +151,8 @@ class EmailData(TestData):
             else:
                 from_address = self.get_email_address()
 
-        if not msgid:
-            from_domain = from_address.split("@", 1)[1].rstrip(">")
-            msgid = make_msgid(domain=from_domain)
+        if isinstance(from_address, tuple):
+            from_address = formataddr(from_address)
 
         if not to_address:
             if self.yes():
@@ -148,6 +163,20 @@ class EmailData(TestData):
 
             else:
                 to_address = self.get_email_address()
+
+        if not isinstance(to_address, str):
+            if isinstance(to_address, tuple):
+                to_address = formataddr(to_address)
+
+            elif isinstance(to_address, Iterable):
+                to_address = list(to_address)
+                for i in range(len(to_address)):
+                    if isinstance(to_address[i], tuple):
+                        to_address[i] = formataddr(to_address[i])
+
+        if not msgid:
+            from_domain = from_address.split("@", 1)[1].rstrip(">")
+            msgid = make_msgid(domain=from_domain)
 
         em = EmailMessage()
 
@@ -221,11 +250,16 @@ class EmailData(TestData):
     def create_email_thread(
         self,
         subject: str = "",
-        from_address: str = "",
-        to_address: str|Iterable[str] = "",
+        from_address: str|tuple[str, str] = "",
+        to_address: str|tuple[str, str]|Iterable[str|tuple[str, str]] = "",
         count: int = 2,
         **kwargs,
     ) -> list[EmailMessage]:
+        """Create a thread of emails. This will handle alternating from and
+        to addresses and things like that
+
+        :param count: how many messages you want in the thread
+        """
         emails = []
         prev_msgids = []
 
@@ -252,9 +286,14 @@ class EmailData(TestData):
                     lambda line: True,
                 )
 
+                # we need one from address from maybe multiple original
+                # to addresses
+                from_addresses = getaddresses(emails[-1].get_all("To"))
+                from_address = random.choice(from_addresses)
+
                 emails.append(self.create_email_message(
                     subject=emails[0]["Subject"],
-                    from_address=emails[-1]["To"],
+                    from_address=from_address,
                     to_address=emails[-1]["From"],
                     prev_msgids=prev_msgids,
                     data=data,
