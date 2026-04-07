@@ -2,6 +2,8 @@ import random
 from collections.abc import Mapping, Iterable
 from email.message import EmailMessage
 from email.utils import formataddr, format_datetime, make_msgid, parseaddr
+import datetime
+import textwrap
 
 from datatypes import String
 
@@ -147,21 +149,10 @@ class EmailData(TestData):
             else:
                 to_address = self.get_email_address()
 
-        if not subject:
-            subject = self.get_words(min_size=1, max_size=10)
-
-        if data:
-            if isinstance(data, str):
-                data["text/plain"] = data
-
-        else:
-            data = {"text/plain": self.get_words()}
-
         em = EmailMessage()
 
         em["From"] = from_address
         em["To"] = to_address
-        em["Subject"] = subject
         em["Date"] = format_datetime(self.get_datetime(**kwargs))
         em["Message-ID"] = msgid
 
@@ -176,6 +167,14 @@ class EmailData(TestData):
             em["In-Reply-To"] = prev_msgids[-1]
             em["References"] = " ".join(prev_msgids)
 
+        if not subject:
+            subject = self.get_words(min_size=1, max_size=10)
+
+        if prev_msgids and not subject.startswith("Re:"):
+            subject = ("Re: " * len(prev_msgids)) + subject
+
+        em["Subject"] = subject
+
         if self.yes():
             # Delivered-To seems to be non-standard but common
             # https://www.postfix.org/virtual.8.html
@@ -186,6 +185,13 @@ class EmailData(TestData):
                 _, email_address = parseaddr(random.choice(list(to_address)))
 
             em["Delivered-To"] = email_address
+
+        if data:
+            if isinstance(data, str):
+                data = {"text/plain": data}
+
+        else:
+            data = {"text/plain": self.get_words()}
 
         for media_type, content in data.items():
             if media_type == "text/plain":
@@ -211,4 +217,57 @@ class EmailData(TestData):
                     em[hn] = hv
 
         return em
+
+    def create_email_thread(
+        self,
+        subject: str = "",
+        from_address: str = "",
+        to_address: str|Iterable[str] = "",
+        count: int = 2,
+        **kwargs,
+    ) -> list[EmailMessage]:
+        emails = []
+        prev_msgids = []
+
+        for _ in range(count):
+            if emails:
+                prev_msgids.append(emails[-1].get("Message-ID"))
+
+                dt = datetime.datetime.strptime(
+                    emails[-1].get("Date"),
+                    "%a, %d %b %Y %H:%M:%S %z",
+                )
+
+                data = self.get_words()
+                data += "\n\n"
+
+                ds = dt.strftime("%a, %b %d, %Y at %I:%M %p")
+                #from_addr = formataddr(parseaddr(emails[-1].get("From")))
+                from_addr = emails[-1].get("From")
+                data += f"On {ds} {from_addr} wrote:\n\n"
+
+                data += textwrap.indent(
+                    emails[-1].get_content(),
+                    "> ",
+                    lambda line: True,
+                )
+
+                emails.append(self.create_email_message(
+                    subject=emails[0]["Subject"],
+                    from_address=emails[-1]["To"],
+                    to_address=emails[-1]["From"],
+                    prev_msgids=prev_msgids,
+                    data=data,
+                    **kwargs,
+                ))
+
+            else:
+                emails.append(self.create_email_message(
+                    subject=subject,
+                    from_address=from_address,
+                    to_address=to_address,
+                    **kwargs,
+                ))
+
+        return emails
 

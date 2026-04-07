@@ -18,3 +18,6 @@ class EmailDataTest(TestCase):
         email = self.get_email_address("foo'bar")
         self.assertTrue(email.startswith("foobar"))
 
+    def test_create_email_thread(self):
+        emails = self.create_email_thread(count=3)
+        pout.v(str(em) for em in emails)
