@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import time
 
 from testdata.threading import Thread, Tail
@@ -137,7 +135,7 @@ class ThreadTest(TestCase):
             c2.blah(foo_bar) # foo_bar doesn't exist so NameError should be raised
 
         with self.assertRaises(NameError):
-            t2 = testdata.Thread(target=c2_send)
+            t2 = Thread(target=c2_send)
             t2.start()
             #pout.h()
             #time.sleep(0.5)

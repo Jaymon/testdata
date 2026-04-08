@@ -20,19 +20,20 @@ from .test import (
     expected_failure,
     expect_failure,
 )
-from .threading import *
-from .client import *
-from .output import *
-from .path import *
-from .service import *
-from .mocking import *
-from .server import *
-from .types.string import *
-from .types.number import *
-from .types.sequence import *
-from .types.mapping import *
-from .types.datetime import *
-from .user import *
+from .threading import ThreadingData
+from .client import ClientData
+from .output import OutputData
+from .path import PathData
+from .service import ServiceData
+from .mocking import MockData
+from .server import ServerData
+from .types.string import StringData
+from .types.number import NumberData
+from .types.sequence import SequenceData
+from .types.mapping import MappingData
+from .types.datetime import DatetimeData
+from .user import UserData
+from .email import EmailData
 from .base import TestData
 
 
@@ -42,7 +43,7 @@ __version__ = "7.3.1"
 # The `Environ` instance is imported with all the asterisk imports but we want
 # `testdata.environ` to be euivalent to `self.environ` inside a unit test case
 # so we delete the imported `environ` since this module doesn't need it
-del environ
+#del environ
 
 
 def __getattr__(name):

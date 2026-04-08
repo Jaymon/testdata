@@ -29,6 +29,8 @@ class EmailData(TestData):
     ) -> str:
         """return a random email address
 
+        :keyword name: if passed in then `<name> <<username>@<domain>>` will
+            be generated as the return address
         :keyword unique: If True then `name` will have a random suffix added
             to it to better guarrantee uniqueness, in practice, unless you
             are generating millions of email addresses this probably isn't
@@ -288,13 +290,23 @@ class EmailData(TestData):
 
                 # we need one from address from maybe multiple original
                 # to addresses
-                from_addresses = getaddresses(emails[-1].get_all("To"))
-                from_address = random.choice(from_addresses)
+                to_addresses = getaddresses(emails[-1].get_all("To"))
+                if self.yes(0.9):
+                    # Reply-all
+                    i = random.randint(0, len(to_addresses) - 1)
+                    from_address = to_addresses.pop(i)
+                    to_addresses.append(emails[-1]["From"])
+
+                else:
+                    # Reply
+                    from_address = random.choice(to_addresses)
+                    to_addresses = emails[-1]["From"]
 
                 emails.append(self.create_email_message(
                     subject=emails[0]["Subject"],
                     from_address=from_address,
-                    to_address=emails[-1]["From"],
+                    #to_address=emails[-1]["From"],
+                    to_address=to_addresses,
                     prev_msgids=prev_msgids,
                     data=data,
                     **kwargs,
