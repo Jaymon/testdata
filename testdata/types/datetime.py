@@ -123,6 +123,7 @@ class DatetimeData(TestData):
     get_past_date_time = get_past_datetime
 
     def get_past_date(self, now=None):
+        """return a date guaranteed to be in the past from now"""
         dt = self.get_past_datetime(now)
         return datetime.date(dt.year, dt.month, dt.day)
     get_passed_date = get_past_date
@@ -143,6 +144,7 @@ class DatetimeData(TestData):
     get_future_date_time = get_future_datetime
 
     def get_future_date(self, now=None):
+        """Get a date guarranteed to be in the future from `now`"""
         dt = self.get_future_datetime(now)
         return datetime.date(dt.year, dt.month, dt.day)
 
@@ -150,7 +152,10 @@ class DatetimeData(TestData):
         """get a datetime between start and stop
 
         return a datetime guaranteed to be in the future from start and in the
-    past from stop
+        past from stop
+
+        :param start: the datetime in the past
+        :param stop: the future datetime, defaults to now
         """
         start = self.get_datetime(start)
         stop = self.get_datetime(stop)

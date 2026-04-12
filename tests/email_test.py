@@ -1,4 +1,5 @@
 from email.utils import getaddresses
+import datetime
 
 from . import TestCase
 
@@ -37,4 +38,18 @@ class EmailDataTest(TestCase):
         from_address = getaddresses(emails[1].get_all("From"))[0][1]
         to_addresses = [em[1] for em in getaddresses(emails[0].get_all("To"))]
         self.assertTrue(from_address in to_addresses)
+
+    def test_thread_dates(self):
+        emails = self.create_email_thread(count=5)
+        prev_dt = None
+        for em in emails:
+            dt = datetime.datetime.strptime(
+                em.get("Date"),
+                "%a, %d %b %Y %H:%M:%S %z",
+            )
+
+            if prev_dt is not None:
+                self.assertLess(prev_dt, dt)
+
+            prev_dt = dt
 

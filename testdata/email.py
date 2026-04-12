@@ -11,12 +11,15 @@ from email.utils import (
 import datetime
 import textwrap
 
-from datatypes import String
+from datatypes import String, HTTPHeaders
 
 from .compat import *
 from .base import TestData
 
 
+###############################################################################
+# testdata functions
+###############################################################################
 class EmailData(TestData):
     def get_email_address(
         self,
@@ -242,7 +245,7 @@ class EmailData(TestData):
 
             for hn, hv in headers:
                 if hn in em:
-                    hn.replace_header(hn, hv)
+                    em.replace_header(hn, hv)
 
                 else:
                     em[hn] = hv
@@ -309,14 +312,25 @@ class EmailData(TestData):
                     to_address=to_addresses,
                     prev_msgids=prev_msgids,
                     data=data,
+                    headers={
+                        "Date": format_datetime(
+                            self.get_between_datetime(dt),
+                        ),
+                    },
                     **kwargs,
                 ))
 
             else:
+                dt = self.get_past_datetime(**kwargs)
+                headers = HTTPHeaders(kwargs.pop("headers", {}))
+                if "Date" not in headers:
+                    headers["Date"] = format_datetime(dt)
+
                 emails.append(self.create_email_message(
                     subject=subject,
                     from_address=from_address,
                     to_address=to_address,
+                    headers=headers,
                     **kwargs,
                 ))
 
