@@ -210,6 +210,7 @@ class StringData(TestData):
 
         return s
     get_unicode = get_str
+    get_unicode_str = get_str
     get_string = get_str
 
     def get_hex(self, str_size=0, **kwargs):
