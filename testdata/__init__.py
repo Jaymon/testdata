@@ -25,7 +25,7 @@ from .client import ClientData
 from .output import OutputData
 from .path import PathData
 from .service import ServiceData
-from .mocking import MockData
+from .mocking import MockData, Mock
 from .server import ServerData
 from .types.string import StringData
 from .types.number import NumberData

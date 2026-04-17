@@ -74,56 +74,6 @@ class MockTest(TestCase):
         self.assertEqual("one", m.foo()[0])
         self.assertEqual("two", m.bar.foo()[1])
 
-    def test_mock_async_instance(self):
-        class MockObject(object):
-            async def foo(self):
-                return 1
-
-            async def foov(self, v):
-                return v
-
-            def bar(self):
-                return 2
-
-            def barv(self, v):
-                return v
-
-        o = self.mock_async(MockObject())
-
-        self.assertEqual(1, o.foo())
-        self.assertEqual(5, o.foov(5))
-        self.assertEqual(6, o.foov(v=6))
-        self.assertEqual(2, o.bar())
-        self.assertEqual(5, o.barv(5))
-        self.assertEqual(6, o.barv(v=6))
-
-    def test_mock_async_function(self):
-        async def foo():
-            return 1
-
-        async def foov(v):
-            return v
-
-        def bar():
-            return 2
-
-        def barv(v):
-            return v
-
-        afoo = self.mock_async(foo)
-        self.assertEqual(1, afoo())
-
-        afoov = self.mock_async(foov)
-        self.assertEqual(5, afoov(5))
-        self.assertEqual(5, afoov(v=5))
-
-        abar = self.mock_async(bar)
-        self.assertEqual(2, abar())
-
-        abarv = self.mock_async(barv)
-        self.assertEqual(5, abarv(5))
-        self.assertEqual(5, abarv(v=5))
-
 
 class PatchTest(TestCase):
     def test_patch_1(self):

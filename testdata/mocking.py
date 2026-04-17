@@ -7,7 +7,6 @@ import os
 import copy
 import functools
 from contextlib import contextmanager
-import asyncio
 
 from .compat import *
 from .base import TestData
@@ -16,131 +15,6 @@ from .base import TestData
 ###############################################################################
 # Supporting classes and methods
 ###############################################################################
-
-class AsyncRunner(object):
-    """Wrap an object instance so any async methods called will return their
-    actual values, basically, this makes it easier to test async classes and
-    methods
-
-    :example:
-        class Foo(object):
-            async bar(self, left, right):
-                return left + right
-
-        instance = AsyncRunner(Foo())
-        print(instance.bar(1, 2)) # 3
-    """
-    def __init__(self, instance):
-        self.instance = instance
-
-    @classmethod
-    def normalize(cls, ret):
-        """normalize ret to be the actual value
-
-        basically, this will pass through ret or exhaust ret if it is a
-        coroutine since the purpose of this method is to get the actual value
-
-        This is a good overview of why the below code is bad and should only
-        ever be used in a testing context:
-
-        * https://discuss.python.org/t/calling-coroutines-from-sync-code-2/24093
-
-        :param ret: Any|coroutine
-        :returns: Any, the value that ret should be if it was a coroutine
-        """
-        if asyncio.iscoroutine(ret):
-            try:
-                loop = asyncio.get_running_loop()
-
-            except RuntimeError:
-                ret = asyncio.run(ret)
-
-            else:
-#                 pout.v(loop, show_methods=True)
-                ret = loop.run_until_complete(ret)
-
-#                 try:
-#                     ret = loop.run_until_complete(ret)
-# 
-#                 except RuntimeError as e:
-#                     future = asyncio.ensure_future(ret, loop=loop)
-#                     while not future.done():
-#                         loop._run_once()
-#                         if loop._stopping:
-#                             break
-#                     if not future.done():
-#                         raise RuntimeError("Sigh") from e
-# 
-#                     ret = future.result()
-
-#                     if not task.done():
-#                         task.cancel()
-#                         try:
-#                             ret = loop.run_until_complete(task)
-# 
-#                         except asyncio.CancelledError:
-#                             pass
-
-
-
-
-#                 try:
-#                     ret = loop.run_until_complete(ret)
-# 
-#                 except RuntimeError:
-#                     #task = loop.create_task(ret)
-#                     task = asyncio.create_task(ret)
-#                     import time
-#                     while not task.done():
-#                         time.sleep(0.1)
-#                         #asyncio.sleep(0.1)
-#                     ret = task.result()
-#                     #ret = task.result()
-#                     #future = asyncio.run_coroutine_threadsafe(ret, loop)
-#                     #ret = future.result(1)
-
-        return ret
-
-    @classmethod
-    def decorate(cls, func):
-        """wrap a callable so it will exhaust a coroutine and return the actual
-        value
-
-        :param func: callable
-        :returns: callable, the wrapped func
-        """
-        def decorated(*args, **kwargs):
-            ret = cls.normalize(func(*args, **kwargs))
-            return ret
-
-        return decorated
-
-    def __getattribute__(self, key):
-        """This is where the magic happens, this will check the value returned
-        from .instance and wrap it or normalize it"""
-        instance = super().__getattribute__("instance")
-        v = getattr(instance, key)
-        if callable(v):
-            decorate = super().__getattribute__("decorate")
-            v = decorate(v)
-
-        else:
-            normalize = super().__getattribute__("normalize")
-            v = normalize(v)
-
-        return v
-
-    def __setattr__(self, key, value):
-        try:
-            instance = super().__getattribute__("instance")
-
-        except AttributeError:
-            super().__setattr__(key, value)
-
-        else:
-            setattr(instance, key, value)
-
-
 class Mock(object):
     """Do our very best to mock functionality
 
@@ -156,7 +30,7 @@ class Mock(object):
     At some point in the future this should extend this:
         https://docs.python.org/dev/library/unittest.mock.html
 
-    :Example:
+    :example:
         m = Mock(foo=1)
         m.foo() # 1
         m.foo # 1
@@ -365,7 +239,6 @@ class MockData(TestData):
         mod_patched = type(
             class_name,
             tuple([mod] + list(mod.__bases__)),
-            #{k: copy.deepcopy(v) for k, v in mod.__dict__.items()}
             copy_dict(mod)
         )
         for name, patch in patches.items():
@@ -376,8 +249,8 @@ class MockData(TestData):
                 # was being changed on each iteration and so when I then called
                 # it the final value of patch was being returned instead of the
                 # value of patch when the lambda was created. a partial was the
-                # only way I could figure out how to make it work and return the
-                # correct value
+                # only way I could figure out how to make it work and return
+                # the correct value
                 patch = functools.partial(
                     lambda *a, **kw: kw["__patch"],
                     __patch=patch
@@ -392,7 +265,9 @@ class MockData(TestData):
         if not mod:
             raise ValueError("mod is empty")
 
-        if not patches: patches = {}
+        if not patches:
+            patches = {}
+
         patches.update(kwargs_patches) # combine both dicts
 
         # now we need to find the full module path so we can reload it
@@ -419,6 +294,7 @@ class MockData(TestData):
                     spec = importlib.machinery.PathFinder().find_spec(p, paths)
                     if spec.submodule_search_locations:
                         mod_path = spec.submodule_search_locations[0]
+
                     else:
                         mod_path = spec.origin
 
@@ -437,22 +313,12 @@ class MockData(TestData):
                     mfile = '{}.py'.format(mpath)
 
         mname = self.get_module_name(prefix=mod_name)
-        #mname = '{}_{}'.format(mod_name, get_ascii(8))
 
         # https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
         spec = importlib.util.spec_from_file_location(mname, mfile)
         m = importlib.util.module_from_spec(spec)
         sys.modules[mname] = m
         spec.loader.exec_module(m)
-
-
-        # ugh, this is deprecated in 3.4 (though it isn't throwing a warning
-#         m = importlib.machinery.SourceFileLoader(mname, mfile).load_module()
-        # https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
-
-#         loader = importlib.machinery.SourceFileLoader(mname, mfile)
-#         loaded = types.ModuleType(loader.name)
-#         m = loader.exec_module(loaded)
 
         # go through and apply all the patches
         for patch_name, patch in patches.items():
@@ -468,8 +334,10 @@ class MockData(TestData):
                             {".".join(parts[1:]): patch}
                         )
                     )
+
                 else:
                     setattr(m, parts[0], Mock(**{parts[-1]: patch}))
+
             else:
                 # if we're patching a function and patch isn't a function then
                 # make it a function
@@ -510,7 +378,7 @@ class MockData(TestData):
 
         return m
 
-    def mock_class(self, name="", patches=None, **kwargs_patches):
+    def mock_class(self, name="", patches=None, **kwargs_patches) -> type[Mock]:
         """create a class with the given method and properties
 
         :param name: string, the name of the class, default is just a random
@@ -519,17 +387,19 @@ class MockData(TestData):
         :param **kwargs_patches: dict, keys will be attributes on the object
         :returns: type, the object
         """
-        if not patches: patches = {}
+        if not patches:
+            patches = {}
+
         patches.update(kwargs_patches)
         return type(self.get_classname(name=name), (Mock,), patches)
 
-    def mock_instance(self, name="", patches=None, **kwargs_patches):
+    def mock_instance(self, name="", patches=None, **kwargs_patches) -> Mock:
         """This is the same as mock_class but returns an instance of that class
 
         see mock_class() docs"""
         return self.mock_class(name)(patches, **kwargs_patches)
 
-    def mock(self, patches=None, **kwargs_patches):
+    def mock(self, patches=None, **kwargs_patches) -> Mock:
         """Create a mocked object that tries to be really magical
 
         This is different than mock_instance because it creates an object that
@@ -539,41 +409,6 @@ class MockData(TestData):
         :returns: Mock instance
         """
         return Mock(patches, **kwargs_patches)
-
-    def mock_async(self, thing):
-        """Wrap thing so any async calls will return their actual values
-
-        :Example:
-            class Foo(object):
-                async bar(self, left, right):
-                    return left + right
-
-
-            instance = testdata.mock_async(Foo())
-            print(instance.bar(1, 2)) # 3
-
-            async def foo(left, right):
-                return left + right
-
-            afoo = testdata.mock_async(foo)
-            print(afoo(1, 2)) # 3
-
-        :param thing: callable|object|coroutine
-        :returns Any|AsyncRunner instance
-        """
-        if asyncio.iscoroutine(thing):
-            return AsyncRunner.normalize(thing)
-
-        else:
-            # if it has a __call__ and __func__ it's a method
-            # if it has a __call__ and __name__ it's a function
-            # if it just has a __call__ it's most likely an object instance
-            d = dir(thing)
-            if "__call__" in d and ("__func__" in d or "__name__" in d):
-                return AsyncRunner.decorate(thing)
-
-            else:
-                return AsyncRunner(thing)
 
     @contextmanager
     def environ(self, thing=None, **kwargs):
