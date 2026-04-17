@@ -22,7 +22,7 @@ class AsyncRunner(object):
     actual values, basically, this makes it easier to test async classes and
     methods
 
-    :Example:
+    :example:
         class Foo(object):
             async bar(self, left, right):
                 return left + right
@@ -177,9 +177,10 @@ class Mock(object):
 
     def __getitem__(self, key):
         try:
-            v = super(Mock, self).__getattribute__(key)
+            v = super().__getattribute__(key)
 
-        except AttributeError:
+        except (AttributeError, TypeError):
+            # TypeError: attribute name must be string, not 'int'
             return self
 
         else:
@@ -191,10 +192,10 @@ class Mock(object):
         # this makes sure the methods defined on this class get through this
         # call
         if key.startswith("_") and hasattr(type(self), key):
-            return super(Mock, self).__getattribute__(key)
+            return super().__getattribute__(key)
 
         try:
-            v = super(Mock, self).__getattribute__(key)
+            v = super().__getattribute__(key)
 
         except AttributeError:
             # if the attribute doesn't exist then return self so you can do
@@ -224,14 +225,14 @@ class Mock(object):
                         class MockAttr(class_type):
                             def __new__(cls, *args, **kwargs):
                                 try:
-                                    return super(MockAttr, cls).__new__(
+                                    return super().__new__(
                                         cls,
                                         *args,
                                         **kwargs
                                     )
 
                                 except TypeError:
-                                    return super(MockAttr, cls).__new__(cls)
+                                    return super().__new__(cls)
 
                             def __call__(self, *args, **kwargs):
                                 return v
@@ -438,8 +439,15 @@ class MockData(TestData):
         mname = self.get_module_name(prefix=mod_name)
         #mname = '{}_{}'.format(mod_name, get_ascii(8))
 
+        # https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
+        spec = importlib.util.spec_from_file_location(mname, mfile)
+        m = importlib.util.module_from_spec(spec)
+        sys.modules[mname] = m
+        spec.loader.exec_module(m)
+
+
         # ugh, this is deprecated in 3.4 (though it isn't throwing a warning
-        m = importlib.machinery.SourceFileLoader(mname, mfile).load_module()
+#         m = importlib.machinery.SourceFileLoader(mname, mfile).load_module()
         # https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
 
 #         loader = importlib.machinery.SourceFileLoader(mname, mfile)
