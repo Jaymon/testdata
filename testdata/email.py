@@ -147,6 +147,7 @@ class EmailData(TestData):
         :param headers: Any additional headers can be passed in here, usually
             as a mapping of header name as the keys and the header value as the
             values
+        :param encoding: sets the encoding for all `text/*` parts
         :returns:
             https://docs.python.org/3/library/email.message.html
         """
