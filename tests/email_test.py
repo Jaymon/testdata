@@ -53,3 +53,26 @@ class EmailDataTest(TestCase):
 
             prev_dt = dt
 
+    def test_encoding(self):
+        encoding = "us-ascii"
+
+        # only text/plain email
+        email = self.create_email_message(
+            data="foo bar",
+            encoding=encoding,
+        )
+        self.assertEqual(encoding, email.get_charset())
+
+        # multiple text/* parts 
+        email = self.create_email_message(
+            data={
+                "text/html": "<p>foo bar</p>",
+                "text/plain": "foo bar",
+            },
+            encoding=encoding,
+        )
+
+        for part in email.walk():
+            if part.get_content_type().startswith("text/"):
+                self.assertEqual(encoding, part.get_charset())
+

@@ -7,6 +7,8 @@ import os
 import copy
 import functools
 from contextlib import contextmanager
+from collections.abc import Callable
+from typing import Any
 
 from .compat import *
 from .base import TestData
@@ -156,6 +158,25 @@ class Mock(object):
 # testdata functions
 ###############################################################################
 class MockData(TestData):
+    def set_instance_property(
+        self,
+        instance: object,
+        name: str,
+        fget: Callable[[], Any]|None = None,
+        fset: Callable[[Any], None]|None = None,
+        fdel: Callable[[], None]|None = None,
+        doc: str = "",
+    ) -> object:
+        """Set a property descriptor on the passed in `instance`
+
+        https://docs.python.org/3/library/functions.html#property
+        """
+        prop = property(fget, fset, fdel, doc)
+        class_name = f"{instance.__class__.__name__}With_{name}"
+        new_class = type(class_name, (instance.__class__,), {name: prop})
+        instance.__class__ = new_class
+        return instance
+
     def patch_instance(self, mod, patches=None, **kwargs_patches):
         """Helper function called from .patch() that will patch a class
         instance"""

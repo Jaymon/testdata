@@ -136,6 +136,7 @@ class EmailData(TestData):
         msgid: str = "",
         prev_msgids: Iterable[str]|str|None = None,
         headers: Mapping[str, str]|Iterable[tuple[str, str]]|None = None,
+        encoding: str = "",
         **kwargs,
     ) -> EmailMessage:
         """Create an email message
@@ -230,17 +231,22 @@ class EmailData(TestData):
         else:
             data = {"text/plain": self.get_words()}
 
-        for media_type, content in data.items():
-            if media_type == "text/plain":
-                em.set_content(content)
+        # `set_content` has to be set before any others
+        if content := data.pop("text/plain", None):
+            em.set_content(content)
 
-            else:
-                maintype, subtype = media_type.split("/", 1)
-                em.add_alternative(
-                    content,
-                    maintype=maintype,
-                    subtype=subtype,
-                )
+        for media_type, content in data.items():
+            maintype, subtype = media_type.split("/", 1)
+            em.add_alternative(
+                content,
+                #maintype=maintype,
+                subtype=subtype,
+            )
+
+        if encoding:
+            for part in em.walk():
+                if part.get_content_type().startswith("text/"):
+                    part.set_charset(encoding)
 
         if headers:
             if isinstance(headers, Mapping):
