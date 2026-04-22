@@ -11,7 +11,7 @@ from email.utils import (
 import datetime
 import textwrap
 
-from datatypes import String, HTTPHeaders
+from datatypes import String, HTTPHeaders, Email
 
 from .compat import *
 from .base import TestData
@@ -192,7 +192,7 @@ class EmailData(TestData):
 
         em["From"] = from_address
         em["To"] = to_address
-        em["Date"] = format_datetime(self.get_datetime(**kwargs))
+        em["Date"] = format_datetime(self.get_datetime())
         em["Message-ID"] = msgid
 
         if prev_msgids:
@@ -261,6 +261,14 @@ class EmailData(TestData):
                     em[hn] = hv
 
         return em
+
+    def create_email_instance(self, *args, **kwargs) -> Email:
+        """Returns an Email instance that wraps python's built-in
+        `email.message.EmailMessage` with some QOL improvements.
+
+        This is named this way to not clash with custom method names
+        """
+        return Email(self.create_email_message(*args, **kwargs))
 
     def create_email_thread(
         self,

@@ -203,7 +203,7 @@ class TestData(object):
         raise AttributeError(name)
 
     @classmethod
-    async def call_method(self, method_name, *args, **kwargs):
+    async def call_method(cls, method_name, *args, **kwargs):
         """call `method_name` passing in `*args` and `**kwargs`
 
         This is just a convenience method for when you have a method's name
@@ -238,7 +238,7 @@ class TestData(object):
         return ret
 
     @classmethod
-    def get_jsonable_value(self, value):
+    def get_jsonable_value(cls, value):
         """Does its very very best to convert `value` to something that can
         be serialized to json
 
@@ -402,4 +402,15 @@ class TestData(object):
             callable
         """
         return []
+
+    def get_call_arguments(
+        self,
+        method: Callable,
+        *args,
+        **kwargs,
+    ) -> tuple[Sequence, Mapping]:
+        """Returns the `args` and `kwargs` for `method`, ignoring anything
+        that can't be passed to `method`"""
+        bind_info = ReflectCallable(method).get_bind_info(*args, **kwargs)
+        return bind_info["bound_args"], bind_info["bound_kwargs"]
 
