@@ -298,7 +298,7 @@ class StringData(TestData):
     get_uni_word = get_unicode_word
 
     def get_words(self, count=0, as_str=True, words=None, **kwargs):
-        '''get some amount of random words
+        """Get some amount of random words
 
         :param count: int, how many words you want, 0 means a random amount (at
             most 20)
@@ -306,10 +306,16 @@ class StringData(TestData):
             of words
         :param words: list, a list of words to choose from, defaults to unicode
             + ascii words
-        :param **kwargs:
-            sep: str, the separator to use between the words, defaults to space
+        :keyword sep: str, the separator to use between the words, defaults
+            to space
+        :keyword min_count: the minimum amount of words seperated by `sep`
+        :keyword max_count: the maximum count of words separated by `sep`
+        :keyword min_size: the minimum width of the string
+        :keyword max_size: the maximum width of the string, this will attempt
+            to break on a `sep` boundary but if it can't it will just cut the
+            string at `max_size`
         :returns: str|list, your requested words
-        '''
+        """
         min_size, max_size = self.get_bounds(
             min_size=kwargs.get("min_size", 0),
             max_size=kwargs.get("max_size", 0),
@@ -346,7 +352,8 @@ class StringData(TestData):
                 )
 
                 if len(rw) < min_size:
-                    # truncating on word boundary failed so we won't be surgical
+                    # truncating on word boundary failed so we won't be
+                    # surgical
                     rw = ret_words[:min_size]
 
                 ret_words = rw

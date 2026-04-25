@@ -207,7 +207,7 @@ class EmailData(TestData):
             em["References"] = " ".join(prev_msgids)
 
         if not subject:
-            subject = self.get_words(min_size=1, max_size=10)
+            subject = self.get_words()
 
         if prev_msgids and not subject.startswith("Re:"):
             subject = ("Re: " * len(prev_msgids)) + subject
