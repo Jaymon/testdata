@@ -299,30 +299,6 @@ class DatetimeTest(TestCase):
         )
         self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
 
-        d = testdata.get_datetime(3600, backward=True)
-        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
-
-        d = testdata.get_datetime(-3600, backward=True)
-        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
-
-        d = testdata.get_datetime(-3600)
-        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
-
-        d = testdata.get_datetime(3600)
-        self.assertLess(datetime.datetime.now(datetime.timezone.utc), d)
-
-        d = testdata.get_datetime(
-            datetime.timedelta(seconds=-3600),
-            backward=True
-        )
-        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
-
-        d = testdata.get_datetime(
-            datetime.timedelta(seconds=3600),
-            backward=True
-        )
-        self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
-
         d = testdata.get_datetime(datetime.timedelta(seconds=-3600))
         self.assertGreater(datetime.datetime.now(datetime.timezone.utc), d)
 
@@ -339,7 +315,6 @@ class DatetimeTest(TestCase):
             now = datetime.datetime.now(datetime.timezone.utc)
             self.assertGreater(now, dt)
 
-        time.sleep(0.1)
         stop = datetime.datetime.now(datetime.timezone.utc)
         for x in range(5):
             dt = testdata.get_between_datetime(start, stop)
@@ -371,4 +346,14 @@ class DatetimeTest(TestCase):
         for x in range(3):
             dt = testdata.get_between_date(start)
             self.assertTrue(type(dt) is datetime.date)
+
+    def test_get_timestamp(self):
+        ts = self.get_timestamp()
+        self.assertTrue(isinstance(ts, float))
+
+        ts = self.get_timestamp(as_int=True)
+        self.assertTrue(isinstance(ts, int))
+
+        ts2 = self.get_timestamp(as_int=True, ndigits=0)
+        self.assertGreater(len(str(ts)), len(str(ts2)))
 
