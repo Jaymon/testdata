@@ -78,7 +78,7 @@ class DatetimeData(TestData):
         return bday
     get_bday = get_birthday
 
-    def get_past_datetime(
+    def get_before_datetime(
         self,
         now: Now = None,
     ) -> Datetime:
@@ -94,18 +94,18 @@ class DatetimeData(TestData):
             days=random.randint(1, max(td.days, 1)),
             seconds=random.randint(1, max(td.seconds, 1))
         )
-    get_past_dt = get_past_datetime
-    get_passed_datetime = get_past_datetime
-    get_before_datetime = get_past_datetime
-    get_past_date_time = get_past_datetime
+    get_past_datetime = get_before_datetime
+    get_past_dt = get_before_datetime
+    get_passed_datetime = get_before_datetime
+    get_past_date_time = get_before_datetime
 
-    def get_past_date(self, now: Now = None) -> datetime.date:
+    def get_before_date(self, now: Now = None) -> datetime.date:
         """return a date guaranteed to be in the past from now"""
         return self.get_past_datetime(now).date()
+    get_past_date = get_before_date
     get_passed_date = get_past_date
-    get_before_date = get_past_date
 
-    def get_future_datetime(self, now: Now = None) -> Datetime:
+    def get_after_datetime(self, now: Now = None) -> Datetime:
         """return a datetime guaranteed to be in the future from now"""
         now = self.get_datetime(now)
         return now + datetime.timedelta(
@@ -114,14 +114,16 @@ class DatetimeData(TestData):
             days=random.randint(0, 365),
             seconds=random.randint(0, 86400)
         )
-    get_future_dt = get_future_datetime
-    get_after_dt = get_future_datetime
-    get_after_date_time = get_future_datetime
-    get_future_date_time = get_future_datetime
+    get_after_dt = get_after_datetime
+    get_after_date_time = get_after_datetime
+    get_future_datetime = get_after_datetime
+    get_future_dt = get_after_datetime
+    get_future_date_time = get_after_datetime
 
-    def get_future_date(self, now=None):
+    def get_after_date(self, now=None):
         """Get a date guarranteed to be in the future from `now`"""
         return self.get_future_datetime(now).date()
+    get_future_date = get_after_date
 
     def get_between_datetime(self, start: Now, stop: Now = None) -> Datetime:
         """get a datetime between start and stop
