@@ -137,6 +137,7 @@ class EmailData(TestData):
         prev_msgids: Iterable[str]|str|None = None,
         headers: Mapping[str, str]|Iterable[tuple[str, str]]|None = None,
         encoding: str = "",
+        sent: datetime.datetime|None = None,
         **kwargs,
     ) -> EmailMessage:
         """Create an email message
@@ -148,6 +149,7 @@ class EmailData(TestData):
             as a mapping of header name as the keys and the header value as the
             values
         :param encoding: sets the encoding for all `text/*` parts
+        :param sent: sets the email's `Date` header
         :returns:
             https://docs.python.org/3/library/email.message.html
         """
@@ -192,7 +194,7 @@ class EmailData(TestData):
 
         em["From"] = from_address
         em["To"] = to_address
-        em["Date"] = format_datetime(self.get_datetime())
+        em["Date"] = format_datetime(sent or self.get_datetime())
         em["Message-ID"] = msgid
 
         if prev_msgids:
@@ -330,25 +332,17 @@ class EmailData(TestData):
                     to_address=to_addresses,
                     prev_msgids=prev_msgids,
                     data=data,
-                    headers={
-                        "Date": format_datetime(
-                            self.get_between_datetime(dt),
-                        ),
-                    },
+                    sent=self.get_between_datetime(dt),
                     **kwargs,
                 ))
 
             else:
-                dt = self.get_past_datetime(**kwargs)
-                headers = HTTPHeaders(kwargs.pop("headers", {}))
-                if "Date" not in headers:
-                    headers["Date"] = format_datetime(dt)
-
+                dt = self.get_before_datetime()
                 emails.append(self.create_email_message(
                     subject=subject,
                     from_address=from_address,
                     to_address=to_address,
-                    headers=headers,
+                    sent=dt,
                     **kwargs,
                 ))
 
