@@ -159,3 +159,28 @@ class DatetimeData(TestData):
     def get_between_date(self, start: Now, stop: Now = None) -> datetime.date:
         return self.get_between_datetime(start, stop).date()
 
+    def get_datetimes(
+        self,
+        count: int = 2,
+        start: Now = None,
+        stop: Now = None,
+    ) -> list[Datetime]:
+        """Create `count` `Datetime` instances, these datetimes are guarranteed
+        to be sorted by earliest to latest and to be no earlier than start and
+        no later than stop
+
+        :param count: how many datetimes are wanted
+        :param start: if None, then `.get_before_datetime` will be called
+        :param stop: if None, then current time will be used
+        """
+        datetimes = []
+
+        if start is None:
+            start = self.get_before_datetime(stop)
+
+        for _ in range(count):
+            start = self.get_between_datetime(start, stop)
+            datetimes.append(start)
+
+        return datetimes
+
