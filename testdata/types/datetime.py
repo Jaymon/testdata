@@ -97,13 +97,6 @@ class DatetimeData(TestData):
     get_past_datetime = get_before_datetime
     get_past_dt = get_before_datetime
     get_passed_datetime = get_before_datetime
-    get_past_date_time = get_before_datetime
-
-#     def get_before_date(self, now: Now = None) -> datetime.date:
-#         """return a date guaranteed to be in the past from now"""
-#         return self.get_past_datetime(now).date()
-#     get_past_date = get_before_date
-#     get_passed_date = get_past_date
 
     def get_after_datetime(self, now: Now = None) -> Datetime:
         """return a datetime guaranteed to be in the future from now"""
@@ -115,15 +108,8 @@ class DatetimeData(TestData):
             seconds=random.randint(0, 86400)
         )
     get_after_dt = get_after_datetime
-    get_after_date_time = get_after_datetime
     get_future_datetime = get_after_datetime
     get_future_dt = get_after_datetime
-    get_future_date_time = get_after_datetime
-
-#     def get_after_date(self, now=None):
-#         """Get a date guarranteed to be in the future from `now`"""
-#         return self.get_future_datetime(now).date()
-#     get_future_date = get_after_date
 
     def get_between_datetime(self, start: Now, stop: Now = None) -> Datetime:
         """get a datetime between start and stop
@@ -154,10 +140,6 @@ class DatetimeData(TestData):
 
         return start + datetime.timedelta(**kwargs)
     get_between_dt = get_between_datetime
-    get_between_date_time = get_between_datetime
-
-#     def get_between_date(self, start: Now, stop: Now = None) -> datetime.date:
-#         return self.get_between_datetime(start, stop).date()
 
     def get_datetimes(
         self,
