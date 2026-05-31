@@ -20,7 +20,7 @@ from .test import (
     expected_failure,
     expect_failure,
 )
-from .threading import ThreadingData
+from .threading import ThreadingData, Thread
 from .client import ClientData
 from .output import OutputData
 from .path import PathData
