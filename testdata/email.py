@@ -262,15 +262,17 @@ class EmailData(TestData):
                 else:
                     em[hn] = hv
 
-        return em
+        return Email(em)
 
+    # DEPRECATED 2026-07-27
     def create_email_instance(self, *args, **kwargs) -> Email:
         """Returns an Email instance that wraps python's built-in
         `email.message.EmailMessage` with some QOL improvements.
 
         This is named this way to not clash with custom method names
         """
-        return Email(self.create_email_message(*args, **kwargs))
+        return self.create_email_message(*args, **kwargs)
+        #return Email(self.create_email_message(*args, **kwargs))
 
     def create_email_thread(
         self,
