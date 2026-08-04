@@ -1,6 +1,6 @@
 # Testdata
 
-Generate Random Test Data.
+Generate Random Test Data. [This post goes into detail why this library exists](https://marcyes.com/2014/0309-on-software-testing/).
 
 These are just a bunch of handy functions designed to make it easier to test your code.
 
