@@ -18,17 +18,17 @@ class FileserverTest(TestCase):
             pass
 
     def test_alternate_args(self):
-        content = testdata.get_words()
+        text = testdata.get_words()
 
-        server = testdata.create_fileserver(content)
+        server = testdata.create_fileserver(text)
         with server:
             res = testdata.fetch(server)
-            self.assertEqual(content, res.content)
+            self.assertEqual(text, res.text)
 
-        server = testdata.create_fileserver([content])
+        server = testdata.create_fileserver([text])
         with server:
             res = testdata.fetch(server)
-            self.assertEqual(content, res.content)
+            self.assertEqual(text, res.text)
 
     def test_serve_1(self):
         server = testdata.create_fileserver({
@@ -38,16 +38,16 @@ class FileserverTest(TestCase):
 
         server.start()
         res = testdata.fetch(server.url("foo.txt"))
-        self.assertEqual("foo", res.content)
+        self.assertEqual("foo", res.text)
         server.stop()
 
         with server:
             res = testdata.fetch(server.url("bar.txt"))
-            self.assertEqual("bar", res.content)
+            self.assertEqual("bar", res.text)
 
         with testdata.create_fileserver({"che.txt": ["che"]}) as s:
             res = testdata.fetch(s.url("che.txt"))
-            self.assertEqual("che", res.content)
+            self.assertEqual("che", res.text)
 
     def test_server_encoding(self):
         name = testdata.get_filename(ext="txt")

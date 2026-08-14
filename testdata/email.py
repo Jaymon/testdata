@@ -255,12 +255,22 @@ class EmailData(TestData):
             if isinstance(headers, Mapping):
                 headers = headers.items()
 
+            seen_hn = set()
             for hn, hv in headers:
                 if hn in em:
-                    em.replace_header(hn, hv)
+                    if hn in seen_hn:
+                        # if the header is a duplicate in the passed in headers
+                        # then add it instead since it's an intentional
+                        # duplication
+                        em.add_header(hn, hv)
+
+                    else:
+                        em.replace_header(hn, hv)
 
                 else:
                     em[hn] = hv
+
+                seen_hn.add(hn)
 
         return Email(em)
 
