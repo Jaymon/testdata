@@ -76,3 +76,15 @@ class EmailDataTest(TestCase):
             if part.get_content_type().startswith("text/"):
                 self.assertEqual(encoding, part.get_charset())
 
+    def test_create_email_thread_datas(self):
+        datas = [
+            "one",
+            "two",
+            "three",
+        ]
+        emails = self.create_email_thread(datas=datas)
+
+        self.assertEqual(3, len(emails))
+        for i, email in enumerate(emails):
+            self.assertTrue(email.plain.startswith(datas[i]))
+

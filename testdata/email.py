@@ -274,33 +274,40 @@ class EmailData(TestData):
 
         return Email(em)
 
-    # DEPRECATED 2026-07-27
-    def create_email_instance(self, *args, **kwargs) -> Email:
-        """Returns an Email instance that wraps python's built-in
-        `email.message.EmailMessage` with some QOL improvements.
-
-        This is named this way to not clash with custom method names
-        """
-        return self.create_email_message(*args, **kwargs)
-        #return Email(self.create_email_message(*args, **kwargs))
-
     def create_email_thread(
         self,
         subject: str = "",
         from_address: str|tuple[str, str] = "",
         to_address: str|tuple[str, str]|Iterable[str|tuple[str, str]] = "",
         count: int = 2,
+        datas: Iterable[str]|Iterable[dict[str, str]]|None = None,
         **kwargs,
     ) -> list[EmailMessage]:
         """Create a thread of emails. This will handle alternating from and
         to addresses and things like that
 
         :param count: how many messages you want in the thread
+        :param datas: Specific message body data, each value would correspond
+            to the data of that message, if the index is empty then a message
+            will be generated. If this is passed in it will override `count` if
+            `count` is smaller than the passed in `datas` length, otherwise
+            `count` takes precedence
         """
         emails = []
         prev_msgids = []
 
-        for _ in range(count):
+        # passed in email data takes precedent takes precedent over count
+        datas = [] if datas is None else list(datas)
+        if (datas_count := len(datas)) > count:
+            count = datas_count
+
+        for index in range(count):
+            try:
+                data = datas[index]
+
+            except IndexError:
+                data = ""
+
             if emails:
                 prev_msgids.append(emails[-1].get("Message-ID"))
 
@@ -309,7 +316,8 @@ class EmailData(TestData):
                     "%a, %d %b %Y %H:%M:%S %z",
                 )
 
-                data = self.get_words()
+                if not data:
+                    data = self.get_words()
                 data += "\n\n"
 
                 ds = dt.strftime("%a, %b %d, %Y at %I:%M %p")
@@ -355,6 +363,7 @@ class EmailData(TestData):
                     from_address=from_address,
                     to_address=to_address,
                     sent=dt,
+                    data=data,
                     **kwargs,
                 ))
 
