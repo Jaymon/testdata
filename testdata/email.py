@@ -1,6 +1,6 @@
 import random
 from collections.abc import Mapping, Iterable
-from email.message import EmailMessage
+#from email.message import EmailMessage
 from email.utils import (
     formataddr,
     format_datetime,
@@ -11,7 +11,7 @@ from email.utils import (
 import datetime
 import textwrap
 
-from datatypes import String, HTTPHeaders, Email
+from datatypes import String, HTTPHeaders, Email, EmailAddress, EmailMessage
 
 from .compat import *
 from .base import TestData
@@ -30,18 +30,22 @@ class EmailData(TestData):
         name: str = "",
         address: str = "",
         **kwargs,
-    ) -> str:
+    ) -> EmailAddress:
         """return a random email address
 
         :keyword name: if passed in then `<name> <<username>@<domain>>` will
             be generated as the return address
         :keyword unique: If True then `name` will have a random suffix added
-            to it to better guarrantee uniqueness, in practice, unless you
+            to it to better guarantee uniqueness, in practice, unless you
             are generating millions of email addresses this probably isn't
             needed to ever be True
         :keyword address: takes precedence over `username` and `domain`
         """
-        if not address:
+        if address:
+            address = EmailAddress(address)
+
+        else:
+        #if not address:
             to_lower = False if username else True
             username = self.get_username(username)
             if unique:
@@ -84,10 +88,15 @@ class EmailData(TestData):
                 else:
                     domain = self.get_domain()
 
-            address = "{}@{}".format(username, domain)
+            address = EmailAddress(f"{username}@{domain}")
 
         if name:
-            address = formataddr((name, address))
+            address.name = name
+            #address = formataddr((name, address))
+
+        else:
+            if not address.name:
+                address.name = self.get_name()
 
         return address
 
@@ -153,48 +162,104 @@ class EmailData(TestData):
         :returns:
             https://docs.python.org/3/library/email.message.html
         """
-        if not from_address:
-            if self.yes():
-                from_address = formataddr((
-                    self.get_name(),
-                    self.get_email_address(),
-                ))
+        em = EmailMessage()
 
-            else:
-                from_address = self.get_email_address()
+        em["Date"] = format_datetime(sent or self.get_datetime())
 
-        if isinstance(from_address, tuple):
-            from_address = formataddr(from_address)
+        from_address = self.get_email_address(address=from_address)
+        em["From"] = from_address.formataddr() if self.yes() else from_address
 
-        if not to_address:
-            if self.yes():
-                to_address = formataddr((
-                    self.get_name(),
-                    self.get_email_address(),
-                ))
+#         else:
+#             from_address = self.get_email_address()
+# 
+#             if self.yes():
+#                 from_address = from_address.formataddr()
+#                 from_address = formataddr((
+#                     self.get_name(),
+#                     self.get_email_address(),
+#                 ))
+# 
+#             else:
+#                 from_address = self.get_email_address()
 
-            else:
-                to_address = self.get_email_address()
+#         if isinstance(from_address, tuple):
+#             from_address = formataddr(from_address)
 
-        if not isinstance(to_address, str):
-            if isinstance(to_address, tuple):
-                to_address = formataddr(to_address)
+        if to_address:
+            if isinstance(to_address, (str, tuple)):
+                to_address = self.get_email_address(address=to_address)
 
+                em["To"] = (
+                    to_address.formataddr() if self.yes() else to_address
+                )
             elif isinstance(to_address, Iterable):
+                # any other non-string or non-tuple iterable would be
+                # multiple addresses
                 to_address = list(to_address)
                 for i in range(len(to_address)):
-                    if isinstance(to_address[i], tuple):
-                        to_address[i] = formataddr(to_address[i])
+                    to_address[i] = self.get_email_address(
+                        address=to_address[i],
+                    )
+
+                em["To"] = to_address
+
+            else:
+                raise TypeError("to_address has an incorrect type")
+
+        else:
+            to_address = self.get_email_address(address=to_address)
+            em["To"] = to_address
+
+        if self.yes():
+            # Delivered-To seems to be non-standard but common
+            # https://www.postfix.org/virtual.8.html
+            if isinstance(to_address, str):
+#                 _, email_address = parseaddr(to_address)
+                em["Delivered-To"] = to_address
+
+            else:
+                em["Delivered-To"] = random.choice(to_address)
+                #_, email_address = parseaddr(random.choice(list(to_address)))
+
+#             em["Delivered-To"] = email_address
+
+#         if not to_address:
+#             to_address = self.get_email_address()
+# 
+#             if self.yes():
+#                 to_address = to_address.formataddr()
+#                 to_address = formataddr((
+#                     self.get_name(),
+#                     self.get_email_address(),
+#                 ))
+# 
+#             else:
+#                 to_address = self.get_email_address()
+
+#         if not isinstance(to_address, str):
+#             if isinstance(to_address, tuple):
+#                 # tuple would be ("name", "username@domain")
+#                 to_address = self.get_email_address(address=to_address)
+# #                 to_address = formataddr(to_address)
+# 
+#             elif isinstance(to_address, Iterable):
+#                 # any other non-string iterable would be multiple addresses
+#                 to_address = list(to_address)
+#                 for i in range(len(to_address)):
+#                     to_address[i] = self.get_email_address(
+#                         address=to_address[i],
+#                     )
+#                     if isinstance(to_address[i], tuple):
+#                         to_address[i] = formataddr(to_address[i])
+# 
+#                     to_address[i] = self.get_email_address(
+#                         address=to_address[i],
+#                     )
 
         if not msgid:
             from_domain = from_address.split("@", 1)[1].rstrip(">")
             msgid = make_msgid(domain=from_domain)
 
-        em = EmailMessage()
-
-        em["From"] = from_address
-        em["To"] = to_address
-        em["Date"] = format_datetime(sent or self.get_datetime())
         em["Message-ID"] = msgid
 
         if prev_msgids:
@@ -215,17 +280,6 @@ class EmailData(TestData):
             subject = ("Re: " * len(prev_msgids)) + subject
 
         em["Subject"] = subject
-
-        if self.yes():
-            # Delivered-To seems to be non-standard but common
-            # https://www.postfix.org/virtual.8.html
-            if isinstance(to_address, str):
-                _, email_address = parseaddr(to_address)
-
-            else:
-                _, email_address = parseaddr(random.choice(list(to_address)))
-
-            em["Delivered-To"] = email_address
 
         if data:
             if isinstance(data, str):

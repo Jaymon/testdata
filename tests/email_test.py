@@ -1,6 +1,8 @@
 from email.utils import getaddresses
 import datetime
 
+from datatypes import EmailAddress
+
 from . import TestCase
 
 
@@ -9,7 +11,7 @@ class EmailDataTest(TestCase):
         em = self.create_email_message()
         self.assertTrue(str(em))
 
-    def test_get_email_address(self):
+    def test_get_email_address_1(self):
         email = self.get_email_address()
         self.assertGreater(len(email), 0)
         self.assertTrue("'" not in email)
@@ -21,11 +23,32 @@ class EmailDataTest(TestCase):
         email = self.get_email_address("foo'bar")
         self.assertTrue(email.startswith("foobar"))
 
+    def test_get_email_address_name(self):
+        name = self.get_name()
+        email = self.get_email_address(name=name)
+        self.assertEqual(name, email.name)
+
+        email = self.get_email_address(
+            name=name,
+            address="\"Foo Bar\" <foo@bar.com>",
+        )
+        self.assertEqual(name, email.name) # name should override address
+
+        email = self.get_email_address(address="\"Foo Bar\" <foo@bar.com>")
+        self.assertEqual("Foo Bar", email.name)
+
     def test_create_email_thread_1(self):
         emails = self.create_email_thread(count=3)
         for i in range(1, len(emails)):
-            self.assertEqual(emails[i - 1]["To"], emails[i]["From"])
-            self.assertEqual(emails[i - 1]["From"], emails[i]["To"])
+            a = EmailAddress(address=emails[i - 1]["To"])
+            b = EmailAddress(address=emails[i]["From"])
+            self.assertEqual(a, b)
+#             self.assertEqual(emails[i - 1]["To"], emails[i]["From"])
+
+            a = EmailAddress(address=emails[i - 1]["From"])
+            b = EmailAddress(address=emails[i]["To"])
+            self.assertEqual(a, b)
+#             self.assertEqual(emails[i - 1]["From"], emails[i]["To"])
 
     def test_create_email_thread_tos(self):
         to_addresses = [
