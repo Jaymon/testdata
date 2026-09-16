@@ -16,6 +16,7 @@ import string
 import sys
 import uuid
 import hashlib
+from collections.abc import Iterable
 
 from datatypes import Url, ByteString
 
@@ -409,4 +410,27 @@ class StringData(TestData):
     def get_unicode_lines(self, count=0, as_str=True, **kwargs):
         return self.get_lines(count, as_str, words=_unicode_words, **kwargs)
     get_uni_lines = get_unicode_lines
+
+    def get_multiline_str(self, data: str|Iterable[str] = ""):
+        """Get a multiline string. Mainly, this is a shortcut for removing
+        indentation in a multiline (three quotes) string or turning a list of
+        lines into a string
+
+        :example:
+            s = self.get_multiline_str('''
+                foo
+                bar
+            ''')
+            print(s) # "foo\nbar"
+
+            s = self.get_multiline_str(["foo", "bar"])
+            print(s) # "foo\nbar"
+        """
+        if not isinstance(data, str):
+            data = "\n".join(data)
+
+        return String(data).dedent().strip()
+    get_multiline_string = get_multiline_str
+    get_line_str = get_multiline_str
+    get_line_string = get_multiline_str
 

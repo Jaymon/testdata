@@ -117,6 +117,16 @@ class StringTest(TestCase):
         s = testdata.get_url("foo", "bar")
         self.assertTrue(s.endswith("/foo/bar"))
 
+    def test_get_multiline_str(self):
+        s = self.get_multiline_str("""
+            foo
+            bar
+        """)
+        self.assertEqual("foo\nbar", s)
+
+        s = self.get_multiline_str(["foo", "bar"])
+        self.assertEqual("foo\nbar", s)
+
 
 class NumberTest(TestCase):
     def test_get_range(self):
