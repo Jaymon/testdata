@@ -1,17 +1,16 @@
 import random
 from collections.abc import Mapping, Iterable
-#from email.message import EmailMessage
 from email.utils import (
-    formataddr,
+    #formataddr,
+    #parseaddr,
     format_datetime,
     make_msgid,
-    parseaddr,
     getaddresses,
 )
 import datetime
 import textwrap
 
-from datatypes import String, HTTPHeaders, Email, EmailAddress, EmailMessage
+from datatypes import Email, EmailAddress, EmailMessage
 
 from .compat import *
 from .base import TestData
@@ -45,7 +44,6 @@ class EmailData(TestData):
             address = EmailAddress(address)
 
         else:
-        #if not address:
             to_lower = False if username else True
             username = self.get_username(username)
             if unique:
@@ -92,7 +90,6 @@ class EmailData(TestData):
 
         if name:
             address.name = name
-            #address = formataddr((name, address))
 
         else:
             if not address.name:
@@ -169,22 +166,6 @@ class EmailData(TestData):
         from_address = self.get_email_address(address=from_address)
         em["From"] = from_address.formataddr() if self.yes() else from_address
 
-#         else:
-#             from_address = self.get_email_address()
-# 
-#             if self.yes():
-#                 from_address = from_address.formataddr()
-#                 from_address = formataddr((
-#                     self.get_name(),
-#                     self.get_email_address(),
-#                 ))
-# 
-#             else:
-#                 from_address = self.get_email_address()
-
-#         if isinstance(from_address, tuple):
-#             from_address = formataddr(from_address)
-
         if to_address:
             if isinstance(to_address, (str, tuple)):
                 to_address = self.get_email_address(address=to_address)
@@ -214,47 +195,10 @@ class EmailData(TestData):
             # Delivered-To seems to be non-standard but common
             # https://www.postfix.org/virtual.8.html
             if isinstance(to_address, str):
-#                 _, email_address = parseaddr(to_address)
                 em["Delivered-To"] = to_address
 
             else:
                 em["Delivered-To"] = random.choice(to_address)
-                #_, email_address = parseaddr(random.choice(list(to_address)))
-
-#             em["Delivered-To"] = email_address
-
-#         if not to_address:
-#             to_address = self.get_email_address()
-# 
-#             if self.yes():
-#                 to_address = to_address.formataddr()
-#                 to_address = formataddr((
-#                     self.get_name(),
-#                     self.get_email_address(),
-#                 ))
-# 
-#             else:
-#                 to_address = self.get_email_address()
-
-#         if not isinstance(to_address, str):
-#             if isinstance(to_address, tuple):
-#                 # tuple would be ("name", "username@domain")
-#                 to_address = self.get_email_address(address=to_address)
-# #                 to_address = formataddr(to_address)
-# 
-#             elif isinstance(to_address, Iterable):
-#                 # any other non-string iterable would be multiple addresses
-#                 to_address = list(to_address)
-#                 for i in range(len(to_address)):
-#                     to_address[i] = self.get_email_address(
-#                         address=to_address[i],
-#                     )
-#                     if isinstance(to_address[i], tuple):
-#                         to_address[i] = formataddr(to_address[i])
-# 
-#                     to_address[i] = self.get_email_address(
-#                         address=to_address[i],
-#                     )
 
         if not msgid:
             from_domain = from_address.split("@", 1)[1].rstrip(">")
@@ -375,7 +319,6 @@ class EmailData(TestData):
                 data += "\n\n"
 
                 ds = dt.strftime("%a, %b %d, %Y at %I:%M %p")
-                #from_addr = formataddr(parseaddr(emails[-1].get("From")))
                 from_addr = emails[-1].get("From")
                 data += f"On {ds} {from_addr} wrote:\n\n"
 

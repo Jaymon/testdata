@@ -43,12 +43,10 @@ class EmailDataTest(TestCase):
             a = EmailAddress(address=emails[i - 1]["To"])
             b = EmailAddress(address=emails[i]["From"])
             self.assertEqual(a, b)
-#             self.assertEqual(emails[i - 1]["To"], emails[i]["From"])
 
             a = EmailAddress(address=emails[i - 1]["From"])
             b = EmailAddress(address=emails[i]["To"])
             self.assertEqual(a, b)
-#             self.assertEqual(emails[i - 1]["From"], emails[i]["To"])
 
     def test_create_email_thread_tos(self):
         to_addresses = [
