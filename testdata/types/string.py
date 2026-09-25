@@ -411,7 +411,7 @@ class StringData(TestData):
         return self.get_lines(count, as_str, words=_unicode_words, **kwargs)
     get_uni_lines = get_unicode_lines
 
-    def get_multiline_str(self, data: str|Iterable[str] = ""):
+    def get_multiline_str(self, data: str|Iterable[str]) -> str:
         """Get a multiline string. Mainly, this is a shortcut for removing
         indentation in a multiline (three quotes) string or turning a list of
         lines into a string
@@ -433,4 +433,26 @@ class StringData(TestData):
     get_multiline_string = get_multiline_str
     get_line_str = get_multiline_str
     get_line_string = get_multiline_str
+
+    def get_paragraph_str(self, data: str|Iterable[str]) -> str:
+        """Convert `data` to a paragraph of text.
+
+        This is handy to turn a bunch of formatted lines in a triple quoted
+        string into a paragraph even if the original value is formatted to
+        80 characters or something
+
+        :example:
+            s = self.get_paragraph_str(["foo", "bar", "che"])
+            print(s) # "foo bar che"
+        """
+        s = ""
+        text = self.get_multiline_str(data)
+        for line in text.splitlines(False):
+            if s and not s.endswith(" "):
+                s += " "
+
+            s += line.strip()
+
+        return s
+    get_para_str = get_paragraph_str
 

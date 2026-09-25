@@ -127,6 +127,17 @@ class StringTest(TestCase):
         s = self.get_multiline_str(["foo", "bar"])
         self.assertEqual("foo\nbar", s)
 
+    def test_get_paragraph_str(self):
+        s = self.get_paragraph_str("""
+            Foo
+            bar
+            che.
+            Baz
+            boo
+        """)
+
+        self.assertEqual("Foo bar che. Baz boo", s)
+
 
 class NumberTest(TestCase):
     def test_get_range(self):
