@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 import importlib
 from collections import OrderedDict
 import inspect
@@ -605,6 +606,29 @@ class ModulepathTest(TestCase):
 
         mn = testdata.get_module_name(prefix="get_module_name")
         self.assertTrue(mn.startswith("get_module_name"))
+
+    def test_create_modules_load(self):
+        for mname in ["foo", "bar"]:
+            with self.assertRaises(KeyError):
+                m = sys.modules[mname]
+
+        mpath = self.create_modules(
+            {
+                "foo": [
+                    "from prom import Orm",
+                    "class Baz(Orm): pass",
+                ],
+                "bar": [
+                    "from prom import Orm",
+                    "class Che(Orm): pass",
+                ],
+            },
+            load=True,
+        )
+
+        for mname in ["foo", "bar"]:
+            m = sys.modules[mname]
+            self.assertTrue(inspect.getfile(m).startswith(mpath))
 
 
 class ImageTest(TestCase):

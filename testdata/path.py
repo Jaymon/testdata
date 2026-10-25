@@ -938,12 +938,12 @@ class PathData(TestData):
                 data=data,
                 modpath=modname,
                 tmpdir=module_base_dir,
-                **kwargs
+                **kwargs,
             )
             kwargs["make_importable"] = False
 
         return module_base_dir
-    create_packages = create_module
+    create_packages = create_modules
 
     def create_module_classes(self, data="", modpath="", tmpdir="", **kwargs):
         """Create a python module using data and then return all the classes
